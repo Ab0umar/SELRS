@@ -115,9 +115,9 @@ describe("Manus WhatsApp drafting", () => {
       Buffer.from(
         JSON.stringify({
           messages: [
-            "أهلًا بحضرتك 👋\nكشف الأخصائي يوم الأحد والخميس بـ200ج بدل 260ج.",
-            "محتاج تطمّن على نظرك؟\nالأخصائي موجود الأحد والخميس، الكشف بـ200ج بدل 260ج.",
-            "عيونك تستاهل كشف.\nالأحد والخميس مع الأخصائي بـ200ج بدل 260ج.",
+            "أهلًا بحضرتك 👋\nعيونك تستاهل كشف يطمّنك.",
+            "محتاج تطمّن على نظرك؟\nالفرصة دي ليك.",
+            "عيونك تستاهل اهتمام.\nاحجز مكانك.",
           ],
         }),
       ),
@@ -125,7 +125,9 @@ describe("Manus WhatsApp drafting", () => {
     const result = await readWhatsAppCopy(input.requestId, 42);
     expect(result?.variants).toHaveLength(3);
     for (const text of result?.variants ?? []) {
-      expect(text).toMatch(/200ج[\s\S]*260ج/);
+      expect(text).toContain(
+        "الكشف مع الأخصائي فقط أيام الأحد والخميس بـ200ج بدلًا من 260ج.\nللحجز: https://selrs.cc",
+      );
       expect(text.endsWith("للحجز: https://selrs.cc")).toBe(true);
       expect(text).not.toContain("إشراف");
     }
@@ -151,26 +153,23 @@ describe("Manus WhatsApp drafting", () => {
   });
 });
 describe("WhatsApp message validation", () => {
-  it("rejects exam messages that widen eligibility, add days, or carry links", async () => {
-    vi.spyOn(AiManagementStore.prototype, "boundRequest").mockResolvedValue({
-      provider: "manus",
-      model: "max",
-      workload: "whatsapp.marketing",
-      state: "running",
-      task_id: "whatsapp-task",
-      created_ms: Date.now(),
-      input_hash: "x",
-    });
+  it("rejects model text that states offer terms, days, numbers, or links", async () => {
     const { messagesSchemaForTest } = await import(
       "../services/ai/whatsappCopy"
     );
     const schema = messagesSchemaForTest(input);
-    const ok = "كشف الأخصائي الأحد والخميس بـ200ج بدل 260ج.";
+    const ok = "عيونك تستاهل اهتمام، احجز مكانك.";
     const parse = (bad: string) =>
       schema.safeParse({ messages: [bad, ok, ok + " 👋"] }).success;
-    expect(parse(ok + "!")).toBe(true);
-    expect(parse("كشف الأخصائي والاستشاري الأحد والخميس بـ200ج بدل 260ج.")).toBe(false);
-    expect(parse("كشف الأخصائي الأحد والخميس والجمعة بـ200ج بدل 260ج.")).toBe(false);
-    expect(parse(ok + " زورنا example.org")).toBe(false);
+    expect(parse("محتاج تطمّن على نظرك؟ الفرصة دي ليك.")).toBe(true);
+    for (const bad of [
+      "خصم على كل خدمات المركز للجميع.",
+      "حتى لو معندكش بطاقة التأمين الصحي، تعالى.",
+      "كشف مع الاستشاري يستناك النهارده.",
+      "مستنيينك يوم الجمعة في المركز.",
+      "عرض لفترة محدودة على 3 كشوفات.",
+      "زورنا على example.org وشوف الجديد.",
+    ])
+      expect(parse(bad)).toBe(false);
   });
 });

@@ -12,41 +12,20 @@ export const whatsappCopyInput = whatsappRequestContext;
 type Input = z.infer<typeof whatsappCopyInput>;
 const dayOrder = ["الأحد", "الثلاثاء", "الخميس"] as const;
 const bookingLine = "للحجز: https://selrs.cc";
-function offerRules(input: Input) {
-  const days = dayOrder.filter((day) => input.days?.includes(day));
-  switch (input.kind) {
-    case "lasik":
-      return { required: [["15%"], ["يصل", "لحد", "حتى"]], days: [] };
-    case "cataract":
-      return { required: [["1000ج"], ["التأمين الصحي"]], days: [] };
-    case "exam":
-      return { required: [["200ج"], ["260ج"], ["الأخصائي"]], days };
-    case "reminder":
-      return { required: [], days: [] };
-  }
-}
-function messageIssue(text: string, input: Input) {
-  if (/[٠-٩۰-۹]/.test(text)) return "Use Western digits only";
-  if (/https?:|www\.|@|[a-z0-9-]+\.[a-z]{2,}/i.test(text))
+const weekdays = ["السبت", "الأحد", "الاثنين", "الإثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة"];
+function messageIssue(text: string) {
+  if (/[0-9٠-٩۰-۹%٪]/.test(text))
+    return "Numbers and percentages come only from the server offer line";
+  if (/https?:|www.|@|[a-z0-9-]+.[a-z]{2,}/i.test(text))
     return "Links are appended by the server";
   if (/إشراف|السعدني/.test(text)) return "Do not name a supervising doctor";
-  const rules = offerRules(input);
-  const allowed = new Set(whatsappOfferFacts(input).match(/\d+/g) ?? []);
-  if ((text.match(/\d+/g) ?? []).some((n) => !allowed.has(n)))
-    return "Only the supplied offer numbers are allowed";
-  if (rules.required.some((options) => !options.some((t) => text.includes(t))))
-    return "The offer facts must be stated exactly";
-  if (rules.days.some((day) => !text.includes(day)))
-    return "Every offer day must be stated";
-  if (input.kind === "exam") {
-    if (/استشار/.test(text)) return "The offer is for the specialist only";
-    const weekdays = ["السبت", "الأحد", "الاثنين", "الإثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة"];
-    if (weekdays.some((day) => text.includes(day) && !rules.days.includes(day as never)))
-      return "Only the selected offer days are allowed";
-  }
+  if (/خصم|تخفيض|مجان|ببلاش|جنيه|استشار|أخصائي|الأخصائي|تأمين/.test(text))
+    return "Offer terms come only from the server offer line";
+  if (weekdays.some((day) => text.includes(day)))
+    return "Offer days come only from the server offer line";
   return null;
 }
-function messagesSchema(input: Input) {
+function messagesSchema(_input: Input) {
   return z
     .object({
       messages: z
@@ -57,7 +36,7 @@ function messagesSchema(input: Input) {
             .min(20)
             .max(500)
             .superRefine((text, ctx) => {
-              const issue = messageIssue(text, input);
+              const issue = messageIssue(text);
               if (issue) ctx.addIssue({ code: "custom", message: issue });
             }),
         )
@@ -75,8 +54,8 @@ function copyTask(input: Input) {
       "Write three promotional WhatsApp messages in Egyptian colloquial Arabic for مركز عيون الشروق (an eye center). Advertising tone: warm, short, direct, like a good local ad, not formal.",
       "Each message takes a different angle: (1) a direct friendly reminder, (2) opens with a short question that hooks the reader, (3) a very short warm note. 2 to 4 short lines each. At most one emoji per message.",
       "Address the reader in the singular (حضرتك / ليك / عيونك) from the first word to the last. Never mix in plural forms like حضراتكم or نورتونا.",
-      "OFFER_FACTS must appear in every message with the same numbers and conditions; you may rephrase the surrounding words but keep figures exactly as written (Western digits, ج after amounts, % after percentages) and keep every listed day. If OFFER_FACTS is a reminder, mention the possibility of asking about الليزك without any numbers.",
-      "Do not write any link, phone number, doctor name or supervision line; the server appends the booking link. No other numbers. No medical advice, diagnosis, guarantees, urgency or invented claims. Do not address a named person.",
+      "Do not state the offer yourself: no discount, price, amount, percentage, eligibility, insurance, doctor title or weekday. The server adds the exact OFFER_FACTS line under your text, so write a hook that leads into it naturally. If the campaign is a reminder, invite the reader to ask about الليزك.",
+      "Do not write any link, phone number, doctor name or supervision line; the server appends the booking link. No digits at all. No medical advice, diagnosis, guarantees, urgency or invented claims. Do not address a named person.",
       "Return JSON: messages array of exactly three strings.",
     ].join("\n"),
     input: JSON.stringify({
@@ -88,8 +67,13 @@ function copyTask(input: Input) {
 }
 function copyVariants(result: { messages: string[] }, input: Input) {
   return variants.parse(
-    result.messages.map((message) => `${message}\n${bookingLine}`),
+    result.messages.map((message) =>
+      [message, offerLine(input), bookingLine].filter(Boolean).join("\n"),
+    ),
   );
+}
+function offerLine(input: Input) {
+  return input.kind === "reminder" ? "" : whatsappOfferFacts(input);
 }
 export function whatsappOfferFacts(input: Input) {
   switch (input.kind) {
