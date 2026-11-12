@@ -1,5 +1,12 @@
 import { z } from "zod";
 
+export function autoReplyErrorLabel(code: string): string {
+  if (/^META_10(?:_\d+)?$/.test(code)) {
+    return `رفضت ميتا السماح بالرد (${code}). راجع وضع نشر التطبيق ومستوى وصول pages_messaging وقيود مراسلة المستلم. نجاح فحص الاتصال وحده لا يثبت السماح بالإرسال.`;
+  }
+  return code;
+}
+
 export const autoReplyChannels = [
   "whatsapp",
   "messenger",

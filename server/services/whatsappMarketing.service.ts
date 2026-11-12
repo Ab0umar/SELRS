@@ -7,7 +7,8 @@ import {
   whatsappMarketingSubscriptions,
 } from "../../drizzle/schema";
 import { ENV } from "../_core/env";
-import { getDb } from "../db";
+import { getDb, getDbConnection } from "../db";
+import type { RowDataPacket } from "mysql2/promise";
 
 export type MarketingPreference = "subscribed" | "unsubscribed";
 type MarketingRecipient = { patientId: number | null; phone: string };
@@ -178,7 +179,47 @@ export async function marketingSummary() {
       ).length,
     },
     campaigns,
+    deliveries: await marketingDeliveryResults(),
   };
+}
+
+interface MarketingDeliveryResult extends RowDataPacket {
+  id: number;
+  campaignName: string;
+  recipientPhone: string;
+  state: "accepted" | "sent" | "delivered" | "read" | "failed";
+  errorCode: string | null;
+  errorDetails: string | null;
+  sentAt: Date;
+}
+
+export async function marketingDeliveryResults() {
+  const connection = await getDbConnection();
+  try {
+    const [rows] = await connection.query<MarketingDeliveryResult[]>(`
+      SELECT d.id, c.name AS campaignName, d.recipient_phone AS recipientPhone,
+        COALESCE(r.state, d.status) AS state, r.error_code AS errorCode,
+        COALESCE(r.error_details, d.error_message) AS errorDetails, d.sent_at AS sentAt
+      FROM whatsapp_marketing_deliveries d
+      JOIN whatsapp_marketing_campaigns c ON c.id = d.campaign_id
+      LEFT JOIN whatsapp_confirmation_receipts r ON r.id = (
+        SELECT receipt.id FROM whatsapp_confirmation_receipts receipt
+        WHERE receipt.provider_message_id = d.meta_message_id
+          AND receipt.sender_phone_id = ?
+        ORDER BY FIELD(receipt.state, 'sent', 'failed', 'delivered', 'read') DESC,
+          receipt.event_ms DESC, receipt.id DESC LIMIT 1
+      )
+      ORDER BY d.id DESC LIMIT 25
+    `, [ENV.whatsappPhoneNumberId]);
+    return rows.map((row) => ({
+      ...row,
+      errorDetails: row.errorCode === "131049"
+        ? "ميتا منعت تسليم الرسالة للحفاظ على جودة التفاعل. لا تكرر الإرسال فورًا لنفس العميل."
+        : row.errorDetails,
+    }));
+  } finally {
+    connection.release();
+  }
 }
 
 export async function sendMarketingBatch(input: {

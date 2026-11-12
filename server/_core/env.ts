@@ -50,6 +50,7 @@ const envSchema = z.object({
   MARKETING_IMAGE_DIR: z.string().optional().default(""),
   MANUS_API_KEY: z.string().optional().default(""),
   FB_APP_ID: z.string().optional().default(""),
+  FB_USE_AUTO_REPLY_APP: z.enum(["true", "false"]).default("false"),
   FB_APP_SECRET: z.string().optional().default(""),
   FB_REDIRECT_URI: z.string().optional().default(""),
   FB_APP_ORIGIN: z.string().optional().default(""),
@@ -128,8 +129,12 @@ export const ENV = {
   falApiKey: parsed.FAL_API_KEY,
   marketingImageDir: parsed.MARKETING_IMAGE_DIR,
   manusApiKey: parsed.MANUS_API_KEY,
-  fbAppId: parsed.FB_APP_ID,
-  fbAppSecret: parsed.FB_APP_SECRET,
+  fbAppId: parsed.FB_USE_AUTO_REPLY_APP === "true"
+    ? process.env.AUTO_REPLY_META_APP_ID ?? ""
+    : parsed.FB_APP_ID,
+  fbAppSecret: parsed.FB_USE_AUTO_REPLY_APP === "true"
+    ? process.env.AUTO_REPLY_META_APP_SECRET ?? ""
+    : parsed.FB_APP_SECRET,
   fbRedirectUri: parsed.FB_REDIRECT_URI,
   fbAppOrigin: parsed.FB_APP_ORIGIN,
   zohoSmtpUsername: parsed.ZOHO_SMTP_USERNAME,

@@ -13,6 +13,7 @@ import {
 import { toast } from "sonner";
 import {
   autoReplyChannels,
+  autoReplyErrorLabel,
   channelLabels,
   autoReplySettingsSchema,
   supportsGeminiSampling,
@@ -841,7 +842,7 @@ function Conversation({
         <details>
           <summary>سبب حالة المحادثة</summary>
           <p>
-            سبب التحويل أو الإيقاف: <bdi>{c.humanReason}</bdi>
+            سبب التحويل أو الإيقاف: <span>{autoReplyErrorLabel(c.humanReason)}</span>
           </p>
         </details>
       )}
@@ -979,7 +980,7 @@ function Conversation({
             {j.errorCode && (
               <>
                 {" "}
-                · <bdi>{j.errorCode}</bdi>
+                · <span>{autoReplyErrorLabel(j.errorCode)}</span>
               </>
             )}
             {j.state === "unknown" &&
@@ -1429,7 +1430,7 @@ function Settings({
     onSuccess: async (r) => {
       await utils.autoReply.settings.invalidate();
       if (r.ok) toast.success("نجح فحص الوصول للأصل لدى Meta");
-      else toast.error(`فشل الفحص: ${r.errorCode}`);
+      else toast.error(`فشل الفحص: ${autoReplyErrorLabel(r.errorCode ?? "META_CHECK_FAILED")}`);
     },
     onError: (e) => toast.error(e.message),
   });
@@ -1501,7 +1502,7 @@ function Settings({
                   </details>
                   {c.errorCode && (
                     <p role="status">
-                      نتيجة الفحص: <bdi>{c.errorCode}</bdi>
+                      نتيجة الفحص: <span>{autoReplyErrorLabel(c.errorCode)}</span>
                     </p>
                   )}
                 </div>
@@ -2517,7 +2518,7 @@ function Activity({ pages, scope }: { pages: FacebookPages; scope: string }) {
                 </td>
                 <td>{statusLabels[j.state] ?? j.state}</td>
                 <td>
-                  {j.attempts} · <bdi>{j.errorCode ?? "لا يوجد"}</bdi>
+                  {j.attempts} · <span>{j.errorCode ? autoReplyErrorLabel(j.errorCode) : "لا يوجد"}</span>
                 </td>
                 <td>
                   <bdi>{j.model ?? "لم يُستخدم"}</bdi>

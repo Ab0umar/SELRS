@@ -130,6 +130,21 @@ export class ProviderError extends Error {
     super(code);
   }
 }
+export function safeMetaErrorMessage(raw: unknown, body: unknown, secrets: string[]) {
+  if (typeof raw !== "string") return null;
+  let message = raw;
+  const redact = (value: unknown): void => {
+    if (typeof value === "string" && value.length >= 3) {
+      message = message.split(value).join("[redacted]");
+    } else if (Array.isArray(value)) value.forEach(redact);
+    else if (value && typeof value === "object") Object.values(value).forEach(redact);
+  };
+  secrets.filter(Boolean).forEach(redact);
+  redact(body);
+  return message.replace(/EAA[A-Za-z0-9_-]+/g, "[redacted]")
+    .replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi, "[email]")
+    .replace(/\+?\d{7,}/g, "[id]").slice(0, 1000);
+}
 export async function graphRequest(
   channel: AutoReplyChannel,
   path: string,
@@ -163,9 +178,22 @@ export async function graphRequest(
       typeof result?.error?.code === "number"
         ? result.error.code
         : response.status;
+    const subcode = Number.isSafeInteger(result?.error?.error_subcode)
+      ? result.error.error_subcode as number
+      : null;
+    const traceId = typeof result?.error?.fbtrace_id === "string" &&
+      /^[A-Za-z0-9_-]{1,128}$/.test(result.error.fbtrace_id)
+      ? result.error.fbtrace_id as string : null;
+    console.warn("[auto-reply] Meta request rejected", {
+      channel, accountId: c.accountId, code, subcode, traceId,
+      operation: body ? "write" : "read",
+      message: safeMetaErrorMessage(result?.error?.message, body, [
+        c.token, process.env.AUTO_REPLY_META_APP_SECRET ?? "",
+      ]),
+    });
     // A 5xx may follow an accepted send. Retrying it can send a duplicate.
     throw new ProviderError(
-      `META_${code}`,
+      subcode === null ? `META_${code}` : `META_${code}_${subcode}`,
       response.status === 429 ||
         [4, 17, 32, 613, 130429, 131056].includes(code),
       Boolean(body) && response.status >= 500,

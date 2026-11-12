@@ -21,6 +21,7 @@ import {
 import {
   checkMetaConnection,
   graphRequest,
+  safeMetaErrorMessage,
   proposeReply,
   sendMetaReply,
   sendCommentPrivateReply,
@@ -28,6 +29,13 @@ import {
 import { autoReplyRouter } from "../routers/autoReply";
 
 describe("independent reply settings", () => {
+  it("keeps the Meta rejection reason while redacting request content and credentials", () => {
+    expect(safeMetaErrorMessage(
+      "Permission denied: pages_messaging; private reply; fixture-token; 1498924867025943; a@example.com",
+      { message: { text: "private reply" } }, ["fixture-token"],
+    )).toBe("Permission denied: pages_messaging; [redacted]; [redacted]; [id]; [email]");
+    expect(safeMetaErrorMessage(null, undefined, [])).toBeNull();
+  });
   it("uses the selected page style and history limit in the generated reply request", async () => {
     const generator = vi.fn(
       async (_request: { instruction: string; input: string }) => ({
@@ -1135,6 +1143,21 @@ describe("Gemini and Meta failure isolation", () => {
       });
     },
   );
+  it("preserves Meta permission subcodes without logging customer content or tokens", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    vi.stubGlobal("fetch", vi.fn(async () => Response.json({ error: {
+      code: 10, error_subcode: 2018278, fbtrace_id: "fixture_trace",
+      message: "Permission denied for private",
+    } }, { status: 403 })));
+    try {
+      await expect(graphRequest("whatsapp", "789/messages", { text: "private" }))
+        .rejects.toMatchObject({ code: "META_10_2018278", retryable: false, uncertain: false });
+      expect(warn).toHaveBeenCalledWith("[auto-reply] Meta request rejected",
+        expect.objectContaining({ code: 10, subcode: 2018278, traceId: "fixture_trace" }));
+      expect(JSON.stringify(warn.mock.calls)).toContain("Permission denied");
+      expect(JSON.stringify(warn.mock.calls)).not.toContain("private");
+    } finally { warn.mockRestore(); }
+  });
   it("cannot report a successful page connection without the subscription", async () => {
     vi.stubGlobal(
       "fetch",
