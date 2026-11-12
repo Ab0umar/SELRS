@@ -3,6 +3,7 @@ import { useRoute } from "wouter";
 import { trpc } from "@/lib/trpc";
 import PatientPicker from "@/components/PatientPicker";
 import { ReportQueryState } from "@/components/reports/ClinicalReportFrame";
+import { ReportLetterhead, ReportStationeryFooter } from "@/components/reports/ReportStationery";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -394,7 +395,7 @@ export default function PrintableMedicalReport({
             max-height: none !important;
             margin: 0 !important;
             /* ~5cm letterhead; tighter content for single page */
-            padding: 50mm 15mm 8mm 15mm !important;
+            padding: var(--report-top-clearance, 8mm) 15mm 8mm 15mm !important;
             font-size: 12pt !important;
             line-height: 1.3 !important;
             border: none !important;
@@ -406,16 +407,16 @@ export default function PrintableMedicalReport({
 
           .printable-report-sheet table {
             border-collapse: collapse !important;
-            border: 1.5px solid #075985 !important;
+            border: 1px solid #888 !important;
             width: 100% !important;
           }
 
           .printable-report-sheet thead,
           .printable-report-sheet thead tr,
           .printable-report-sheet thead th {
-            background-color: #075985 !important;
-            color: #ffffff !important;
-            border: 1px solid #0c4a6e !important;
+            background-color: #fff !important;
+            color: #111 !important;
+            border: 1px solid #888 !important;
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
           }
@@ -423,7 +424,7 @@ export default function PrintableMedicalReport({
           .printable-report-sheet tr.bg-muted/50,
           .printable-report-sheet tr.bg-muted/50 td,
           .printable-report-sheet div.bg-muted/50 {
-            background-color: #f0f9ff !important;
+            background-color: #fff !important;
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
           }
@@ -437,8 +438,8 @@ export default function PrintableMedicalReport({
           .printable-report-sheet .medical-report-featured-row div,
           .printable-report-sheet div.bg-sky-800,
           .printable-report-sheet div.bg-sky-800 * {
-            background-color: #075985 !important;
-            color: #ffffff !important;
+            background-color: #fff !important;
+            color: #111 !important;
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
             color-adjust: exact !important;
@@ -447,15 +448,15 @@ export default function PrintableMedicalReport({
           .dark .printable-report-sheet .medical-report-featured-row *,
           .dark .printable-report-sheet .medical-report-featured-row input,
           .dark .printable-report-sheet .medical-report-featured-row [class*="text-"] {
-            background-color: #075985 !important;
-            color: #ffffff !important;
+            background-color: #fff !important;
+            color: #111 !important;
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
             color-adjust: exact !important;
           }
 
           .printable-report-sheet td {
-            border: 1px solid #075985 !important;
+            border: 1px solid #888 !important;
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
           }
@@ -559,6 +560,7 @@ export default function PrintableMedicalReport({
           className="printable-report-sheet mx-auto min-h-[297mm] w-full max-w-[210mm] bg-white px-[18mm] py-[18mm] font-sans text-[12pt] leading-relaxed text-slate-900 shadow-lg print:min-h-0 print:shadow-none"
           style={{ fontFamily: "Arial, Helvetica, sans-serif" }}
         >
+          <ReportLetterhead />
           {/* Document Title (Editable on screen, solid header on print) */}
           <div className="mb-6 text-center">
             <input
@@ -884,6 +886,7 @@ export default function PrintableMedicalReport({
               />
             </div>
           </footer>
+          <ReportStationeryFooter />
         </article>
       )}
 
@@ -896,6 +899,7 @@ export default function PrintableMedicalReport({
           className="printable-report-sheet mx-auto min-h-[297mm] w-full max-w-[210mm] bg-white px-[18mm] py-[18mm] font-sans text-[12pt] leading-relaxed text-slate-900 shadow-lg print:min-h-0 print:shadow-none"
           style={{ fontFamily: "Arial, Tahoma, Cairo, sans-serif" }}
         >
+          <ReportLetterhead />
           {/* Document Title (Editable on screen, solid header on print) */}
           <div className="mb-6 text-center">
             <input
@@ -1225,6 +1229,7 @@ export default function PrintableMedicalReport({
               </div>
             </div>
           </footer>
+          <ReportStationeryFooter />
         </article>
       )}
     </main>

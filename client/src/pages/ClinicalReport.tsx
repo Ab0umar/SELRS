@@ -12,6 +12,7 @@ import { DateInput } from "@/components/ui/date-input";
 import PatientPicker from "@/components/PatientPicker";
 import { ReportQueryState } from "@/components/reports/ClinicalReportFrame";
 import { ReportPatientField } from "@/components/reports/ReportPatientField";
+import { ReportLetterhead, ReportStationeryFooter } from "@/components/reports/ReportStationery";
 import {
   displaySheetDate,
   formatSheetDate,
@@ -334,7 +335,7 @@ export default function ClinicalReport({
             margin: 0;
           }
           main.clinical-report-frame .report-sheet-body {
-            padding: 50mm 15mm 4mm 15mm !important;
+            padding: var(--report-top-clearance, 8mm) 15mm 8mm 15mm !important;
             font-size: 12px !important;
             line-height: 1.25 !important;
           }
@@ -475,6 +476,7 @@ export default function ClinicalReport({
       <div className="clinical-print-shell flex justify-center p-4 sm:p-8">
       <main className="clinical-report-frame medical-report-page mx-auto max-w-[210mm] bg-background p-4 text-foreground sm:p-8">
         <div className="report-sheet-body rounded-xl border border-border/60 bg-card p-4 sm:p-8 print:rounded-none print:border-0 print:shadow-none">
+          <ReportLetterhead />
           {/* Header */}
           <div className="mb-6 flex items-start justify-between border-b-2 border-primary pb-4">
             <div />
@@ -761,7 +763,7 @@ export default function ClinicalReport({
 
               {/* Footer */}
               <footer className="mt-8 border-t border-border/60 pt-4 flex justify-between items-end">
-                <div />
+                <div className="report-stamp-space">ختم المركز</div>
                 <div className="text-center w-48">
                   <div className="mb-1 h-10 border-b border-border" />
                   <p className="text-[8px] text-muted-foreground uppercase">
@@ -771,6 +773,7 @@ export default function ClinicalReport({
               </footer>
             </>
           )}
+          <ReportStationeryFooter />
         </div>
       </main>
       </div>

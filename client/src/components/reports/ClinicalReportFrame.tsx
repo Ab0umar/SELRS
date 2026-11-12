@@ -3,6 +3,7 @@ import { displaySheetDate } from "@/lib/sheetDates";
 import { Button } from "@/components/ui/button";
 import { RefreshCw } from "lucide-react";
 import { ReportPatientField } from "./ReportPatientField";
+import { ReportLetterhead, ReportStationeryFooter } from "./ReportStationery";
 
 type PatientDetails = {
   name?: ReactNode;
@@ -142,7 +143,7 @@ export function ClinicalReportFrame({
             margin: 0;
           }
           main.clinical-report-frame .report-sheet-body {
-            padding: 50mm 15mm 4mm 15mm !important;
+            padding: var(--report-top-clearance, 8mm) 15mm 8mm 15mm !important;
             font-size: 12px !important;
             line-height: 1.25 !important;
           }
@@ -221,6 +222,7 @@ export function ClinicalReportFrame({
         }
       `}</style>
       <div className="report-sheet-body rounded-lg border border-border bg-card p-3 sm:p-6 print:rounded-none print:border-0 print:shadow-none">
+        <ReportLetterhead />
         <header className="mb-6 flex items-start justify-between border-b-2 border-primary pb-4">
           <div />
           <div className="text-left" dir="ltr">
@@ -292,12 +294,13 @@ export function ClinicalReportFrame({
         <div className="clinical-report-content">{children}</div>
 
         <footer className="mt-8 flex items-end justify-between border-t border-border/60 pt-4">
-          <div />
+          <div className="report-stamp-space">ختم المركز</div>
           <div className="w-48 text-center">
             <div className="mb-1 h-10 border-b border-border" />
             <p className="text-xs text-muted-foreground">{signatureLabel}</p>
           </div>
         </footer>
+        <ReportStationeryFooter />
       </div>
     </main>
   );

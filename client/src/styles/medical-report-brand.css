@@ -138,7 +138,7 @@
     width: 100% !important;
     margin: 0 !important;
     /* ~5cm letterhead; tighter sides/bottom to keep one page */
-    padding: 50mm 15mm 4mm 15mm !important;
+    padding: var(--report-top-clearance, 8mm) 15mm 8mm 15mm !important;
     font-size: 12px !important;
     line-height: 1.25 !important;
     border: 0 !important;
@@ -150,7 +150,7 @@
 
   /* Medical report tab sheet — same ~5cm letterhead clearance */
   .printable-report-sheet {
-    padding: 50mm 15mm 8mm 15mm !important;
+    padding: var(--report-top-clearance, 8mm) 15mm 8mm 15mm !important;
     font-size: 12pt !important;
     line-height: 1.3 !important;
   }
@@ -228,5 +228,171 @@
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
     color-adjust: exact !important;
+  }
+}
+
+[data-report-stock="preprinted"] {
+  --report-top-clearance: 50mm;
+}
+
+[data-report-stock="preprinted"] .report-stationery-letterhead,
+[data-report-stock="preprinted"] .report-stationery-footer {
+  display: none;
+}
+
+@media screen {
+  [data-report-stock="preprinted"] .report-sheet-body,
+  [data-report-stock="preprinted"] .printable-report-sheet {
+    padding-top: 50mm !important;
+  }
+}
+
+.report-stationery-letterhead {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 14px;
+  padding-bottom: 16px;
+  margin-bottom: 22px;
+  border-bottom: 1px solid #bfc4cb;
+  direction: rtl;
+  text-align: right;
+  color: #222;
+}
+
+.report-stationery-letterhead img {
+  width: 84px;
+  height: 76px;
+  object-fit: contain;
+}
+
+.report-stationery-letterhead > div {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.5;
+}
+
+.report-stationery-letterhead strong {
+  font-size: 20px;
+}
+
+.report-stationery-letterhead span {
+  font-size: 12px;
+}
+
+.report-stationery-letterhead small {
+  color: #555;
+  font: 10px/1.5 Arial, sans-serif;
+}
+
+.report-stationery-footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 24px;
+  padding-top: 9px;
+  border-top: 1px solid #bfc4cb;
+  color: #555;
+  font-size: 10px;
+  direction: rtl;
+}
+
+.report-stamp-space {
+  display: grid;
+  place-items: center;
+  width: 95px;
+  min-height: 58px;
+  border: 1px dashed #aaa;
+  color: #555;
+  font-size: 11px;
+}
+
+main.clinical-report-frame .report-sheet-body > header,
+.printable-report-sheet > .report-stationery-letterhead + div {
+  justify-content: center;
+  text-align: center;
+  border-bottom-width: 1px;
+}
+
+main.clinical-report-frame .report-sheet-body > header > div:first-child {
+  display: none;
+}
+
+main.clinical-report-frame .report-sheet-body > header > div:last-child {
+  text-align: center;
+}
+
+main.clinical-report-frame .report-sheet-body > header h1 {
+  justify-content: center;
+}
+
+@media (max-width: 600px) {
+  .report-stationery-letterhead { gap: 9px; }
+  .report-stationery-letterhead img { width: 64px; height: 62px; }
+  .report-stationery-letterhead strong { font-size: 17px; }
+  .report-stationery-letterhead small { font-size: 8px; }
+}
+
+@media print {
+  [data-report-stock] main.clinical-report-frame {
+    width: 210mm !important;
+    min-width: 210mm !important;
+    max-width: 210mm !important;
+  }
+
+  [data-report-stock="preprinted"] .report-stationery-letterhead,
+  [data-report-stock="preprinted"] .report-stationery-footer {
+    display: none !important;
+  }
+
+  .report-stationery-letterhead,
+  .report-stationery-footer { break-inside: avoid; }
+  .report-stationery-letterhead img { filter: grayscale(1) contrast(1.35); }
+  .report-stationery-letterhead { padding-bottom: 3mm; margin-bottom: 4mm; }
+  .report-stationery-footer { margin-top: 5mm; }
+
+  [data-report-stock] .clinical-report-frame .report-sheet-body,
+  [data-report-stock] .printable-report-sheet {
+    color: #111 !important;
+    background: #fff !important;
+    font-family: Cairo, Tahoma, Arial, sans-serif !important;
+  }
+
+  [data-report-stock] .clinical-report-frame .report-sheet-body *,
+  [data-report-stock] .printable-report-sheet * {
+    color: #111 !important;
+    border-color: #999 !important;
+    background-color: transparent !important;
+    box-shadow: none !important;
+  }
+
+  .clinical-report-frame .report-sheet-body :is(section, table, th, td, input, textarea, .bg-muted, [class*="bg-"]),
+  .printable-report-sheet :is(section, table, th, td, input, textarea, .medical-report-featured-row, [class*="bg-"]) {
+    background-color: transparent !important;
+  }
+
+  .clinical-report-frame .report-sheet-body > header,
+  .printable-report-sheet > .report-stationery-letterhead + div {
+    margin-bottom: 4mm !important;
+    padding-bottom: 2mm !important;
+  }
+
+  .clinical-report-frame .report-sheet-body > header h1,
+  .printable-report-sheet h1 {
+    color: #111 !important;
+    font-size: 17px !important;
+    font-weight: 700 !important;
+  }
+
+  .clinical-report-frame .report-sheet-body :is(h2, h3),
+  .printable-report-sheet :is(h2, h3) {
+    color: #111 !important;
+    letter-spacing: 0 !important;
+    text-transform: none !important;
+  }
+
+  .clinical-report-frame .report-sheet-body :is(section, table, tr),
+  .printable-report-sheet :is(section, table, tr) {
+    break-inside: avoid;
   }
 }

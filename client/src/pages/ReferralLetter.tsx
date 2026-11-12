@@ -831,7 +831,7 @@ export default function ReferralLetter({
         }
 
         @media print {
-          @page { size: A4 portrait; margin: 10mm; } /* letterhead via medical-report-brand.css padding-top 50mm */
+          @page { size: A4 portrait; margin: 0; }
           
           .print\\:hidden { display: none !important; }
           .hidden.print\\:block { display: block !important; }
