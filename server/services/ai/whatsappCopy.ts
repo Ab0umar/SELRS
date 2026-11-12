@@ -16,7 +16,7 @@ const weekdays = ["السبت", "الأحد", "الاثنين", "الإثنين"
 function messageIssue(text: string) {
   if (/[0-9٠-٩۰-۹%٪]/.test(text))
     return "Numbers and percentages come only from the server offer line";
-  if (/https?:|www.|@|[a-z0-9-]+.[a-z]{2,}/i.test(text))
+  if (/https?:|www\.|@|[a-z0-9-]+\.[a-z]{2,}/i.test(text))
     return "Links are appended by the server";
   if (/إشراف|السعدني/.test(text)) return "Do not name a supervising doctor";
   if (/خصم|تخفيض|مجان|ببلاش|جنيه|استشار|أخصائي|الأخصائي|تأمين/.test(text))

@@ -162,6 +162,7 @@ describe("WhatsApp message validation", () => {
     const parse = (bad: string) =>
       schema.safeParse({ messages: [bad, ok, ok + " 👋"] }).success;
     expect(parse("محتاج تطمّن على نظرك؟ الفرصة دي ليك.")).toBe(true);
+    expect(parse("حابب تعرف أكتر عن LASIK؟ اسألنا وإحنا نجاوبك.")).toBe(true);
     for (const bad of [
       "خصم على كل خدمات المركز للجميع.",
       "حتى لو معندكش بطاقة التأمين الصحي، تعالى.",
