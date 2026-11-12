@@ -114,14 +114,21 @@ describe("Manus WhatsApp drafting", () => {
     vi.mocked(downloadManusFile).mockResolvedValueOnce(
       Buffer.from(
         JSON.stringify({
-          openings: ["أهلا وسهلا بيك", "نورت المركز", "يا أهلا بحضرتك"],
+          messages: [
+            "أهلًا بحضرتك 👋\nكشف الأخصائي يوم الأحد والخميس بـ200ج بدل 260ج.",
+            "محتاج تطمّن على نظرك؟\nالأخصائي موجود الأحد والخميس، الكشف بـ200ج بدل 260ج.",
+            "عيونك تستاهل كشف.\nالأحد والخميس مع الأخصائي بـ200ج بدل 260ج.",
+          ],
         }),
       ),
     );
     const result = await readWhatsAppCopy(input.requestId, 42);
     expect(result?.variants).toHaveLength(3);
-    for (const text of result?.variants ?? [])
-      expect(text).toContain("أيام الأحد والخميس بـ200ج بدلًا من 260ج");
+    for (const text of result?.variants ?? []) {
+      expect(text).toMatch(/200ج[\s\S]*260ج/);
+      expect(text.endsWith("للحجز: https://selrs.cc")).toBe(true);
+      expect(text).not.toContain("إشراف");
+    }
     expect(AiManagementStore.prototype.complete).toHaveBeenCalledWith(
       input.requestId,
       expect.objectContaining({ status: "success" }),
