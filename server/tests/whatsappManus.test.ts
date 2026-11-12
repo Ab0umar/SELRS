@@ -114,14 +114,23 @@ describe("Manus WhatsApp drafting", () => {
     vi.mocked(downloadManusFile).mockResolvedValueOnce(
       Buffer.from(
         JSON.stringify({
-          openings: ["أهلا وسهلا بيك", "نورت المركز", "يا أهلا بحضرتك"],
+          messages: [
+            "أهلًا بحضرتك 👋\nعيونك تستاهل كشف يطمّنك.",
+            "محتاج تطمّن على نظرك؟\nالفرصة دي ليك.",
+            "عيونك تستاهل اهتمام.\nاحجز مكانك.",
+          ],
         }),
       ),
     );
     const result = await readWhatsAppCopy(input.requestId, 42);
     expect(result?.variants).toHaveLength(3);
-    for (const text of result?.variants ?? [])
-      expect(text).toContain("أيام الأحد والخميس بـ200ج بدلًا من 260ج");
+    for (const text of result?.variants ?? []) {
+      expect(text).toContain(
+        "الكشف مع الأخصائي فقط أيام الأحد والخميس بـ200ج بدلًا من 260ج.\nللحجز: https://selrs.cc",
+      );
+      expect(text.endsWith("للحجز: https://selrs.cc")).toBe(true);
+      expect(text).not.toContain("إشراف");
+    }
     expect(AiManagementStore.prototype.complete).toHaveBeenCalledWith(
       input.requestId,
       expect.objectContaining({ status: "success" }),
@@ -141,5 +150,27 @@ describe("Manus WhatsApp drafting", () => {
     expect(await readWhatsAppCopy(input.requestId, 99)).toBeNull();
     expect(readManusTask).not.toHaveBeenCalled();
     expect(createManusTask).not.toHaveBeenCalled();
+  });
+});
+describe("WhatsApp message validation", () => {
+  it("rejects model text that states offer terms, days, numbers, or links", async () => {
+    const { messagesSchemaForTest } = await import(
+      "../services/ai/whatsappCopy"
+    );
+    const schema = messagesSchemaForTest(input);
+    const ok = "عيونك تستاهل اهتمام، احجز مكانك.";
+    const parse = (bad: string) =>
+      schema.safeParse({ messages: [bad, ok, ok + " 👋"] }).success;
+    expect(parse("محتاج تطمّن على نظرك؟ الفرصة دي ليك.")).toBe(true);
+    expect(parse("حابب تعرف أكتر عن LASIK؟ اسألنا وإحنا نجاوبك.")).toBe(true);
+    for (const bad of [
+      "خصم على كل خدمات المركز للجميع.",
+      "حتى لو معندكش بطاقة التأمين الصحي، تعالى.",
+      "كشف مع الاستشاري يستناك النهارده.",
+      "مستنيينك يوم الجمعة في المركز.",
+      "عرض لفترة محدودة على 3 كشوفات.",
+      "زورنا على example.org وشوف الجديد.",
+    ])
+      expect(parse(bad)).toBe(false);
   });
 });

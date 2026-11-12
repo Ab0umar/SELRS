@@ -163,12 +163,12 @@ try {
                       (
                         body.generationConfig?.responseJsonSchema ??
                         body.generationConfig?.responseSchema
-                      )?.properties?.openings
+                      )?.properties?.messages
                         ? {
-                            openings: [
-                              "أهلًا بيك في مركز عيون الشروق.",
-                              "صحة عيونك تهمنا في مركز عيون الشروق.",
-                              "رسالة ليك من مركز عيون الشروق.",
+                            messages: [
+                              "أهلًا بيك 👋 عيونك تستاهل كشف يطمّنك.",
+                              "عايز تطمّن على عيونك؟ الفرصة دي ليك.",
+                              "رسالة ليك من مركز عيون الشروق، احجز مكانك.",
                             ],
                           }
                         : {
@@ -590,7 +590,7 @@ try {
         text.includes("الأحد والخميس") &&
         text.includes("الأخصائي فقط"),
     );
-    assert.ok(text.includes("https://wa.me/201285800309"));
+    assert.ok(text.endsWith("للحجز: https://selrs.cc"));
   }
   assert.equal(await readWhatsAppCopy(copyRequest.requestId, 2), null);
   await assert.rejects(
