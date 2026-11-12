@@ -181,6 +181,166 @@
   }
 }
 
+.medical-report-brand {
+  --report-primary: #0b4a8f;
+  --report-primary-dark: #0b2a52;
+  --report-ink: #0b2a52;
+  --report-muted: #4a6283;
+  --report-border: #d5dfeb;
+  --report-header: #fff;
+  --report-tint: #fff;
+}
+
+.report-stationery-letterhead {
+  flex-direction: row-reverse;
+  justify-content: space-between;
+  border-color: #d5dfeb;
+  color: #0b2a52;
+}
+
+.report-stationery-letterhead > div { text-align: right; }
+.report-stationery-letterhead small { color: #4a6283; }
+.report-stationery-footer { border-top: 2px solid #0b4a8f; color: #4a6283; }
+
+.report-title-header {
+  display: block;
+  margin: 18px 0 20px;
+  padding: 0 0 12px;
+  text-align: center;
+  border: 0 !important;
+}
+
+.report-document-title h1 {
+  display: block;
+  margin: 0;
+  color: #0b2a52;
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.report-document-title p {
+  margin-top: 2px;
+  color: #4a6283;
+  font: 12px/1.5 Arial, sans-serif;
+}
+
+.report-title-header::after {
+  content: "";
+  display: block;
+  width: 34px;
+  height: 3px;
+  margin: 12px auto 0;
+  background: #f7941d;
+}
+
+.report-patient-layout { display: block; margin-bottom: 22px; }
+.report-patient-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr;
+  gap: 10px 18px;
+  padding: 14px 0;
+  border-block: 1px solid #d5dfeb;
+  text-align: right;
+  background: #fff;
+}
+.report-patient-field { text-align: right; }
+.report-patient-label {
+  margin: 0 0 2px;
+  color: #4a6283;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.4;
+}
+.report-patient-value {
+  min-width: 0;
+  color: #0b2a52;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+  text-align: right;
+}
+.report-patient-name .report-patient-value { font-size: 16px; }
+.report-patient-value :is(input, span) { text-align: right; }
+.report-patient-side-panel { display: grid; gap: 8px; margin-top: 12px; }
+
+.report-prose-section {
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+}
+.clinical-report-content .report-prose-section > h3,
+.clinical-report-content > div > section > h3,
+.clinical-report-content .offdays-recommendations > h3 {
+  display: block;
+  padding: 0 0 5px !important;
+  margin-bottom: 8px !important;
+  border: 0 !important;
+  border-bottom: 1px solid #d5dfeb !important;
+  background: transparent !important;
+  color: #0b4a8f !important;
+  text-align: right !important;
+  font-size: 14px !important;
+  font-weight: 700 !important;
+}
+.report-prose-section > p { line-height: 1.9; }
+.report-facts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  padding: 12px 0 !important;
+  border: 0 !important;
+  border-block: 1px solid #d5dfeb !important;
+  background: transparent !important;
+}
+.report-fact { min-width: 0; padding-inline: 10px !important; border: 0 !important; text-align: right; }
+.report-fact .report-print-value { margin-top: 4px; color: #0b2a52; font-weight: 700; text-align: right; }
+.report-recommendation-list { display: block !important; padding-inline-start: 20px; list-style: disc; }
+.report-recommendation-list li {
+  display: list-item;
+  margin: 4px 0;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  color: #0b2a52 !important;
+  font-weight: 500;
+}
+
+@media (max-width: 600px) {
+  .report-patient-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .report-patient-name { grid-column: 1 / -1; }
+  .report-facts { grid-template-columns: 1fr; gap: 8px; }
+}
+
+@media print {
+  .medical-report-brand,
+  .clinical-report-root { color: #0b2a52 !important; }
+  .report-stationery-letterhead img { filter: none; }
+  [data-report-color="mono"] .report-stationery-letterhead img { filter: grayscale(1) contrast(1.35); }
+  .report-title-header { margin: 5mm 0 4mm !important; padding: 0 !important; }
+  main.clinical-report-frame .report-sheet-body .report-document-title h1 { font-size: 19px !important; color: #0b2a52 !important; line-height: 1.35 !important; }
+  main.clinical-report-frame .report-sheet-body .report-document-title p { font-size: 11px !important; color: #4a6283 !important; margin-top: 1mm !important; }
+  .report-title-header::after { height: 2px; margin-top: 2.5mm; }
+  main.clinical-report-frame .report-sheet-body .report-patient-layout { margin-bottom: 5mm !important; }
+  main.clinical-report-frame .report-sheet-body .report-patient-grid { gap: 2mm 4mm !important; padding: 3mm 0 !important; border: 0 !important; border-block: 1px solid #d5dfeb !important; }
+  main.clinical-report-frame .report-sheet-body .report-patient-label { font-size: 10px !important; color: #4a6283 !important; margin-bottom: 0 !important; }
+  main.clinical-report-frame .report-sheet-body .report-patient-value { font-size: 12px !important; color: #0b2a52 !important; text-align: right !important; }
+  main.clinical-report-frame .report-sheet-body .report-patient-value :is(input, span) { text-align: right !important; }
+  main.clinical-report-frame .report-sheet-body .report-prose-section { padding: 0 !important; border: 0 !important; background: none !important; }
+  main.clinical-report-frame .report-sheet-body .report-facts { padding: 3mm 0 !important; border: 0 !important; border-block: 1px solid #d5dfeb !important; }
+  main.clinical-report-frame .report-sheet-body .report-fact { border: 0 !important; text-align: right !important; }
+  main.clinical-report-frame .report-sheet-body .report-recommendation-list li { border: 0 !important; background: none !important; padding: 0 !important; }
+  .clinical-report-content :is(table th, table td),
+  .printable-report-sheet :is(table th, table td) { border-color: #d5dfeb !important; }
+  .clinical-report-content table th,
+  .printable-report-sheet table th { background: #fff !important; color: #0b4a8f !important; }
+  .clinical-report-content section.report-block { border: 0 !important; background: none !important; }
+  .clinical-report-content section.report-block > div:first-child { background: none !important; color: #0b4a8f !important; border-bottom: 1px solid #d5dfeb !important; }
+  [data-report-color="mono"] .report-title-header::after { background: #666 !important; }
+  [data-report-color="mono"] :is(.report-document-title h1, .report-document-title p, .report-patient-value, .report-patient-label, .clinical-report-content h2, .clinical-report-content h3, .report-stationery-letterhead, .report-stationery-footer) { color: #111 !important; }
+  [data-report-color="mono"] :is(.report-patient-grid, .report-facts, .clinical-report-content h3, .report-stationery-letterhead, .report-stationery-footer) { border-color: #aaa !important; }
+}
+
 /* Featured patient-name row (InfoRow featured) — white on dark for screen + print.
    Beats global print reset * { color:#000 !important } in web.css without weakening it. */
 .printable-report-sheet .medical-report-featured-row,
@@ -314,9 +474,6 @@ main.clinical-report-frame .report-sheet-body > header,
   border-bottom-width: 1px;
 }
 
-main.clinical-report-frame .report-sheet-body > header > div:first-child {
-  display: none;
-}
 
 main.clinical-report-frame .report-sheet-body > header > div:last-child {
   text-align: center;
@@ -347,28 +504,23 @@ main.clinical-report-frame .report-sheet-body > header h1 {
 
   .report-stationery-letterhead,
   .report-stationery-footer { break-inside: avoid; }
-  .report-stationery-letterhead img { filter: grayscale(1) contrast(1.35); }
+  [data-report-color="mono"] .report-stationery-letterhead img { filter: grayscale(1) contrast(1.35); }
   .report-stationery-letterhead { padding-bottom: 3mm; margin-bottom: 4mm; }
   .report-stationery-footer { margin-top: 5mm; }
 
-  [data-report-stock] .clinical-report-frame .report-sheet-body,
-  [data-report-stock] .printable-report-sheet {
+  [data-report-color="mono"] .clinical-report-frame .report-sheet-body,
+  [data-report-color="mono"] .printable-report-sheet {
     color: #111 !important;
     background: #fff !important;
     font-family: Cairo, Tahoma, Arial, sans-serif !important;
   }
 
-  [data-report-stock] .clinical-report-frame .report-sheet-body *,
-  [data-report-stock] .printable-report-sheet * {
+  [data-report-color="mono"] .clinical-report-frame .report-sheet-body *,
+  [data-report-color="mono"] .printable-report-sheet * {
     color: #111 !important;
     border-color: #999 !important;
     background-color: transparent !important;
     box-shadow: none !important;
-  }
-
-  .clinical-report-frame .report-sheet-body :is(section, table, th, td, input, textarea, .bg-muted, [class*="bg-"]),
-  .printable-report-sheet :is(section, table, th, td, input, textarea, .medical-report-featured-row, [class*="bg-"]) {
-    background-color: transparent !important;
   }
 
   .clinical-report-frame .report-sheet-body > header,
@@ -379,14 +531,14 @@ main.clinical-report-frame .report-sheet-body > header h1 {
 
   .clinical-report-frame .report-sheet-body > header h1,
   .printable-report-sheet h1 {
-    color: #111 !important;
+    color: #0b2a52 !important;
     font-size: 17px !important;
     font-weight: 700 !important;
   }
 
   .clinical-report-frame .report-sheet-body :is(h2, h3),
   .printable-report-sheet :is(h2, h3) {
-    color: #111 !important;
+    color: #0b4a8f !important;
     letter-spacing: 0 !important;
     text-transform: none !important;
   }
@@ -396,3 +548,95 @@ main.clinical-report-frame .report-sheet-body > header h1 {
     break-inside: avoid;
   }
 }
+
+/* Design 3 "quiet paper": shared skin for all six report sheets (screen + print). */
+:is(.report-sheet-body, .printable-report-sheet) {
+  --q-ink: #0b2a52;
+  --q-blue: #0b4a8f;
+  --q-muted: #4a6283;
+  --q-line: #b9c8da;
+  --q-tint: #eef4fb;
+}
+[data-report-color="mono"] :is(.report-sheet-body, .printable-report-sheet) {
+  --q-ink: #111;
+  --q-blue: #111;
+  --q-muted: #444;
+  --q-line: #999;
+  --q-tint: #fff;
+}
+.report-stationery-letterhead {
+  flex-direction: row;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--q-line, #b9c8da);
+}
+.report-stationery-letterhead > div { order: -1; text-align: right; }
+.report-stationery-letterhead strong { font-size: 22px; color: var(--q-ink, #0b2a52); }
+.report-stationery-letterhead span { font-size: 13px; color: var(--q-muted, #4a6283); }
+.report-stationery-letterhead small { font: 11px/1.5 Arial, sans-serif; letter-spacing: 0; text-transform: none; color: var(--q-muted, #4a6283); }
+.report-stationery-letterhead img { width: 96px; height: 88px; }
+.report-stationery-footer { border-top: 1px solid var(--q-line, #b9c8da) !important; color: var(--q-muted, #4a6283); }
+.report-patient-grid { border-block-color: var(--q-line) !important; }
+.report-patient-label { font-size: 11px !important; color: var(--q-muted) !important; }
+.report-patient-value { color: var(--q-ink) !important; }
+.report-age-birth { display: inline-flex; flex-wrap: wrap; align-items: baseline; gap: 4px; }
+.report-age-birth > * { width: auto !important; min-width: 0; }
+.report-clinical-context { display: grid; gap: 2px; margin: -10px 0 16px; font-size: 13px; }
+.report-clinical-context > div { display: flex; gap: 8px; }
+.report-clinical-context strong { min-width: 130px; color: #b42318; font-weight: 700; }
+[data-report-color="mono"] .report-clinical-context strong { color: #111; }
+
+/* Strip legacy boxes: sections read as heading + thin rule, no cards. */
+:is(.report-sheet-body, .printable-report-sheet) :is(section, div):is([class*="rounded"], [class~="border"], [class~="border-2"]):not(.report-stamp-space):not(:has(> input:only-child)):not(:has(> textarea:only-child)) {
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+:is(.report-sheet-body, .printable-report-sheet) :is(h2, h3, h4) {
+  color: var(--q-blue) !important;
+  font-size: 15px !important;
+  font-weight: 700 !important;
+  text-transform: none !important;
+  letter-spacing: 0 !important;
+  text-align: start;
+  padding-bottom: 4px;
+  margin-bottom: 7px;
+  border-bottom: 1px solid var(--q-line) !important;
+  background: transparent !important;
+}
+:is(.report-sheet-body, .printable-report-sheet) .uppercase { text-transform: none !important; letter-spacing: 0 !important; }
+:is(.report-sheet-body, .printable-report-sheet) table { border-collapse: collapse !important; border-radius: 0 !important; }
+:is(.report-sheet-body, .printable-report-sheet) :is(th, td) { border: 1px solid var(--q-line) !important; }
+:is(.report-sheet-body, .printable-report-sheet) :is(thead, thead tr, thead th, th) {
+  background: var(--q-tint) !important;
+  color: var(--q-blue) !important;
+  font-weight: 600 !important;
+}
+:is(.report-sheet-body, .printable-report-sheet) td { background: #fff !important; color: var(--q-ink) !important; }
+:is(.report-sheet-body, .printable-report-sheet) { color: var(--q-ink); }
+@media print {
+  :is(.report-sheet-body, .printable-report-sheet) :is(textarea, input) { border-color: transparent !important; }
+}
+:is(.report-sheet-body, .printable-report-sheet) .report-title-header { display: block !important; text-align: center !important; margin: 18px 0 20px !important; border: 0 !important; }
+:is(.report-sheet-body, .printable-report-sheet) .report-document-title :is(h1, p) { text-align: center !important; border: 0 !important; padding: 0 !important; }
+:is(.report-sheet-body, .printable-report-sheet) .report-document-title h1 { font-size: 22px !important; font-weight: 700 !important; color: var(--q-ink) !important; margin: 0 !important; }
+:is(.report-sheet-body, .printable-report-sheet) .report-document-title p { font: 12px/1.5 Arial, sans-serif !important; color: var(--q-muted) !important; }
+:is(.report-sheet-body, .printable-report-sheet) .report-title-header::after { content: ""; display: block !important; width: 34px; height: 3px; margin: 10px auto 0; background: #f7941d !important; }
+[data-report-color="mono"] :is(.report-sheet-body, .printable-report-sheet) .report-title-header::after { background: #666 !important; }
+.report-q-section { margin: 0 0 16px; break-inside: avoid; }
+:is(.report-sheet-body, .printable-report-sheet) .report-q-heading { margin: 0 0 8px !important; }
+.report-q-section p { line-height: 1.9; }
+.report-q-facts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin: 0 0 16px; padding: 12px 0; border-block: 1px solid var(--q-line, #b9c8da); }
+.report-q-fact small { display: block; font-size: 11px; color: var(--q-muted, #4a6283); }
+.report-q-fact > div { font-size: 15px; font-weight: 700; color: var(--q-ink, #0b2a52); }
+.report-q-fact :is(input) { font-weight: 700; }
+.report-q-callout { padding: 12px 16px; background: var(--q-tint, #eef4fb); border-inline-start: 3px solid var(--q-blue, #0b4a8f); }
+:is(.report-sheet-body, .printable-report-sheet) .report-q-section :is(input, textarea) { border-color: transparent; background: transparent; box-shadow: none; }
+@media screen { :is(.report-sheet-body, .printable-report-sheet) .report-q-section :is(input, textarea) { border: 1px dashed var(--q-line, #b9c8da) !important; } }
+@media (max-width: 600px) { .report-q-facts { grid-template-columns: 1fr; } }
+.report-q-statement { font-size: 15px; line-height: 2.1; }
+.report-q-callout.report-recommendation-list { padding: 10px 16px 10px 16px !important; padding-inline-start: 32px !important; background: var(--q-tint, #eef4fb) !important; border-inline-start: 3px solid var(--q-blue, #0b4a8f) !important; }
+.report-q-signature { display: flex; justify-content: space-between; align-items: flex-end; gap: 24px; margin-top: 24px; padding-top: 12px; break-inside: avoid; }
+.report-q-section .report-q-facts { border-top: 0; padding-top: 2px; margin-bottom: 0; }
+:is(.report-sheet-body, .printable-report-sheet) .report-q-section + .report-q-section,
+:is(.report-sheet-body, .printable-report-sheet) .report-q-section { margin-bottom: 18px !important; }

@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import { getTrpcErrorMessage } from "@/lib/utils";
 import { ReferralDoctorPicker } from "@/components/reports/ReferralDoctorPicker";
 import { referralDoctorSnapshot } from "../../../shared/referral-doctors";
+import { ReportSection } from "@/components/reports/ReportStationery";
 import { ReportHeader } from "@/components/reports/ReportHeader";
 
 const TODAY = new Date().toISOString().split("T")[0];
@@ -426,7 +427,9 @@ export default function ReferralLetter({
           age: form.patientAge,
           phone: form.contact,
           occupation: form.nationality,
+          doctor: form.physicianName,
         }}
+        occupationLabel="الجنسية:"
         onPatientChange={{
           birthDate: (value) => setForm((previous) => ({ ...previous, patientBirthDate: value })),
           name: (value) => setForm((previous) => ({ ...previous, patientName: value })),
@@ -508,6 +511,73 @@ export default function ReferralLetter({
             </div>
           </section>
 
+          {/* Referred To */}
+          <ReportSection title="إلى الطبيب / الجهة المحال إليها">
+            {!readOnly && <ReferralDoctorPicker
+              value={form.referralDoctorId}
+              onSelect={(doctor) => setForm((previous) => ({
+                ...previous,
+                ...(doctor ? referralDoctorSnapshot(doctor) : {
+                  referralDoctorId: null, referredPhysician: "", referredDept: "",
+                  referredFacility: "", referredAddress: "", referredSchedule: "",
+                }),
+                referredPhysicianTitle: "",
+              }))}
+            />}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-[10px] text-slate-600 dark:text-slate-400 uppercase block">
+                  الطبيب
+                </label>
+                <Input aria-label="د. ..."
+                  className={`${FIELD} text-base font-bold`}
+                  value={form.referredPhysician}
+                  onChange={(event) => setForm((previous) => ({ ...previous, referredPhysician: event.target.value, referralDoctorId: null }))}
+                  placeholder="د. ..."
+                />
+                <Input aria-label="استشاري ..."
+                  className={`${FIELD} text-[12px] text-slate-500 dark:text-slate-400`}
+                  value={form.referredPhysicianTitle}
+                  onChange={set("referredPhysicianTitle")}
+                  placeholder="استشاري ..."
+                />
+              </div>
+              <div>
+                <label className="text-[10px] text-slate-600 dark:text-slate-400 uppercase block">
+                  الجهة
+                </label>
+                <Input aria-label="المستشفى / المركز"
+                  className={`${FIELD} text-base font-bold`}
+                  value={form.referredFacility}
+                  onChange={set("referredFacility")}
+                  placeholder="المستشفى / المركز"
+                />
+                <Input aria-label="القسم"
+                  className={`${FIELD} text-[12px] text-slate-500 dark:text-slate-400`}
+                  value={form.referredDept}
+                  onChange={set("referredDept")}
+                  placeholder="القسم"
+                />
+              </div>
+            </div>
+            <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <label className="text-sm">العنوان
+                {readOnly ? <p className="whitespace-pre-wrap break-words">{form.referredAddress}</p> : <Textarea className={`${FIELD} w-full resize-none`} value={form.referredAddress} onChange={set("referredAddress")} maxLength={2000} />}
+              </label>
+              <label className="text-sm">المواعيد
+                {readOnly ? <p className="whitespace-pre-wrap break-words">{form.referredSchedule}</p> : <Textarea className={`${FIELD} w-full resize-none`} value={form.referredSchedule} onChange={set("referredSchedule")} maxLength={2000} />}
+              </label>
+            </div>
+          </ReportSection>
+          <ReportSection title="سبب الإحالة">
+              <Textarea aria-label="سبب التحويل والإجراء المطلوب…"
+                className={`${FIELD} text-[13px] italic bg-muted/40 p-3 rounded-lg w-full resize-none min-h-[70px]`}
+                rows={3}
+                value={form.reasonForReferral}
+                onChange={set("reasonForReferral")}
+                placeholder="سبب التحويل والإجراء المطلوب…"
+              />
+          </ReportSection>
           <label className="print:hidden mb-3 flex items-center gap-2 text-sm font-bold text-primary">
             <Checkbox
               checked={includeClinicalFindings}
@@ -515,16 +585,13 @@ export default function ReferralLetter({
                 setIncludeClinicalFindings(checked === true)
               }
             />
-            Add Clinical Findings
+            إضافة ملخص الفحص
           </label>
 
           {includeClinicalFindings && (
-            <section>
+            <ReportSection title="ملخص الفحص">
               {/* Clinical Findings table */}
             <div className="mb-2 flex flex-row-reverse items-center justify-between gap-4 border-b border-border/70 pb-2">
-              <h3 className="shrink-0 text-[12px] font-bold uppercase tracking-wider text-primary">
-                Clinical Findings
-              </h3>
               <div className="flex flex-1 items-center justify-center gap-5 text-center text-[12px] font-bold uppercase">
                 <label className="flex items-center gap-1">
                   UCVA
@@ -649,7 +716,7 @@ export default function ReferralLetter({
             <div className="grid grid-cols-2 gap-4 mt-4">
               <div className="p-3 bg-background rounded-lg border border-border/70">
                 <p className="text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1">
-                  Slit Lamp
+                  الجزء الأمامي
                 </p>
                 <Textarea aria-label="OD: … OS: ..."
                   className={`${FIELD} text-[13px] w-full resize-none min-h-[56px]`}
@@ -661,7 +728,7 @@ export default function ReferralLetter({
               </div>
               <div className="p-3 bg-background rounded-lg border border-border/70">
                 <p className="text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1">
-                  Fundus
+                  قاع العين
                 </p>
                 <Textarea aria-label="OD: … OS: ..."
                   className={`${FIELD} text-[13px] w-full resize-none min-h-[56px]`}
@@ -672,15 +739,9 @@ export default function ReferralLetter({
                 />
               </div>
             </div>
-            </section>
+            </ReportSection>
           )}
-
-          {/* Diagnosis + Reason */}
-          <div className="grid grid-cols-2 gap-8">
-            <section>
-              <h3 className="text-[11px] font-bold text-primary uppercase tracking-wider mb-2">
-                Diagnosis
-              </h3>
+          <ReportSection title="التشخيص والعلاج الحالي">
               <div className="flex flex-wrap gap-1.5 mb-2">
                 {form.diagnosisTags
                   .split(",")
@@ -701,82 +762,7 @@ export default function ReferralLetter({
                 onChange={set("diagnosisTags")}
                 placeholder="افصل التشخيصات بفاصلة: جلوكوما, قصر نظر"
               />
-            </section>
-            <section>
-              <h3 className="text-[11px] font-bold text-primary uppercase tracking-wider mb-2">
-                Reason for Referral
-              </h3>
-              <Textarea aria-label="سبب التحويل والإجراء المطلوب…"
-                className={`${FIELD} text-[13px] italic bg-muted/40 p-3 rounded-lg w-full resize-none min-h-[70px]`}
-                rows={3}
-                value={form.reasonForReferral}
-                onChange={set("reasonForReferral")}
-                placeholder="سبب التحويل والإجراء المطلوب…"
-              />
-            </section>
-          </div>
-
-          {/* Referred To */}
-          <section className="bg-primary/5 p-4 rounded-xl border border-primary/20">
-            <h3 className="text-[11px] font-bold text-primary uppercase tracking-wider mb-3">
-              Referred To
-            </h3>
-            {!readOnly && <ReferralDoctorPicker
-              value={form.referralDoctorId}
-              onSelect={(doctor) => setForm((previous) => ({
-                ...previous,
-                ...(doctor ? referralDoctorSnapshot(doctor) : {
-                  referralDoctorId: null, referredPhysician: "", referredDept: "",
-                  referredFacility: "", referredAddress: "", referredSchedule: "",
-                }),
-                referredPhysicianTitle: "",
-              }))}
-            />}
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="text-[10px] text-slate-600 dark:text-slate-400 uppercase block">
-                  Physician Name
-                </label>
-                <Input aria-label="د. ..."
-                  className={`${FIELD} text-base font-bold`}
-                  value={form.referredPhysician}
-                  onChange={(event) => setForm((previous) => ({ ...previous, referredPhysician: event.target.value, referralDoctorId: null }))}
-                  placeholder="د. ..."
-                />
-                <Input aria-label="استشاري ..."
-                  className={`${FIELD} text-[12px] text-slate-500 dark:text-slate-400`}
-                  value={form.referredPhysicianTitle}
-                  onChange={set("referredPhysicianTitle")}
-                  placeholder="استشاري ..."
-                />
-              </div>
-              <div>
-                <label className="text-[10px] text-slate-600 dark:text-slate-400 uppercase block">
-                  Facility
-                </label>
-                <Input aria-label="المستشفى / المركز"
-                  className={`${FIELD} text-base font-bold`}
-                  value={form.referredFacility}
-                  onChange={set("referredFacility")}
-                  placeholder="المستشفى / المركز"
-                />
-                <Input aria-label="القسم"
-                  className={`${FIELD} text-[12px] text-slate-500 dark:text-slate-400`}
-                  value={form.referredDept}
-                  onChange={set("referredDept")}
-                  placeholder="القسم"
-                />
-              </div>
-            </div>
-            <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <label className="text-sm">العنوان
-                {readOnly ? <p className="whitespace-pre-wrap break-words">{form.referredAddress}</p> : <Textarea className={`${FIELD} w-full resize-none`} value={form.referredAddress} onChange={set("referredAddress")} maxLength={2000} />}
-              </label>
-              <label className="text-sm">المواعيد
-                {readOnly ? <p className="whitespace-pre-wrap break-words">{form.referredSchedule}</p> : <Textarea className={`${FIELD} w-full resize-none`} value={form.referredSchedule} onChange={set("referredSchedule")} maxLength={2000} />}
-              </label>
-            </div>
-          </section>
+          </ReportSection>
 
           {/* Signature footer */}
           <footer className="hidden">

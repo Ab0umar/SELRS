@@ -16,6 +16,7 @@ import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import { getTrpcErrorMessage } from "@/lib/utils";
 import { displaySheetDate } from "@/lib/sheetDates";
+import { ReportFact, ReportFacts, ReportSection } from "@/components/reports/ReportStationery";
 import { ReportHeader } from "@/components/reports/ReportHeader";
 
 type EyeValues = {
@@ -634,117 +635,51 @@ export default function PrePostOpReport({
               </label>
             </section>
 
-            <section className="space-y-3">
-              <div
-                className="flex items-center gap-2 border-b border-[#c2c7d1] pb-1"
-                dir="ltr"
-              >
-                <span className="h-2 w-2 rounded-full bg-[#00355f]" />
-                <h3 className="text-lg font-bold text-[#00355f]">
-                  Pre-Operative Metrics
-                </h3>
+            <ReportFacts>
+              <ReportFact label="نوع العملية">
+                <Input aria-label="نوع العملية" value={procedure} onChange={(event) => setProcedure(event.target.value)} placeholder="PRK / LASIK / Femto LASIK" className="h-8 px-1 print:hidden" />
+                <span className="hidden print:inline">{procedure || "—"}</span>
+              </ReportFact>
+              <ReportFact label="تاريخ العملية">
+                <DateInput value={operationDate} onChange={(event) => setOperationDate(event.target.value)} className="h-8 w-full min-w-0 print:hidden" />
+                <span className="hidden print:inline">{operationDate ? displaySheetDate(operationDate) : "—"}</span>
+              </ReportFact>
+              <ReportFact label="الجراح">
+                <Input aria-label="الجراح" value={surgeon} onChange={(event) => setSurgeon(event.target.value)} className="h-8 px-1 print:hidden" />
+                <span className="hidden print:inline">{surgeon || "—"}</span>
+              </ReportFact>
+            </ReportFacts>
+
+            <ReportSection title="قبل العملية · Pre-operative">
+              <div dir="ltr" className="mb-2">
                 <VaSummary
                   metrics={[
-                    {
-                      title: "UCVA",
-                      od: ucvaOd,
-                      os: ucvaOs,
-                      setOd: setUcvaOd,
-                      setOs: setUcvaOs,
-                    },
-                    {
-                      title: "BCVA",
-                      od: bcvaOd,
-                      os: bcvaOs,
-                      setOd: setBcvaOd,
-                      setOs: setBcvaOs,
-                    },
+                    { title: "UCVA", od: ucvaOd, os: ucvaOs, setOd: setUcvaOd, setOs: setUcvaOs },
+                    { title: "BCVA", od: bcvaOd, os: bcvaOs, setOd: setBcvaOd, setOs: setBcvaOs },
                   ]}
                 />
               </div>
-              <RefractionTable
-                title="Refraction"
-                od={preOd}
-                os={preOs}
-                setOd={setPreOd}
-                setOs={setPreOs}
-              />
-            </section>
+              <RefractionTable title="Refraction" od={preOd} os={preOs} setOd={setPreOd} setOs={setPreOs} />
+            </ReportSection>
 
-            <section className="border border-[#0f4c81] bg-[#d2e4ff] p-4">
-              <FieldLabel>Planned Treatment</FieldLabel>
-              <Input aria-label="Planned treatment"
-                value={procedure}
-                onChange={(event) => setProcedure(event.target.value)}
-                className="mt-1 h-10 border-transparent bg-transparent px-0 text-xl font-extrabold text-[#00355f] shadow-none hover:border-[#0f4c81]/40 focus-visible:border-[#0f4c81] focus-visible:ring-0 print:border-0 print:px-0"
-                placeholder="Planned treatment"
-              />
-            </section>
-
-            <label className="no-print mb-3 flex items-center gap-2 text-sm font-bold text-[#00355f]">
-              <Checkbox
-                checked={includePostOpResults}
-                onCheckedChange={(checked) =>
-                  setIncludePostOpResults(checked === true)
-                }
-              />
-              Add Post-Operative Results
+            <label className="no-print flex items-center gap-2 text-sm font-bold">
+              <Checkbox checked={includePostOpResults} onCheckedChange={(checked) => setIncludePostOpResults(checked === true)} />
+              إضافة نتائج ما بعد العملية
             </label>
 
             {includePostOpResults && (
-              <section className="space-y-3">
-                <div
-                  className="flex items-center gap-2 border-b border-[#c2c7d1] pb-1"
-                  dir="ltr"
-                >
-                  <span className="h-2 w-2 rounded-full bg-[#00355f]" />
-                  <h3 className="text-lg font-bold text-[#00355f]">
-                    Post-Operative Results
-                  </h3>
-                  <VaSummary
-                    metrics={[
-                      {
-                        title: "VA Post-Op",
-                        od: postVaOd,
-                        os: postVaOs,
-                        setOd: setPostVaOd,
-                        setOs: setPostVaOs,
-                      },
-                    ]}
-                  />
+              <ReportSection title="بعد العملية · Post-operative">
+                <div dir="ltr" className="mb-2">
+                  <VaSummary metrics={[{ title: "VA Post-Op", od: postVaOd, os: postVaOs, setOd: setPostVaOd, setOs: setPostVaOs }]} />
                 </div>
-                <RefractionTable
-                  title="Refraction"
-                  od={residualOd}
-                  os={residualOs}
-                  setOd={setResidualOd}
-                  setOs={setResidualOs}
-                  showReading={false}
-                />
-              </section>
+                <RefractionTable title="Refraction" od={residualOd} os={residualOs} setOd={setResidualOd} setOs={setResidualOs} showReading={false} />
+              </ReportSection>
             )}
 
-            <section className="grid grid-cols-[1fr_72mm] gap-8 border-t border-[#c2c7d1] pt-5">
-              <label>
-                <FieldLabel>Clinical Notes</FieldLabel>
-                <Textarea aria-label="Procedure notes, complications, attachments, and follow-up instructions."
-                  value={notes}
-                  onChange={(event) => setNotes(event.target.value)}
-                  className="mt-2 min-h-[96px] resize-none border-dashed border-[#c2c7d1] bg-muted/50"
-                  placeholder="Procedure notes, complications, attachments, and follow-up instructions."
-                />
-              </label>
-              <div className="flex flex-col justify-end gap-4">
-                <label>
-                  <FieldLabel>Consultant Surgeon</FieldLabel>
-                  <Input
-                    value={surgeon}
-                    onChange={(event) => setSurgeon(event.target.value)}
-                    className="mt-2 border-[#c2c7d1]"
-                  />
-                </label>
-              </div>
-            </section>
+            <ReportSection title="إجراء العملية والمتابعة">
+              <Textarea aria-label="إجراء العملية والمتابعة" value={notes} onChange={(event) => setNotes(event.target.value)} className="min-h-[96px] resize-none print:hidden" placeholder="تفاصيل الإجراء والمضاعفات وتعليمات المتابعة" />
+              <p className="hidden whitespace-pre-wrap print:block">{notes || "—"}</p>
+            </ReportSection>
           </div>
         </ClinicalReportFrame>
       </div>

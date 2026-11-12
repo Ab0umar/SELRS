@@ -32,8 +32,10 @@ try {
     await panel.waitFor();
     await panel.locator(".report-sheet-body, .printable-report-sheet").first().waitFor();
     const stock = page.locator("#clinical-report-stock");
-    for (const mode of ["blank", "preprinted"]) {
+    for (const [mode, color] of [["blank", "color"], ["blank", "mono"], ["preprinted", "color"], ["preprinted", "mono"]]) {
       await stock.selectOption(mode);
+      await page.locator("#clinical-report-color").selectOption(color);
+      await page.locator(`[data-report-color="${color}"]`).waitFor();
       await page.locator(`[data-report-stock="${mode}"]`).waitFor();
       const preview = await panel.locator(".report-sheet-body, .printable-report-sheet").first().evaluate((element) => ({
         header: getComputedStyle(element.querySelector(".report-stationery-letterhead")).display,
@@ -61,14 +63,13 @@ try {
       assert.equal(state.foot === "none", mode === "preprinted", `${tab}: ${mode} footer`);
       assert.ok(Math.abs(Number.parseFloat(state.top) - (mode === "preprinted" ? 188.98 : 30.24)) < 3, `${tab}: ${mode} top clearance ${state.top}`);
       assert.ok(Math.abs(state.width - 793.7) < 3, `${tab}: A4 width ${state.width}`);
-      assert.ok(["rgb(0, 0, 0)", "rgb(17, 17, 17)"].includes(state.color), `${tab}: monochrome ink ${state.color}`);
+      const inkOk = color === "mono" ? ["rgb(0, 0, 0)", "rgb(17, 17, 17)"].includes(state.color) : state.color !== "rgb(17, 17, 17)";
+      assert.ok(inkOk, `${tab}: ${color} ink ${state.color}`);
       assert.ok(state.text.length > 100, `${tab}: document content`);
       const pdf = await PDFDocument.load(await page.pdf({ format: "A4", printBackground: true, preferCSSPageSize: true }));
       assert.equal(pdf.getPageCount(), 1, `${tab}: ${mode} sample PDF page count`);
-      console.log(`${tab}: ${mode} PDF pages ${pdf.getPageCount()}`);
-      if (tab === "offdays" && mode === "blank") {
-        await sheet.screenshot({ path: join(tmpdir(), "selrs-report-quiet-blank.png") });
-      }
+      console.log(`${tab}: ${mode}/${color} PDF pages ${pdf.getPageCount()}`);
+      await sheet.screenshot({ path: join(tmpdir(), `selrs-report-${tab}-${mode}-${color}.png`) });
       await page.emulateMedia({ media: "screen" });
       console.log(`${tab}: ${mode} print layout passed`);
     }

@@ -3,7 +3,7 @@ import { displaySheetDate } from "@/lib/sheetDates";
 import { Button } from "@/components/ui/button";
 import { RefreshCw } from "lucide-react";
 import { ReportPatientField } from "./ReportPatientField";
-import { ReportLetterhead, ReportStationeryFooter } from "./ReportStationery";
+import { ReportDocumentTitle, ReportLetterhead, ReportPatientGrid, ReportPatientItem, ReportStationeryFooter } from "./ReportStationery";
 
 type PatientDetails = {
   name?: ReactNode;
@@ -12,6 +12,7 @@ type PatientDetails = {
   birthDate?: string | null;
   phone?: ReactNode;
   occupation?: ReactNode;
+  doctor?: ReactNode;
 };
 
 interface ClinicalReportFrameProps {
@@ -19,6 +20,7 @@ interface ClinicalReportFrameProps {
   generatedDate?: string;
   patient: PatientDetails;
   onPatientChange?: Partial<Record<keyof PatientDetails, (value: string) => void>>;
+  occupationLabel?: string;
   sidePanel?: ReactNode;
   children: ReactNode;
   signatureLabel?: string;
@@ -72,33 +74,11 @@ function Detail({
   type?: "text" | "date" | "tel";
 }) {
   return (
-    <div className={`min-w-0 ${className}`}>
-      <p className="mb-1 text-xs font-bold uppercase text-muted-foreground">
-        {label}
-      </p>
-      <div className="min-w-0 break-words text-center text-base font-semibold">
-        {editable ? (
-          <ReportPatientField label={label} value={typeof value === "string" || typeof value === "number" ? value : ""} onChange={onChange} type={type} />
-        ) : value ?? "-"}
-      </div>
-    </div>
-  );
-}
-
-function ReportTitle({ title }: { title: string }) {
-  const [englishTitle, arabicTitle] = title
-    .split("|")
-    .map((part) => part.trim());
-  return (
-    <h1 className="flex flex-wrap items-center gap-2 text-2xl font-semibold text-foreground">
-      <span dir="ltr">{englishTitle}</span>
-      {arabicTitle ? (
-        <>
-          <span aria-hidden>|</span>
-          <span dir="rtl">{arabicTitle}</span>
-        </>
-      ) : null}
-    </h1>
+    <ReportPatientItem label={label} className={className}>
+      {editable ? (
+        <ReportPatientField label={label} value={typeof value === "string" || typeof value === "number" ? value : ""} onChange={onChange} type={type} />
+      ) : value ?? "-"}
+    </ReportPatientItem>
   );
 }
 
@@ -107,6 +87,7 @@ export function ClinicalReportFrame({
   generatedDate = new Date().toISOString().split("T")[0],
   patient,
   onPatientChange,
+  occupationLabel = "الوظيفة:",
   sidePanel,
   children,
   signatureLabel = "توقيع الطبيب المعالج",
@@ -223,69 +204,48 @@ export function ClinicalReportFrame({
       `}</style>
       <div className="report-sheet-body rounded-lg border border-border bg-card p-3 sm:p-6 print:rounded-none print:border-0 print:shadow-none">
         <ReportLetterhead />
-        <header className="mb-6 flex items-start justify-between border-b-2 border-primary pb-4">
-          <div />
-          <div className="text-left" dir="ltr">
-            <ReportTitle title={title} />
-            <p className="text-xs text-muted-foreground">
-              Generated: {displaySheetDate(generatedDate)}
-            </p>
-          </div>
-        </header>
+        <ReportDocumentTitle arabic={title.split("|")[1]?.trim() || title} english={title.includes("|") ? title.split("|")[0].trim() : undefined} />
 
-        <section className="mb-4 grid grid-cols-12 gap-3" dir="rtl">
-          <div
-            className={`${sidePanel ? "col-span-12 md:col-span-8 print:col-span-8" : "col-span-12"} grid grid-cols-12 content-center gap-x-3 gap-y-2 border-y border-border bg-muted/40 px-3 py-2 text-center`}
-          >
+        <section className="report-patient-layout" dir="rtl">
+          <ReportPatientGrid>
             <Detail
               label="اسم المريض:"
               value={patient.name}
               editable
               onChange={onPatientChange?.name}
-              className="col-span-12 sm:col-span-6 print:col-span-6"
+              className="report-patient-name"
             />
             <Detail
-              label="الكود:"
+              label="رقم الملف:"
               value={patient.code}
               editable
               onChange={onPatientChange?.code}
-              className="col-span-6 sm:col-span-3 print:col-span-3"
             />
             <Detail
-              label="السن:"
-              value={patient.age}
-              editable
-              onChange={onPatientChange?.age}
-              className="col-span-6 sm:col-span-3 print:col-span-3"
+              label="تاريخ التقرير:"
+              value={displaySheetDate(generatedDate || new Date().toISOString().slice(0, 10))}
             />
-            <Detail
-              label="تاريخ الميلاد:"
-              value={
-                patient.birthDate || ""
-              }
-              editable
-              type="date"
-              onChange={onPatientChange?.birthDate}
-              className="col-span-12 sm:col-span-5 print:col-span-5"
-            />
+            <ReportPatientItem label="تاريخ الميلاد / العمر:">
+              <span className="report-age-birth">
+                <ReportPatientField label="تاريخ الميلاد:" value={patient.birthDate || ""} onChange={onPatientChange?.birthDate} type="date" />
+                <span aria-hidden="true">/</span>
+                <ReportPatientField label="السن:" value={typeof patient.age === "string" || typeof patient.age === "number" ? patient.age : ""} onChange={onPatientChange?.age} />
+              </span>
+            </ReportPatientItem>
             <Detail
               label="موبايل:"
               value={patient.phone}
               editable
               type="tel"
               onChange={onPatientChange?.phone}
-              className="col-span-6 sm:col-span-4 print:col-span-4"
             />
-            <Detail
-              label="الوظيفة:"
-              value={patient.occupation}
-              editable
-              onChange={onPatientChange?.occupation}
-              className="col-span-6 sm:col-span-3 print:col-span-3"
-            />
-          </div>
+            <Detail label="الطبيب المعالج:" value={patient.doctor} />
+            <div className={patient.occupation ? "report-patient-occupation" : "report-patient-occupation print:hidden"}>
+              <Detail label={occupationLabel} value={patient.occupation} editable onChange={onPatientChange?.occupation} />
+            </div>
+          </ReportPatientGrid>
           {sidePanel ? (
-            <aside className="col-span-12 md:col-span-4 print:col-span-4 flex flex-col gap-2">
+            <aside className="report-patient-side-panel">
               {sidePanel}
             </aside>
           ) : null}

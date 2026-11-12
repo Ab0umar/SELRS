@@ -28,6 +28,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import { getTrpcErrorMessage } from "@/lib/utils";
+import { displaySheetDate } from "@/lib/sheetDates";
+import { ReportFact, ReportFacts, ReportSection } from "@/components/reports/ReportStationery";
 import { ReportHeader } from "@/components/reports/ReportHeader";
 
 function CertLabel({ children }: { children: string }) {
@@ -364,16 +366,14 @@ export default function MedicalConditionReport({
             birthDate: patientDob,
             phone: patient?.phone,
             occupation: patient?.occupation,
+            doctor: doctorName,
           }}
           onPatientChange={{ name: setPatientName, code: setPatientCode, birthDate: setPatientDob }}
           signatureLabel="توقيع الطبيب المعالج"
         >
           <div className="flex flex-col">
-            <section className="mb-8 border border-[#c2c7d1] bg-muted p-5">
-              <h3 className="mb-3 text-lg font-bold text-[#00355f]">
-                تقرير طبي
-              </h3>
-              <p className="text-[15px] leading-8 text-[#161d1f]">
+            <ReportSection title="الحالة الطبية">
+              <p className="report-q-statement">
                 يشهد المركز بأن المريض المذكور أدناه يعاني من الحالة الطبية
                 التالية:{" "}
                 <Input
@@ -384,7 +384,7 @@ export default function MedicalConditionReport({
                 ، وأن حالته تستدعي المتابعة الطبية اللازمة على النحو المبين
                 أدناه.
               </p>
-            </section>
+            </ReportSection>
 
             <section className="hidden">
               <label className="flex items-center justify-between gap-2 border-b border-[#c2c7d1] py-2">
@@ -444,18 +444,12 @@ export default function MedicalConditionReport({
                   setIncludeCurrentStatus(checked === true)
                 }
               />
-              إضافة الفحص الحالي / Current Status
+              إضافة الفحص الحالي
             </label>
 
             {includeCurrentStatus && (
-              <section
-                className="mb-8 overflow-hidden border border-[#c2c7d1]"
-                dir="ltr"
-              >
-                <h3 className="border-b border-[#c2c7d1] bg-[#00355f] px-4 py-2 text-center text-sm font-extrabold text-white">
-                  الفحص الحالي / Current Status
-                </h3>
-                <table className="w-full border-collapse text-center">
+              <ReportSection title="الفحص الحالي">
+                <table dir="ltr" className="w-full border-collapse text-center">
                   <thead>
                     <tr className="bg-muted text-[13px] font-bold text-[#42474f]">
                       <th className="border border-[#c2c7d1] px-3 py-2 text-center">Eye</th>
@@ -464,9 +458,7 @@ export default function MedicalConditionReport({
                   </thead>
                   <tbody>
                     <tr>
-                      <td className="border border-[#c2c7d1] px-3 py-2 text-center font-bold">
-                        OD
-                      </td>
+                      <th scope="row">OD (R)</th>
                       <td className="border border-[#c2c7d1] p-0">
                         <Input
                           value={vaOd}
@@ -476,9 +468,7 @@ export default function MedicalConditionReport({
                       </td>
                     </tr>
                     <tr>
-                      <td className="border border-[#c2c7d1] px-3 py-2 text-center font-bold">
-                        OS
-                      </td>
+                      <th scope="row">OS (L)</th>
                       <td className="border border-[#c2c7d1] p-0">
                         <Input
                           value={vaOs}
@@ -489,13 +479,26 @@ export default function MedicalConditionReport({
                     </tr>
                   </tbody>
                 </table>
-              </section>
+              </ReportSection>
             )}
 
-            <section className="mb-8">
-              <h3 className="mb-2 text-sm font-bold text-[#00355f]">
-                المضاعفات / Complications
-              </h3>
+            <ReportSection title="الإجراءات السابقة">
+              <ReportFacts>
+                <ReportFact label="نوع العملية">
+                  <Input aria-label="نوع العملية" value={operationType} onChange={(event) => setOperationType(event.target.value)} className="h-8 px-1 print:hidden" />
+                  <span className="hidden print:inline">{operationType || "—"}</span>
+                </ReportFact>
+                <ReportFact label="تاريخ العملية">
+                  <DateInput value={operationDate} onChange={(event) => setOperationDate(event.target.value)} className="h-8 w-full min-w-0 print:hidden" />
+                  <span className="hidden print:inline">{operationDate ? displaySheetDate(operationDate) : "—"}</span>
+                </ReportFact>
+                <ReportFact label="تاريخ التقرير">
+                  <DateInput value={reportDate} onChange={(event) => setReportDate(event.target.value)} className="h-8 w-full min-w-0 print:hidden" />
+                  <span className="hidden print:inline">{reportDate ? displaySheetDate(reportDate) : "—"}</span>
+                </ReportFact>
+              </ReportFacts>
+            </ReportSection>
+            <ReportSection title="المضاعفات">
               <Textarea aria-label="اذكر أي مضاعفات ملاحظة، إن وجدت…"
                 value={complications}
                 onChange={(event) => setComplications(event.target.value)}
@@ -503,12 +506,9 @@ export default function MedicalConditionReport({
                 className="border-[#c2c7d1] text-[15px]"
                 placeholder="اذكر أي مضاعفات ملاحظة، إن وجدت…"
               />
-            </section>
+            </ReportSection>
 
-            <section className="mb-8">
-              <h3 className="mb-2 text-sm font-bold text-[#00355f]">
-                خطة المتابعة / Follow-up Plan
-              </h3>
+            <ReportSection title="المتابعة المطلوبة">
               <Textarea aria-label="اذكر توصيات المتابعة والموعد القادم…"
                 value={followUpPlan}
                 onChange={(event) => setFollowUpPlan(event.target.value)}
@@ -516,7 +516,7 @@ export default function MedicalConditionReport({
                 className="border-[#c2c7d1] text-[15px]"
                 placeholder="اذكر توصيات المتابعة والموعد القادم…"
               />
-            </section>
+            </ReportSection>
 
             <footer className="hidden">
               <div dir="ltr" className="text-left">

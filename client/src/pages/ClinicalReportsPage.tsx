@@ -161,10 +161,19 @@ export default function ClinicalReportsPage({
       ? "preprinted"
       : "blank",
   );
+  const [printColor, setPrintColor] = useState<"color" | "mono">(() =>
+    typeof window !== "undefined" && window.localStorage.getItem("clinical-report-color") === "mono"
+      ? "mono"
+      : "color",
+  );
 
   const changeReportStock = (stock: ReportStock) => {
     setReportStock(stock);
     window.localStorage.setItem("clinical-report-stock", stock);
+  };
+  const changePrintColor = (color: "color" | "mono") => {
+    setPrintColor(color);
+    window.localStorage.setItem("clinical-report-color", color);
   };
 
   useEffect(() => {
@@ -193,7 +202,7 @@ export default function ClinicalReportsPage({
   }, [isAuthenticated, setLocation]);
 
   return (
-    <div dir="rtl" data-report-stock={reportStock} className="mobile-flat-clinical clinical-workspace w-full bg-background text-foreground print:bg-white">
+    <div dir="rtl" data-report-stock={reportStock} data-report-color={printColor} className="mobile-flat-clinical clinical-workspace w-full bg-background text-foreground print:bg-white">
       <style>{`
         @media print {
           /* Letterhead ~5cm via sheet padding-top in medical-report-brand.css */
@@ -295,8 +304,8 @@ export default function ClinicalReportsPage({
         )}
 
         <ReportHeaderSlotContext.Provider value={headerSlot}>
-        <div className="no-print flex items-center gap-3 rounded-lg border border-border bg-card px-3 py-2 lg:col-start-1" dir="rtl">
-          <label htmlFor="clinical-report-stock" className="shrink-0 text-sm font-semibold">الطباعة على</label>
+        <div className="no-print flex flex-wrap items-center gap-3 rounded-lg border border-border bg-card px-3 py-2 lg:col-start-1" dir="rtl">
+          <label htmlFor="clinical-report-stock" className="shrink-0 text-sm font-semibold">الورق</label>
           <select
             id="clinical-report-stock"
             value={reportStock}
@@ -305,6 +314,16 @@ export default function ClinicalReportsPage({
           >
             <option value="blank">ورق أبيض مع ترويسة المركز</option>
             <option value="preprinted">ورق المركز المطبوع مسبقاً</option>
+          </select>
+          <label htmlFor="clinical-report-color" className="shrink-0 text-sm font-semibold">لون الطباعة</label>
+          <select
+            id="clinical-report-color"
+            value={printColor}
+            onChange={(event) => changePrintColor(event.target.value as "color" | "mono")}
+            className="min-h-11 min-w-0 flex-1 rounded-md border border-border bg-background px-2 text-sm"
+          >
+            <option value="color">ألوان الهوية</option>
+            <option value="mono">أسود ورمادي</option>
           </select>
         </div>
         <Tabs
