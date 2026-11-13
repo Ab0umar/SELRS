@@ -98,6 +98,7 @@ MySQL (selrs26)                    MSSQL (op2026)
 - Attendance routes: `/attendance/*` — gated by attendance permission
 - KF routes: `/kf/*` — gated by KF permission
 - Key renames done: `/txhub` → `/treatment`, `/today` → `/bookings`, `/admin-hub` → `/booking-triage` (redirects in place)
+- AI workspaces: `client/src/features/ai/navigation.ts`. Homes are `/ai`, `/ai/medical`, `/ai/replies`, `/ai/marketing`, and `/ai/marketing/whatsapp`. `aiSubmoduleFor` uses the longest home. `aiPermissionPath` still maps those pages onto `/admin-hub/ai`, `/admin-hub/medical-assistant`, `/admin-hub/auto-reply`, `/marketing`, and `/marketing/...`. Legacy URLs, including `/ai/whatsapp` and `/admin-hub/auto-reply`, redirect and keep the query string. Generation, campaign receipts, and the auto-reply go-live messages are in `docs/ai-workspace.md` and `docs/auto-reply-setup.md`.
 - Backend: `server/routers/index.ts` composes `appRouter = { medical, patient, accounting, attendance, kf, doctorPortal, patientPortal, ... }`
 
 ## tRPC Structure
