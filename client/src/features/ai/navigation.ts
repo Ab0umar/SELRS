@@ -22,9 +22,9 @@ export const aiPages = [
     description: "توليد النصوص والصور ومتابعة مهام التسويق",
   },
   {
-    path: ROUTES.aiWhatsApp,
-    label: "صياغة واتساب",
-    description: "إعداد صيغ الرسائل ومراجعتها ونسخها",
+    path: "/ai/marketing/whatsapp",
+    label: "حملات واتساب",
+    description: "الحملات وصياغة الرسائل ونتائج التسليم",
   },
   {
     path: ROUTES.aiSettings,
@@ -59,6 +59,7 @@ export const legacyAiRoutes: Record<string, string> = {
   "/marketing/brand": "/ai/marketing/brand",
   "/marketing/settings": "/ai/marketing/settings",
   "/marketing/whatsapp": "/ai/marketing/whatsapp",
+  [ROUTES.aiWhatsApp]: "/ai/marketing/whatsapp",
 };
 
 export const aiMarketingPages = [
@@ -67,8 +68,65 @@ export const aiMarketingPages = [
   { path: "/ai/marketing/history", label: "سجل المنشورات" },
   { path: "/ai/marketing/brand", label: "المراجع البصرية" },
   { path: "/ai/marketing/settings", label: "الجدولة وربط الصفحات" },
-  { path: "/ai/marketing/whatsapp", label: "حملات واتساب" },
 ] as const;
+
+type AiNavPage = { readonly path: string; readonly label: string };
+
+export type AiSubmodule = {
+  key: "core" | "replies" | "medical" | "marketing" | "whatsapp";
+  label: string;
+  home: string;
+  description: string;
+  pages: readonly AiNavPage[];
+};
+
+const pageByPath = (path: string) =>
+  aiPages.find((page) => page.path === path)!;
+
+function submodule(
+  key: AiSubmodule["key"],
+  path: string,
+  pages: readonly AiNavPage[] = [],
+): AiSubmodule {
+  const page = pageByPath(path);
+  return {
+    key,
+    label: page.label,
+    home: page.path,
+    description: page.description,
+    pages,
+  };
+}
+
+/** "AI" holds the shared settings; every other entry is an independent submodule. */
+export const aiSubmodules: readonly AiSubmodule[] = [
+  {
+    ...submodule(
+      "core",
+      ROUTES.ai,
+      [ROUTES.ai, ROUTES.aiSettings, ROUTES.aiExperiments, ROUTES.aiUsage].map(
+        pageByPath,
+      ),
+    ),
+    label: "AI",
+  },
+  submodule("medical", ROUTES.aiMedical),
+  submodule("replies", ROUTES.aiReplies),
+  submodule("marketing", ROUTES.aiMarketing, aiMarketingPages),
+  submodule("whatsapp", "/ai/marketing/whatsapp"),
+];
+
+export function aiSubmoduleFor(location: string): AiSubmodule {
+  // Longest home wins so /ai/marketing/whatsapp is not claimed by marketing.
+  const matches = aiSubmodules.filter(
+    (entry) =>
+      entry.key !== "core" &&
+      (location === entry.home || location.startsWith(`${entry.home}/`)),
+  );
+  return (
+    matches.sort((a, b) => b.home.length - a.home.length)[0] ?? aiSubmodules[0]
+  );
+}
 
 export function aiPermissionPath(path: string): string {
   if (path.startsWith("/ai/marketing/")) return path.replace(/^\/ai/, "");

@@ -1,13 +1,40 @@
 import { describe, expect, it, vi } from "vitest";
-vi.mock("../db", () => ({ getDb: vi.fn() }));
+vi.mock("../db", () => ({ getDb: vi.fn(), getDbConnection: vi.fn() }));
 vi.mock("../_core/env", () => ({ ENV: {
   whatsappMarketingTemplate: "selrs_whats",
   whatsappMarketingOptInTemplate: "selrs_whats",
 } }));
-import { getDb } from "../db";
+import { getDb, getDbConnection } from "../db";
 import { MySqlDialect } from "drizzle-orm/mysql-core";
 import type { SQL } from "drizzle-orm";
-import { marketingPreferenceFromInbound, sendMarketingBatch } from "../services/whatsappMarketing.service";
+import { marketingDeliveryResults, marketingPreferenceFromInbound, sendMarketingBatch } from "../services/whatsappMarketing.service";
+
+describe("WhatsApp marketing delivery receipts", () => {
+  it("recovers historical delivery failures while preserving delivered and pending states", async () => {
+    const release = vi.fn();
+    const query = vi.fn().mockResolvedValue([[{
+      id: 1, state: "failed", errorCode: "131049", errorDetails: "provider error",
+    }, { id: 2, state: "delivered", errorCode: null, errorDetails: null },
+    { id: 3, state: "accepted", errorCode: null, errorDetails: null }]]);
+    vi.mocked(getDbConnection).mockResolvedValue({ query, release });
+    const rows = await marketingDeliveryResults();
+    expect(rows[0].errorDetails).toContain("ميتا منعت تسليم الرسالة");
+    expect(rows[1]).toMatchObject({ state: "delivered", errorDetails: null });
+    expect(rows[2].state).toBe("accepted");
+    expect(query.mock.calls[0][0]).toContain("receipt.provider_message_id = d.meta_message_id");
+    expect(query.mock.calls[0][0]).toContain("receipt.sender_phone_id = ?");
+    expect(release).toHaveBeenCalledOnce();
+  });
+
+  it("releases the connection when reading receipts fails", async () => {
+    const release = vi.fn();
+    vi.mocked(getDbConnection).mockResolvedValue({
+      query: vi.fn().mockRejectedValue(new Error("database unavailable")), release,
+    });
+    await expect(marketingDeliveryResults()).rejects.toThrow("database unavailable");
+    expect(release).toHaveBeenCalledOnce();
+  });
+});
 
 describe("WhatsApp marketing preference replies", () => {
   it.each([

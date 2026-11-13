@@ -22,7 +22,9 @@ export default function WhatsAppCampaigns() {
   const [promotionName, setPromotionName] = useState("عرض جديد من المركز");
   const [testPhone, setTestPhone] = useState("");
   const [batchSize, setBatchSize] = useState(DEFAULT_BATCH_SIZE);
-  const summary = trpc.marketing.whatsappSummary.useQuery();
+  const summary = trpc.marketing.whatsappSummary.useQuery(undefined, {
+    refetchInterval: 15_000,
+  });
   const refresh = () => void utils.marketing.whatsappSummary.invalidate();
 
   const optIn = trpc.marketing.sendWhatsAppOptInBatch.useMutation({
@@ -107,6 +109,35 @@ export default function WhatsAppCampaigns() {
       </section>
 
       <WhatsAppCopy />
+
+      <section className="rounded-xl border bg-card p-5 space-y-3" aria-label="نتائج تسليم رسائل الحملات">
+        <h3 className="font-bold">نتائج تسليم الرسائل</h3>
+        <p className="text-sm text-muted-foreground">
+          قبول ميتا للطلب لا يعني وصول الرسالة. تتحدث النتائج كل 15 ثانية عند وصول إشعار من ميتا.
+        </p>
+        {summary.isLoading && <p role="status">جارٍ تحميل نتائج التسليم...</p>}
+        {summary.isError && <p role="alert" className="text-destructive">تعذر تحميل النتائج: {summary.error.message}</p>}
+        {summary.data?.deliveries.length === 0 && <p>لا توجد رسائل حملات مسجلة.</p>}
+        <ul className="divide-y">
+          {summary.data?.deliveries.map((delivery) => (
+            <li key={delivery.id} className="py-3 space-y-1 break-words">
+              <div className="flex flex-wrap items-baseline justify-between gap-2">
+                <span>{delivery.campaignName}</span>
+                <span className={delivery.state === "failed" ? "text-destructive font-semibold" : "font-semibold"}>
+                  {{ accepted: "قبلتها ميتا، بانتظار نتيجة التسليم", sent: "تم الإرسال، لم يتأكد التسليم بعد", delivered: "تم التسليم", read: "تمت القراءة", failed: "فشل الإرسال" }[delivery.state]}
+                </span>
+              </div>
+              <p className="text-sm"><bdi dir="ltr">{delivery.recipientPhone}</bdi></p>
+              {delivery.state === "failed" && (
+                <p className="text-sm text-destructive">
+                  {delivery.errorDetails || "لم يصل سبب الفشل من ميتا."}
+                  {delivery.errorCode && <> (الكود: {delivery.errorCode})</>}
+                </p>
+              )}
+            </li>
+          ))}
+        </ul>
+      </section>
 
       <section className="rounded-xl border bg-muted/25 p-5">
         <label className="text-sm font-semibold" htmlFor="whatsapp-batch-size">

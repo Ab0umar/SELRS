@@ -391,23 +391,33 @@ export const autoReplyRouter = router({
             code: "PRECONDITION_FAILED",
             message: "مفتاح مزوّد الرد الآلي المختار غير مضبوط على السيرفر",
           });
-        for (const { channel, accountId } of active) {
+        const channelName = {
+          whatsapp: "واتساب",
+          messenger: "رسائل الصفحة",
+          facebook_comment: "تعليقات الصفحة",
+        } as const;
+        for (const { channel, accountId, label } of active) {
           const check = checks.find(
             (c) => c.channel === channel && c.accountId === accountId,
           );
-          if (
-            !configured(channel, accountId) ||
-            !check?.checkOk ||
-            check.fingerprint !== connectionFingerprint(channel, accountId) ||
-            !check.checkedAt ||
-            Date.now() - check.checkedAt.getTime() > 86400_000 ||
-            !check.lastWebhookAt ||
-            (channel === "whatsapp" && !check.lastMobileEchoAt)
-          )
+          // Same order as the worker's verification, so the admin sees the exact gap.
+          const missing = !configured(channel, accountId)
+            ? "بيانات الربط غير مضبوطة على السيرفر"
+            : !check?.checkOk ||
+                check.fingerprint !== connectionFingerprint(channel, accountId) ||
+                !check.checkedAt
+              ? "اضغط اختبار الاتصال لهذه القناة"
+              : Date.now() - check.checkedAt.getTime() > 86400_000
+                ? "مر أكثر من 24 ساعة على آخر اختبار؛ أعد اختبار الاتصال"
+                : !check.lastWebhookAt
+                  ? "لم يصل Webhook من هذه القناة بعد؛ أرسل رسالة إليها"
+                  : channel === "whatsapp" && !check.lastMobileEchoAt
+                    ? "لم تصل رسالة مرسلة من تطبيق واتساب على الموبايل؛ أرسل ردًا من التطبيق نفسه"
+                    : null;
+          if (missing)
             throw new TRPCError({
               code: "PRECONDITION_FAILED",
-              message:
-                "اختبر القنوات المفعّلة واستقبل Webhook حقيقيًا قبل التشغيل",
+              message: `${channel === "whatsapp" ? label : `${channelName[channel]} (${label})`}: ${missing}`,
             });
         }
       }

@@ -330,6 +330,7 @@ export async function generateCentralMarketingDraft(
   raw: Input,
   createdBy: number | null,
   onAccepted?: AcceptAiOperation,
+  options: { detach?: boolean } = {},
 ) {
   if (process.env.AI_CORE_MANAGEMENT_ENABLED !== "true")
     throw new AiManagementError("disabled");
@@ -407,7 +408,21 @@ export async function generateCentralMarketingDraft(
     if (!existing) throw error;
     return reuse(existing);
   }
-  return finishCentralMarketingDraft({ ...input, imageModel }, createdBy);
+  const finish = finishCentralMarketingDraft(
+    { ...input, imageModel },
+    createdBy,
+  );
+  if (!options.detach) return finish;
+  // Interactive callers poll the job row; text + image can outlast the proxy timeout.
+  void finish.catch((error) =>
+    console.error("[marketing] central draft failed", input.requestId, error),
+  );
+  return {
+    jobId: input.requestId,
+    topic: input.topic,
+    state: "running" as const,
+    postId: null,
+  };
 }
 
 export async function finishCentralMarketingDraft(

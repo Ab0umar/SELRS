@@ -20,6 +20,12 @@
   align-items: center;
   min-height: 44px;
 }
+.ai-workspace-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+}
 .ai-workspace-heading button {
   min-height: 44px;
   padding-inline: 0.75rem;

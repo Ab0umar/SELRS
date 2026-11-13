@@ -158,8 +158,8 @@ const HOME_CARDS: HomeCard[] = [
     icon: Settings,
   },
   {
-    label: "الذكاء الاصطناعي",
-    helper: "الأدوات والتدريب والمزوّدون",
+    label: "AI",
+    helper: "المزوّدون والحدود وسجل الاستخدام",
     href: "/ai",
     permissionPaths: ["/admin-hub/ai"],
     icon: LayoutDashboard,
@@ -299,7 +299,7 @@ const HOME_CARD_ORDER = [
   "القيم الطبيعية للفحوصات",
   "رسائل واتساب",
   "التسويق",
-  "الذكاء الاصطناعي",
+  "AI",
   "مركز الإدارة",
   "الحساب",
 ] as const;
