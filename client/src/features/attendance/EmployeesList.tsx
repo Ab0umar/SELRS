@@ -13,10 +13,15 @@ import {
   X,
   Settings2,
   ArrowLeftRight,
+  IdCard,
 } from "lucide-react";
 import { toast } from "sonner";
 import { DateInput } from "@/components/ui/date-input";
 import { useIsCompact } from "@/hooks/useMobile";
+import {
+  printEmployeeIdCards,
+  type IdCardOrientation,
+} from "./employeeIdCard";
 
 import { askConfirm } from "./askConfirm";
 const localDateKey = (date: Date) =>
@@ -499,6 +504,18 @@ export default function EmployeesList() {
     onError: (e: any) => toast.error("تعذر تسجيل ترك العمل: " + e.message),
   });
 
+  const [cardOrientation, setCardOrientation] =
+    useState<IdCardOrientation>("portrait");
+  const printIdCards = (people: any[]) => {
+    if (!people.length) return;
+    const opened = printEmployeeIdCards(
+      people.map((e) => ({ fullName: e.fullName, jobTitle: e.jobTitle })),
+      cardOrientation,
+    );
+    if (!opened)
+      toast.error("منع المتصفح نافذة الطباعة. اسمح بالنوافذ المنبثقة ثم حاول مرة أخرى.");
+  };
+
   const startTermination = (empCd: string) => {
     setTerminationCd(empCd);
     setTerminationDate(localDateKey(new Date()));
@@ -833,6 +850,16 @@ export default function EmployeesList() {
                     </>
                   ) : (
                     <>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => printIdCards([emp])}
+                        title="طباعة كارنيه الموظف"
+                        aria-label="طباعة كارنيه الموظف"
+                        className="h-10 w-10 p-0"
+                      >
+                        <IdCard size={15} className="text-primary" />
+                      </Button>
                       <Button
                         variant="ghost"
                         size="sm"
@@ -1270,6 +1297,16 @@ export default function EmployeesList() {
                           <Button
                             variant="ghost"
                             size="sm"
+                            onClick={() => printIdCards([emp])}
+                            title="طباعة كارنيه الموظف"
+                            aria-label="طباعة كارنيه الموظف"
+                            className="h-8 w-8 p-0"
+                          >
+                            <IdCard size={14} className="text-primary" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
                             onClick={() => startEdit(emp)}
                             title="تعديل بيانات الموظف"
                             aria-label="تعديل بيانات الموظف"
@@ -1405,6 +1442,28 @@ export default function EmployeesList() {
           <span className="whitespace-nowrap text-sm text-muted-foreground" role="status" aria-live="polite">
             {filteredEmployees.length} نتيجة
           </span>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <select
+            aria-label="اتجاه الكارنيه"
+            value={cardOrientation}
+            onChange={(e) =>
+              setCardOrientation(e.target.value as IdCardOrientation)
+            }
+            className="h-10 rounded-md border border-input bg-background px-2 text-sm"
+          >
+            <option value="portrait">كارنيه بالطول</option>
+            <option value="landscape">كارنيه بالعرض</option>
+          </select>
+          <Button
+            variant="outline"
+            disabled={!filteredEmployees.length}
+            onClick={() => printIdCards(filteredEmployees)}
+            className="h-10 gap-1.5"
+          >
+            <IdCard size={16} />
+            طباعة الكارنيهات ({filteredEmployees.length})
+          </Button>
         </div>
       </div>
 
