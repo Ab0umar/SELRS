@@ -396,7 +396,7 @@ export const marketingRouter = router({
   generatePost: adminProcedure
     .input(marketingGenerationInput)
     .mutation(async ({ input, ctx }) => {
-      return trackedAiOperation(
+      const operation = trackedAiOperation(
         {
           requestId: input.requestId,
           scope: "marketing",
@@ -444,6 +444,7 @@ export const marketingRouter = router({
               },
               ctx.user.id,
               accept,
+              { detach: true },
             );
             return { jobId: result.jobId, topic: selectedTopic };
           }
@@ -459,6 +460,13 @@ export const marketingRouter = router({
           });
         },
       );
+      if (input.topic) return operation;
+      // Topic planning is a model call (slow on Grok) that can outlast the proxy
+      // timeout; the client polls generationRequest, which reports a rejection.
+      void operation.catch((error) =>
+        console.error("[marketing] generatePost failed", input.requestId, error),
+      );
+      return { jobId: input.requestId, topic: "" };
     }),
 
   generationRequest: adminProcedure
@@ -516,7 +524,12 @@ export const marketingRouter = router({
     .input(centralMarketingInput)
     .mutation(async ({ input, ctx }) => {
       try {
-        return await generateCentralMarketingDraft(input, ctx.user.id);
+        return await generateCentralMarketingDraft(
+          input,
+          ctx.user.id,
+          undefined,
+          { detach: true },
+        );
       } catch (error) {
         if (error instanceof PublishedMarketingTopicError)
           throw new TRPCError({

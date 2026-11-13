@@ -158,6 +158,7 @@ describe("one marketing entry point", () => {
       }),
       expect.any(Number),
       expect.any(Function),
+      { detach: true },
     );
   });
   it("keeps the existing Manus workflow as the default", async () => {
@@ -197,6 +198,7 @@ describe("one marketing entry point", () => {
       }),
       expect.any(Number),
       expect.any(Function),
+      { detach: true },
     );
     expect(calls.manus).not.toHaveBeenCalled();
   });

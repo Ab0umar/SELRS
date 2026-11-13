@@ -182,7 +182,11 @@ export default function MarketingDashboard() {
   const generateMutation = trpc.marketing.generatePost.useMutation({
     retry: false,
     onSuccess: (data) => {
-      toast.info(`بدأ تجهيز النص والصورة عن: ${data.topic}`);
+      toast.info(
+        data.topic
+          ? `بدأ تجهيز النص والصورة عن: ${data.topic}`
+          : "بدأ اختيار الموضوع وتجهيز النص والصورة",
+      );
       void utils.marketing.generationJobs.invalidate();
       void utils.marketing.centralGenerationJobs.invalidate();
       void utils.marketing.dashboardSummary.invalidate();
