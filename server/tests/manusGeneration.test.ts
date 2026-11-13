@@ -29,7 +29,9 @@ import {
   ManusRequestError,
 } from "../services/marketing/manusClient";
 import {
+  ORPHANED_START_ERROR,
   processManusGenerationJobs,
+  resolveManusGenerationJob,
   startManusGeneration,
 } from "../services/marketing/manusGeneration.service";
 import { MARKETING_IMAGE_PEOPLE_POLICY } from "../services/marketing/imagePolicy";
@@ -314,7 +316,12 @@ describe("durable Manus generation", () => {
       new ManusRequestError("temporary", true),
     );
     await processManusGenerationJobs();
-    expect(updates).toEqual([]);
+    // The only write is the orphaned-start sweep, which never matches this job.
+    expect(updates).toEqual([
+      expect.objectContaining({
+        error: expect.stringContaining(ORPHANED_START_ERROR),
+      }),
+    ]);
   });
   it("fails visibly when a completed task returns no image", async () => {
     vi.mocked(readManusTask).mockResolvedValue({
@@ -391,5 +398,90 @@ describe("durable Manus generation", () => {
       .mockReturnValueOnce(chain([{ ...job, state: "completed" }]));
     await processManusGenerationJobs();
     expect(inserts).toEqual([]);
+  });
+  it("expires a starting job with no Manus task id to failed, naming a possible task", async () => {
+    vi.mocked(readManusTask).mockResolvedValue({
+      status: "running",
+      attachments: [],
+    });
+    await processManusGenerationJobs();
+    expect(updates[0]).toEqual(
+      expect.objectContaining({
+        state: "failed",
+        error: expect.stringContaining("قد تكون المهمة موجودة في Manus"),
+      }),
+    );
+  });
+  it("keeps polling an uncertain job past the 30-minute running window", async () => {
+    db.select.mockReturnValue(
+      chain([
+        {
+          ...job,
+          state: "uncertain",
+          createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000),
+        },
+      ]),
+    );
+    vi.mocked(readManusTask).mockResolvedValue({
+      status: "running",
+      attachments: [],
+    });
+    await processManusGenerationJobs();
+    expect(readManusTask).toHaveBeenCalledWith("task-1");
+    expect(updates).not.toContainEqual(
+      expect.objectContaining({ state: "uncertain" }),
+    );
+  });
+  it("retries a local save failure after Manus succeeded before failing the job", async () => {
+    const local = { ...job, id: "local-failure-job" };
+    db.select.mockReturnValue(chain([local]));
+    vi.mocked(readManusTask).mockResolvedValue({
+      status: "stopped",
+      has_running_background_jobs: false,
+      attachments: [
+        { filename: "post.json", url: "https://manuscdn.com/post.json" },
+        { filename: "image.png", url: "https://manuscdn.com/image.png" },
+      ],
+    });
+    vi.mocked(downloadManusFile).mockImplementation(async (url: string) =>
+      url.endsWith(".json")
+        ? Buffer.from(
+            JSON.stringify({ title: "t", content: "c", cta: "", hashtags: "" }),
+          )
+        : Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]),
+    );
+    db.transaction.mockRejectedValue(new Error("deadlock"));
+    const failed = () =>
+      updates.filter(
+        (value) => (value as { state?: string }).state === "failed" &&
+          (value as { error?: string }).error === "deadlock",
+      );
+    for (let tick = 0; tick < 3; tick++) await processManusGenerationJobs();
+    expect(failed()).toEqual([]);
+    await processManusGenerationJobs();
+    expect(failed()).toHaveLength(1);
+  });
+  it("abandons a blocking job as failed and logs the admin", async () => {
+    db.select.mockReturnValue(chain([{ ...job, state: "uncertain", postId: 7 }]));
+    const result = await resolveManusGenerationJob("review-job", "abandon", 99);
+    expect(result.state).toBe("failed");
+    expect(updates).toContainEqual(expect.objectContaining({ state: "failed" }));
+    expect(inserts).toContainEqual(
+      expect.objectContaining({
+        postId: 7,
+        action: "manus_job_abandoned",
+        message: expect.stringContaining("user 99"),
+      }),
+    );
+  });
+  it("re-checks a job now and reports Manus still running without changing it", async () => {
+    db.select.mockReturnValue(chain([{ ...job, state: "uncertain" }]));
+    vi.mocked(readManusTask).mockResolvedValue({
+      status: "running",
+      attachments: [],
+    });
+    const result = await resolveManusGenerationJob("review-job", "recheck", 99);
+    expect(result.state).toBe("uncertain");
+    expect(updates).toEqual([]);
   });
 });
