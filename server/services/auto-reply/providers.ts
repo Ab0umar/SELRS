@@ -129,6 +129,17 @@ export class ProviderError extends Error {
   ) {
     super(code);
   }
+  httpStatus?: number;
+}
+// Network errors, throttling, 5xx and Meta's generic codes 1/2 say nothing about the credentials.
+export function isTransientCheckFailure(error: unknown) {
+  return (
+    error instanceof ProviderError &&
+    (error.code === "META_NETWORK" ||
+      error.retryable ||
+      (error.httpStatus ?? 0) >= 500 ||
+      /^META_[12](_|$)/.test(error.code))
+  );
 }
 export function safeMetaErrorMessage(raw: unknown, body: unknown, secrets: string[]) {
   if (typeof raw !== "string") return null;
@@ -192,13 +203,15 @@ export async function graphRequest(
       ]),
     });
     // A 5xx may follow an accepted send. Retrying it can send a duplicate.
-    throw new ProviderError(
+    const rejected = new ProviderError(
       subcode === null ? `META_${code}` : `META_${code}_${subcode}`,
       response.status === 429 ||
         [4, 17, 32, 613, 130429, 131056].includes(code),
       Boolean(body) && response.status >= 500,
       retryAfter,
     );
+    rejected.httpStatus = response.status;
+    throw rejected;
   }
   if (!result)
     throw new ProviderError("META_INVALID_RESPONSE", false, Boolean(body));

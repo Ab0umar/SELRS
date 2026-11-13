@@ -20,6 +20,7 @@ import {
   getAutoReplyDb,
   purgeExpiredConversations,
   currentKnowledgeSourceCondition,
+  requeueJob,
 } from "./store";
 import { isRecipientAllowed } from "./recipients";
 import {
@@ -31,6 +32,7 @@ import {
   sendMetaReply,
   sendCommentPrivateReply,
   checkMetaConnection,
+  isTransientCheckFailure,
 } from "./providers";
 import {
   englishFirst,
@@ -46,6 +48,14 @@ export function jobFailure(error: unknown, attempts: number) {
     error instanceof ProviderError
       ? error
       : new ProviderError("INTERNAL_ERROR");
+  // The local 2-second send spacing is not a failure of this job.
+  if (safe.code === "LOCAL_RATE_LIMIT")
+    return {
+      state: "retry",
+      errorCode: safe.code,
+      availableAt: new Date(Date.now() + 2000),
+      attempts: Math.max(0, attempts - 1),
+    };
   if (safe.code === "CENTRAL_AI_PENDING")
     return {
       state: attempts < 40 ? "retry" : "unknown",
@@ -67,6 +77,58 @@ export function jobFailure(error: unknown, attempts: number) {
         ),
     ),
   };
+}
+// Error messages can carry query parameters (customer text); only the name, driver code and frames are logged.
+function logInternalError(jobId: number | null, error: unknown) {
+  const e = (error ?? {}) as {
+    name?: unknown;
+    code?: unknown;
+    cause?: { code?: unknown };
+    stack?: unknown;
+  };
+  const code =
+    typeof e.code === "string"
+      ? e.code
+      : typeof e.cause?.code === "string"
+        ? e.cause.code
+        : null;
+  console.error("[auto-reply] INTERNAL_ERROR", {
+    jobId,
+    name: typeof e.name === "string" ? e.name : null,
+    code,
+    stack: String(e.stack ?? "")
+      .split("\n")
+      .filter((line) => /^\s+at /.test(line))
+      .slice(0, 10)
+      .map((line) => line.trim()),
+  });
+}
+type ConnectionRow = typeof connections.$inferSelect;
+async function recheckConnection(
+  db: Awaited<ReturnType<typeof getAutoReplyDb>>,
+  check: ConnectionRow,
+) {
+  let checkOk = true;
+  let errorCode: string | null = null;
+  try {
+    await checkMetaConnection(check.channel, check.accountId);
+  } catch (error) {
+    // A transient outcome leaves the stored result alone.
+    if (isTransientCheckFailure(error)) return "transient" as const;
+    checkOk = false;
+    errorCode =
+      error instanceof ProviderError ? error.code : "META_CHECK_FAILED";
+  }
+  await db
+    .update(connections)
+    .set({ checkOk, errorCode, checkedAt: new Date() })
+    .where(
+      and(
+        eq(connections.channel, check.channel),
+        eq(connections.accountId, check.accountId),
+      ),
+    );
+  return checkOk ? ("ok" as const) : ("failed" as const);
 }
 export async function runAutoReplyTick() {
   const db = await getAutoReplyDb();
@@ -190,16 +252,20 @@ export async function runAutoReplyTick() {
         );
       return;
     }
-    const [connection] = await db
-      .select()
-      .from(connections)
-      .where(
-        and(
-          eq(connections.channel, c.channel),
-          eq(connections.accountId, c.accountId),
-        ),
-      );
-    const verificationFailure = !configured(c.channel, c.accountId)
+    const readConnection = async () =>
+      (
+        await db
+          .select()
+          .from(connections)
+          .where(
+            and(
+              eq(connections.channel, c.channel),
+              eq(connections.accountId, c.accountId),
+            ),
+          )
+      )[0] as ConnectionRow | undefined;
+    const verify = (connection: ConnectionRow | undefined) =>
+      !configured(c.channel, c.accountId)
       ? "CONFIG_MISSING"
       : channelCredentials(c.channel, c.accountId).accountId !== c.accountId
         ? "ACCOUNT_MISMATCH"
@@ -217,6 +283,24 @@ export async function runAutoReplyTick() {
                   : c.channel === "whatsapp" && !connection.lastMobileEchoAt
                     ? "MOBILE_ECHO_MISSING"
                     : null;
+    let connection = await readConnection();
+    let verificationFailure = verify(connection);
+    if (
+      (verificationFailure === "CHECK_NOT_OK" ||
+        verificationFailure === "CHECK_EXPIRED") &&
+      connection?.checkedAt &&
+      connection.fingerprint ===
+        connectionFingerprint(c.channel, c.accountId) &&
+      !(
+        verificationFailure === "CHECK_NOT_OK" &&
+        Date.now() - connection.checkedAt.getTime() < 300_000
+      )
+    ) {
+      if ((await recheckConnection(db, connection)) === "transient")
+        throw new ProviderError("CONNECTION_CHECK_TRANSIENT", true, false, 60);
+      connection = await readConnection();
+      verificationFailure = verify(connection);
+    }
     if (verificationFailure) {
       console.warn("[auto-reply-connection]", {
         pid: process.pid,
@@ -365,7 +449,6 @@ export async function runAutoReplyTick() {
         fresh.status === "closed" ||
         freshJob.state !== "sending" ||
         freshJob.claim !== job.claim ||
-        s.revision !== settingsRow.revision ||
         !settings.sendingEnabled ||
         (job.kind === "auto" &&
           (!isAutoReplyEnabled(settings, c.channel, c.accountId) ||
@@ -375,6 +458,11 @@ export async function runAutoReplyTick() {
           .update(jobs)
           .set({ state: "cancelled", errorCode: "STOPPED_BEFORE_SEND" })
           .where(eq(jobs.id, job.id));
+        return;
+      }
+      // A settings or knowledge save made the generated text stale; a staff reply is still valid.
+      if (s.revision !== settingsRow.revision && job.kind === "auto") {
+        await requeueJob(tx, freshJob);
         return;
       }
       if (!withinReplyWindow(c.channel, fresh.lastInboundAt))
@@ -460,6 +548,7 @@ export async function runAutoReplyTick() {
     });
   } catch (error) {
     // Log only safe codes; provider bodies and customer content never enter logs.
+    if (!(error instanceof ProviderError)) logInternalError(job.id, error);
     const failure = jobFailure(
       acceptedByMeta
         ? new ProviderError("SEND_COMMIT_UNCERTAIN", false, true)
@@ -514,32 +603,15 @@ export function startAutoReplyWorker() {
         const db = await getAutoReplyDb();
         const checks = await db.select().from(connections);
         for (const check of checks) {
+          // Failed rows are re-checked too, so a recovered channel comes back without an admin test.
           if (
-            !check.checkOk ||
             check.fingerprint !==
               connectionFingerprint(check.channel, check.accountId) ||
             !check.checkedAt ||
             Date.now() - check.checkedAt.getTime() < 6 * 3600_000
           )
             continue;
-          let checkOk = true;
-          let errorCode: string | null = null;
-          try {
-            await checkMetaConnection(check.channel, check.accountId);
-          } catch (error) {
-            checkOk = false;
-            errorCode =
-              error instanceof ProviderError ? error.code : "META_CHECK_FAILED";
-          }
-          await db
-            .update(connections)
-            .set({ checkOk, errorCode, checkedAt: new Date() })
-            .where(
-              and(
-                eq(connections.channel, check.channel),
-                eq(connections.accountId, check.accountId),
-              ),
-            );
+          await recheckConnection(db, check);
         }
         lastConnectionCheck = Date.now();
       }
@@ -548,9 +620,10 @@ export function startAutoReplyWorker() {
         await purgeExpiredConversations();
         lastPurge = Date.now();
       }
-    } catch {
+    } catch (error) {
       if (Date.now() - lastErrorLog > 60_000) {
         console.error("[auto-reply] WORKER_STORAGE_UNAVAILABLE");
+        if (!(error instanceof ProviderError)) logInternalError(null, error);
         lastErrorLog = Date.now();
       }
     } finally {
