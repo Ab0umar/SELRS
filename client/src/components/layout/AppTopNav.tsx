@@ -49,6 +49,7 @@ import {
 } from "lucide-react";
 import {
   type CSSProperties,
+  Fragment,
   useMemo,
   useState,
   useSyncExternalStore,
@@ -81,7 +82,12 @@ function tabActive(location: string, path: string): boolean {
   return locBase.startsWith(`${navBase}/`);
 }
 
-type AdminTopNavChild = { icon: typeof Users; label: string; path: string };
+type AdminTopNavChild = {
+  icon: typeof Users;
+  label: string;
+  path: string;
+  separatorBefore?: boolean;
+};
 type AdminTopNavItem =
   | {
       type: "link";
@@ -356,9 +362,17 @@ export function AppTopNav({
 
   const aiNavItems = useMemo<AdminTopNavChild[]>(
     () =>
-      adminNavGroups.flatMap((group) =>
-        "items" in group && group.navKey === "ai" ? group.items : [],
-      ),
+      adminNavGroups.flatMap((group) => {
+        if (!("items" in group)) return [];
+        if (group.navKey === "ai") return group.items;
+        if (!group.navKey?.startsWith("ai-")) return [];
+        // AI submodules sit under the shared AI pages, split by a separator.
+        const firstSubmodule = group.navKey === "ai-medical";
+        return group.items.map((child, index) => ({
+          ...child,
+          separatorBefore: firstSubmodule && index === 0,
+        }));
+      }),
     [],
   );
 
@@ -505,9 +519,15 @@ export function AppTopNav({
       "/medical-reports",
     ]);
     if (isAdmin) {
-      ["ai", "clinics-sheets", "clinics-reports"].forEach((key) =>
-        excludedSections.add(key),
-      );
+      [
+        "ai",
+        "ai-medical",
+        "ai-replies",
+        "ai-marketing",
+        "ai-whatsapp",
+        "clinics-sheets",
+        "clinics-reports",
+      ].forEach((key) => excludedSections.add(key));
     }
     const remainingSections = sections
       .filter((section) => !excludedSections.has(section.navKey ?? ""))
@@ -672,14 +692,18 @@ export function AppTopNav({
                         {item.items.map((child) => {
                           const ChildIcon = child.icon;
                           return (
-                            <DropdownMenuItem
-                              key={child.path}
-                              className="cursor-pointer gap-2"
-                              onClick={() => onNavigate(child.path)}
-                            >
-                              <ChildIcon className="h-4 w-4" aria-hidden />
-                              {child.label}
-                            </DropdownMenuItem>
+                            <Fragment key={child.path}>
+                              {child.separatorBefore && (
+                                <DropdownMenuSeparator />
+                              )}
+                              <DropdownMenuItem
+                                className="cursor-pointer gap-2"
+                                onClick={() => onNavigate(child.path)}
+                              >
+                                <ChildIcon className="h-4 w-4" aria-hidden />
+                                {child.label}
+                              </DropdownMenuItem>
+                            </Fragment>
                           );
                         })}
                       </DropdownMenuContent>

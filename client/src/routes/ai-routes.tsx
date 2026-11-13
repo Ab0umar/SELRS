@@ -15,7 +15,6 @@ const MedicalAssistant = lazy(
 const MarketingDashboard = lazy(
   () => import("../pages/marketing/MarketingDashboard"),
 );
-const WhatsAppCopy = lazy(() => import("../pages/marketing/WhatsAppCopy"));
 const DraftPosts = lazy(() => import("../pages/marketing/DraftPosts"));
 const PostHistory = lazy(() => import("../pages/marketing/PostHistory"));
 const BrandLibrary = lazy(() => import("../pages/marketing/BrandLibrary"));
@@ -36,15 +35,6 @@ const pages = [
   { path: "/ai/marketing/brand", content: <BrandLibrary /> },
   { path: "/ai/marketing/settings", content: <MarketingSettings /> },
   { path: "/ai/marketing/whatsapp", content: <WhatsAppCampaigns /> },
-  {
-    path: ROUTES.aiWhatsApp,
-    content: (
-      <section className="space-y-4">
-        <h1 className="text-2xl font-bold">صياغة واتساب</h1>
-        <WhatsAppCopy />
-      </section>
-    ),
-  },
   { path: ROUTES.aiSettings, content: <AiManagement view="settings" /> },
   { path: ROUTES.aiExperiments, content: <AiManagement view="experiments" /> },
   { path: ROUTES.aiUsage, content: <AiManagement view="usage" /> },

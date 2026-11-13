@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { Link, useLocation } from "wouter";
-import { aiMarketingPages, aiPages } from "./navigation";
+import { ROUTES } from "@shared/routes";
+import { aiSubmoduleFor } from "./navigation";
 import "./ai-workspace.css";
 import { isAiMobileApp } from "../../lib/ai-mobile";
 import { useAuth } from "../../hooks/useAuth";
@@ -8,11 +9,13 @@ import { useAuth } from "../../hooks/useAuth";
 export default function AiLayout({ children }: { children: ReactNode }) {
   const [location] = useLocation();
   const { logout } = useAuth();
+  const current = aiSubmoduleFor(location);
   return (
     <div
       className="ai-workspace"
       dir="rtl"
       data-operational-module="ai"
+      data-ai-submodule={current.key}
       data-ai-mobile={isAiMobileApp() || undefined}
     >
       <a
@@ -26,38 +29,28 @@ export default function AiLayout({ children }: { children: ReactNode }) {
         تخطي إلى المحتوى
       </a>
       <header className="ai-workspace-heading">
-        <Link href="/ai" className="ai-module-title">
-          الذكاء الاصطناعي
+        <Link href={current.home} className="ai-module-title">
+          {current.label}
         </Link>
-        {isAiMobileApp() ? (
-          <button type="button" onClick={() => void logout()}>
-            تسجيل الخروج
-          </button>
-        ) : (
-          <Link href="/home">الرئيسية</Link>
-        )}
+        <div className="ai-workspace-actions">
+          {current.key !== "core" && (
+            <Link href={ROUTES.aiSettings}>إعدادات AI</Link>
+          )}
+          {isAiMobileApp() ? (
+            <>
+              {current.key !== "core" && <Link href={ROUTES.ai}>AI</Link>}
+              <button type="button" onClick={() => void logout()}>
+                تسجيل الخروج
+              </button>
+            </>
+          ) : (
+            <Link href="/home">الرئيسية</Link>
+          )}
+        </div>
       </header>
-      <nav className="ai-workspace-nav" aria-label="أقسام الذكاء الاصطناعي">
-        {aiPages.map((page) => (
-          <Link
-            key={page.path}
-            href={page.path}
-            aria-current={
-              location === page.path ||
-              (page.path === "/ai/marketing" &&
-                location.startsWith("/ai/marketing/"))
-                ? "page"
-                : undefined
-            }
-          >
-            {page.label}
-          </Link>
-        ))}
-      </nav>
-      {(location === "/ai/marketing" ||
-        location.startsWith("/ai/marketing/")) && (
-        <nav className="ai-workspace-nav" aria-label="أقسام محتوى التسويق">
-          {aiMarketingPages.map((page) => (
+      {current.pages.length > 0 && (
+        <nav className="ai-workspace-nav" aria-label={`أقسام ${current.label}`}>
+          {current.pages.map((page) => (
             <Link
               key={page.path}
               href={page.path}

@@ -16,6 +16,7 @@ import {
   Network,
   Pencil,
   Settings,
+  Sparkles,
   Syringe,
   Users,
 } from "lucide-react";
@@ -85,11 +86,12 @@ const ALL_ADMIN_TABS = [
   },
   { key: "kf", label: "كفرالشيخ", icon: Hospital, paths: ["/kf"] },
   { key: "stockroom", label: "المخزن", icon: Archive, paths: ["/stockroom"] },
+  { key: "ai", label: "AI", icon: Sparkles, paths: ["/ai"] },
   {
     key: "marketing",
-    label: "التسويق",
+    label: "محتوى التسويق",
     icon: Megaphone,
-    paths: ["/marketing"],
+    paths: ["/ai/marketing"],
   },
   { key: "admin", label: "الإدارة", icon: Settings, paths: ["/admin-hub"] },
 ] as const;
@@ -191,6 +193,23 @@ function saveKeys(storageKey: string, keys: string[]) {
 function isTabActive(location: string, paths: readonly string[]): boolean {
   const base = location.split("?")[0];
   return paths.some((p) => base === p || base.startsWith(`${p}/`));
+}
+
+// Longest matching path wins so /ai/marketing does not also light up "AI".
+function activeTabKey(
+  location: string,
+  tabs: readonly { key: string; paths: readonly string[] }[],
+): string | undefined {
+  const base = location.split("?")[0];
+  let best: { key: string; length: number } | undefined;
+  for (const tab of tabs) {
+    for (const p of tab.paths) {
+      if ((base === p || base.startsWith(`${p}/`)) && p.length > (best?.length ?? -1)) {
+        best = { key: tab.key, length: p.length };
+      }
+    }
+  }
+  return best?.key;
 }
 
 interface AppBottomNavProps {
@@ -351,6 +370,7 @@ export function AppBottomNav({
     ]);
   };
   const mobilePrimaryTabs = visibleTabs.slice(0, 5);
+  const primaryActiveKey = activeTabKey(location, mobilePrimaryTabs);
   const mobileOverflowItems: NavLeaf[] = visibleTabs.slice(5).map((tab) => ({
     icon: tab.icon,
     label: tab.label,
@@ -393,7 +413,9 @@ export function AppBottomNav({
       "/records/patients",
       "/medical-reports",
     ]);
-    const remainingSections = sections
+    const isAiSection = (navKey?: string) =>
+      navKey === "ai" || Boolean(navKey?.startsWith("ai-"));
+    const visibleSections = sections
       .filter((section) => !excludedSections.has(section.navKey ?? ""))
       .map((section) => ({
         ...section,
@@ -402,6 +424,18 @@ export function AppBottomNav({
         ),
       }))
       .filter((section) => section.items.length > 0);
+    // One "AI" entry holding the core pages and every AI submodule, as in the top nav.
+    const aiItems = visibleSections
+      .filter((section) => isAiSection(section.navKey))
+      .flatMap((section) => section.items);
+    const firstAiSection = visibleSections.find((section) =>
+      isAiSection(section.navKey),
+    );
+    const remainingSections = visibleSections.flatMap((section) => {
+      if (!isAiSection(section.navKey)) return [section];
+      if (section !== firstAiSection) return [];
+      return [{ ...section, label: "AI", navKey: "ai", items: aiItems }];
+    });
     const mobileOverflowGroup =
       mobileOverflowItems.length > 0
         ? [
@@ -456,7 +490,7 @@ export function AppBottomNav({
         <div className="flex h-16 items-stretch gap-1 overflow-hidden px-1">
           {mobilePrimaryTabs.map((tab) => {
             const Icon = tab.icon;
-            const active = isTabActive(location, tab.paths);
+            const active = tab.key === primaryActiveKey;
             return (
               <Button variant="bare"
                 key={tab.key}

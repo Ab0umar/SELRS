@@ -107,7 +107,7 @@ export default function GlobalCommandPalette() {
         : []),
     ];
     if (isAdmin) {
-      items.push({ label: "الذكاء الاصطناعي", path: "/ai", icon: LayoutDashboard });
+      items.push({ label: "AI", path: "/ai", icon: LayoutDashboard });
       items.push({
         label: "إعدادات النظام",
         path: "/admin/settings",
