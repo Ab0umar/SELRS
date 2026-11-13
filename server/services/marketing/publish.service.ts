@@ -9,6 +9,11 @@ import type { MySql2Database } from "drizzle-orm/mysql2";
 import { getDb } from "../../db";
 import { ENV } from "../../_core/env";
 import { prepareMarketingPublication } from "./pageBranding";
+import { checkMarketingContent } from "./contentCheck";
+import {
+  marketingApprovalRequired,
+  notifyMarketingAdmins,
+} from "./marketingReview";
 import {
   marketingGenerationJobs,
   marketingLogs,
@@ -28,6 +33,7 @@ export class MarketingPublishError extends Error {
   constructor(
     message: string,
     readonly uncertain = false,
+    readonly tokenRejected = false,
   ) {
     super(message);
   }
@@ -57,7 +63,11 @@ export function buildMessage(post: typeof marketingPosts.$inferSelect): string {
 
 function normalizeFacebookError(error: unknown): MarketingPublishError {
   if (error instanceof FacebookPublishError) {
-    return new MarketingPublishError(error.message, error.uncertain);
+    return new MarketingPublishError(
+      error.message,
+      error.uncertain,
+      error.tokenRejected,
+    );
   }
   return new MarketingPublishError(
     "تعذر التأكد من نتيجة النشر على Facebook؛ راجع الصفحة قبل إعادة المحاولة",
@@ -161,6 +171,18 @@ export async function publishMarketingPost(
         throw new MarketingPublishError(
           "تغيرت صفحة النشر أو إعداد الجدولة؛ المسودة محفوظة للمراجعة",
         );
+      }
+
+      if (expectedTarget?.requireAutoPublish) {
+        // Second line of defence; schedulers already skip these drafts.
+        if (checkMarketingContent(post).length)
+          throw new MarketingPublishError(
+            "المسودة تحتاج مراجعة المحتوى؛ لم تُنشر تلقائيًا",
+          );
+        if (await marketingApprovalRequired(pageRole))
+          throw new MarketingPublishError(
+            "وضع الموافقة مفعل لهذه الصفحة؛ المسودة تنتظر النشر اليدوي",
+          );
       }
 
       if (expectedTarget?.schedulerProvider) {
@@ -310,6 +332,21 @@ export async function publishMarketingPost(
         );
       }
     }
+    if (failure.tokenRejected)
+      console.error(
+        "[marketing] Facebook rejected the page access token (Graph code 190)",
+        claim.pageRole,
+      );
+    await notifyMarketingAdmins({
+      title: failure.tokenRejected
+        ? "رفض Facebook رمز الصفحة"
+        : failure.uncertain
+          ? "نتيجة نشر غير مؤكدة"
+          : "تعذر نشر منشور",
+      message: failure.message.slice(0, 300),
+      kind: failure.uncertain ? "warning" : "error",
+      postId,
+    });
     throw failure;
   }
   try {
@@ -346,10 +383,17 @@ export async function publishMarketingPost(
       },
     );
   } catch {
-    throw new MarketingPublishError(
+    const failure = new MarketingPublishError(
       "نجح طلب النشر ولم يتأكد حفظه محليًا؛ راجع المحاولة الأصلية قبل أي إرسال جديد",
       true,
     );
+    await notifyMarketingAdmins({
+      title: "نتيجة نشر غير مؤكدة",
+      message: failure.message,
+      kind: "warning",
+      postId,
+    });
+    throw failure;
   }
   return { fbPostId };
 }

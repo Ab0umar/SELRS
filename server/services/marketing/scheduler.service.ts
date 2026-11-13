@@ -42,6 +42,7 @@ import {
   ORPHANED_START_ERROR,
   startManusGeneration,
 } from "./manusGeneration.service";
+import { finishScheduledDraft, notifyMarketingAdmins } from "./marketingReview";
 import {
   clearMarketingStartFailures,
   marketingStartAllowed,
@@ -341,19 +342,22 @@ export async function runScheduledPost(
       const currentProvider = (await marketingSchedulerProviders()).find(
         (setting) => setting.pageRole === pageRole,
       )?.provider;
-      let published = false;
-      if (
-        currentTarget?.autoPublish &&
-        currentTarget.pageId === pageTarget.pageId &&
-        currentProvider === "central"
-      ) {
-        await publishMarketingPost(result.postId, pageRole, {
-          pageId: pageTarget.pageId,
-          requireAutoPublish: true,
-          schedulerProvider: "central",
-        });
-        published = true;
-      }
+      const postId = result.postId;
+      const published = await finishScheduledDraft(
+        postId,
+        pageRole,
+        Boolean(
+          currentTarget?.autoPublish &&
+          currentTarget.pageId === pageTarget.pageId &&
+          currentProvider === "central",
+        ),
+        () =>
+          publishMarketingPost(postId, pageRole, {
+            pageId: pageTarget.pageId,
+            requireAutoPublish: true,
+            schedulerProvider: "central",
+          }),
+      );
       await setMarketingSchedulerStatus(pageRole, "idle");
       return {
         ok: true,
@@ -405,6 +409,12 @@ async function checkDueMarketingPosts() {
         const result = await runScheduledPost(day, pageRole);
         if (result.ok) clearMarketingStartFailures(pageRole);
         else recordMarketingStartFailure(pageRole);
+        if (!result.ok)
+          await notifyMarketingAdmins({
+            title: "تعذر التوليد المجدول",
+            message: (result.error ?? "فشل التوليد المجدول").slice(0, 300),
+            kind: "error",
+          });
         if (!result.ok)
           await log(
             null,

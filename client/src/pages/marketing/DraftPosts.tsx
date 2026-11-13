@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -47,6 +47,13 @@ export default function DraftPosts() {
 
   const utils = trpc.useUtils();
 
+  // Notifications link here as /marketing/drafts?post=<id>.
+  const [linkedPostId] = useState(() => {
+    const value = Number(
+      new URLSearchParams(window.location.search).get("post"),
+    );
+    return Number.isInteger(value) && value > 0 ? value : null;
+  });
   const listQuery = trpc.marketing.listPosts.useQuery({
     status: "draft",
     limit,
@@ -118,6 +125,15 @@ export default function DraftPosts() {
   );
 
   const posts = listQuery.data ?? [];
+  const linkedFound = posts.some(
+    (post: { id: number }) => post.id === linkedPostId,
+  );
+  useEffect(() => {
+    if (!linkedFound || linkedPostId === null) return;
+    document
+      .getElementById(`marketing-post-${linkedPostId}`)
+      ?.scrollIntoView({ block: "center" });
+  }, [linkedFound, linkedPostId]);
   const jobsQuery = trpc.marketing.generationJobs.useQuery(undefined, {
     refetchInterval: 5000,
   });
@@ -188,7 +204,12 @@ export default function DraftPosts() {
             {posts.map((post: any) => (
               <div
                 key={post.id}
-                className="rounded-xl border border-border bg-card overflow-hidden"
+                id={`marketing-post-${post.id}`}
+                className={`rounded-xl border bg-card overflow-hidden ${
+                  post.id === linkedPostId
+                    ? "border-primary ring-2 ring-primary/30"
+                    : "border-border"
+                }`}
               >
                 {/* Image area */}
                 {post.imageUrl ? (
@@ -251,6 +272,18 @@ export default function DraftPosts() {
                       مسودة
                     </Badge>
                   </div>
+
+                  {post.contentFlags?.length > 0 && (
+                    <div
+                      role="note"
+                      className="rounded-md border border-warning/40 bg-warning/10 px-3 py-2 text-xs text-warning-text"
+                    >
+                      <p className="font-medium">
+                        راجع قبل النشر، لن تُنشر تلقائيًا:
+                      </p>
+                      <p>{post.contentFlags.join("، ")}</p>
+                    </div>
+                  )}
 
                   {/* Content */}
                   {post.content && (

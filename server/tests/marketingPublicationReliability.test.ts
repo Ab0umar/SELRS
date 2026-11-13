@@ -1,13 +1,39 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-vi.mock("../services/marketing/equipmentAssets",async original=>({...await original<typeof import("../services/marketing/equipmentAssets")>(),readEquipmentPhoto:vi.fn().mockResolvedValue(null)}));
-vi.mock("../services/marketing/pageBranding",()=>({readMarketingPageBranding:vi.fn().mockResolvedValue({pageRole:"center",pageId:"1",name:"Fixture",address:"Fixture address",phone:"000",logo:Buffer.alloc(0)}),brandMarketingImageUrl:vi.fn(async(url:string)=>url),prepareMarketingPublication:vi.fn(async(message:string,imageUrl:string|null)=>({message,imageUrl}))}));
+vi.mock("../services/marketing/equipmentAssets", async (original) => ({
+  ...(await original<typeof import("../services/marketing/equipmentAssets")>()),
+  readEquipmentPhoto: vi.fn().mockResolvedValue(null),
+}));
+vi.mock("../services/marketing/pageBranding", () => ({
+  readMarketingPageBranding: vi
+    .fn()
+    .mockResolvedValue({
+      pageRole: "center",
+      pageId: "1",
+      name: "Fixture",
+      address: "Fixture address",
+      phone: "000",
+      logo: Buffer.alloc(0),
+    }),
+  brandMarketingImageUrl: vi.fn(async (url: string) => url),
+  prepareMarketingPublication: vi.fn(
+    async (message: string, imageUrl: string | null) => ({ message, imageUrl }),
+  ),
+}));
 const mocks = vi.hoisted(() => ({
   db: vi.fn(),
   reserve: vi.fn(),
   release: vi.fn(),
   confirm: vi.fn(),
 }));
-vi.mock("../db", () => ({ getDb: mocks.db }));
+// Approval mode defaults to on; these tests cover pages where the owner turned it off.
+vi.mock("../db", () => ({
+  getDb: mocks.db,
+  getSystemSetting: async () => ({ value: "false" }),
+  updateSystemSettings: async () => undefined,
+}));
+vi.mock("../_core/appNotifications", () => ({
+  pushAppNotification: async () => undefined,
+}));
 vi.mock("../services/marketing/topicHistory", () => ({
   reserveTopicPublication: mocks.reserve,
   releaseTopicPublication: mocks.release,

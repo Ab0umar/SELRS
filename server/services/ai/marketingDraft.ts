@@ -45,6 +45,7 @@ import type { AcceptAiOperation } from "./operations";
 import { marketingUsageId } from "../marketing/requestIds";
 export { marketingUsageId } from "../marketing/requestIds";
 import { assertDraftImageAvailable } from "../marketing/draftImageClaim";
+import { announceManualDraft } from "../marketing/marketingReview";
 
 async function imageModelForJob(selected?: string) {
   if (selected) return selected;
@@ -569,6 +570,7 @@ export async function finishCentralMarketingDraft(
         });
       },
     );
+    if (createdBy !== null && postId) await announceManualDraft(postId);
     return {
       jobId: input.requestId,
       topic: input.topic,

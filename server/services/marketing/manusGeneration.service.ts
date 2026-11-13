@@ -49,6 +49,11 @@ import { readMarketingJobContext } from "./jobContext";
 import type { AcceptAiOperation } from "../ai/operations";
 import { marketingSchedulerProviders } from "../ai/marketingScheduler";
 import { assertDraftImageAvailable } from "./draftImageClaim";
+import {
+  announceManualDraft,
+  finishScheduledDraft,
+  notifyMarketingAdmins,
+} from "./marketingReview";
 
 type Job = typeof marketingGenerationJobs.$inferSelect;
 const pendingStates = ["starting", "running", "uncertain"] as const;
@@ -430,7 +435,10 @@ export async function resolveManusGenerationJob(
         error: "لا يوجد رقم مهمة في Manus لإعادة الفحص؛ يمكنك إيقاف المهمة",
       };
     try {
-      await finishJob(job);
+      const postId = await finishJob(job);
+      // Rechecked drafts are never auto-published; the admin reviews them.
+      if (postId !== null && job.kind === "post")
+        await announceManualDraft(postId);
     } catch (error) {
       return {
         state: job.state,
@@ -528,6 +536,12 @@ export async function processManusGenerationJobs() {
                 inArray(marketingGenerationJobs.state, [...pendingStates]),
               ),
             );
+          if (job.createdBy === null)
+            await notifyMarketingAdmins({
+              title: "توليد مجدول غير محسوم",
+              message: `انتهت مهلة مهمة Manus لموضوع: ${job.topic}`,
+              kind: "warning",
+            });
           continue;
         }
         completedPostId = await finishJob(job);
@@ -553,6 +567,12 @@ export async function processManusGenerationJobs() {
               inArray(marketingGenerationJobs.state, [...pendingStates]),
             ),
           );
+        if (job.createdBy === null)
+          await notifyMarketingAdmins({
+            title: "فشل التوليد المجدول",
+            message: `${job.topic}: ${message}`.slice(0, 300),
+            kind: "error",
+          });
       }
       if (
         completedPostId !== null &&
@@ -565,21 +585,28 @@ export async function processManusGenerationJobs() {
           (await marketingSchedulerProviders()).find(
             (setting) => setting.pageRole === job.pageRole,
           )?.provider ?? "manus";
-        if (
-          pageTarget?.autoPublish &&
-          provider === "manus" &&
-          context?.targetPageId === pageTarget.pageId
-        ) {
-          try {
-            await publishMarketingPost(completedPostId, job.pageRole, {
-              pageId: context.targetPageId,
-              requireAutoPublish: true,
-              schedulerProvider: "manus",
-            });
-          } catch {
-            // The publish service records the failure and preserves uncertain states.
-          }
+        const postId = completedPostId;
+        try {
+          await finishScheduledDraft(
+            postId,
+            job.pageRole,
+            Boolean(
+              pageTarget?.autoPublish &&
+              provider === "manus" &&
+              context?.targetPageId === pageTarget.pageId,
+            ),
+            () =>
+              publishMarketingPost(postId, job.pageRole, {
+                pageId: context!.targetPageId!,
+                requireAutoPublish: true,
+                schedulerProvider: "manus",
+              }),
+          );
+        } catch {
+          // The publish service records the failure and preserves uncertain states.
         }
+      } else if (completedPostId !== null && job.kind === "post") {
+        await announceManualDraft(completedPostId);
       }
     }
   } finally {
