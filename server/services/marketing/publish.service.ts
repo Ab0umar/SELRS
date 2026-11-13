@@ -1,8 +1,9 @@
-import { and, eq, inArray } from "drizzle-orm";
+import { and, desc, eq, inArray } from "drizzle-orm";
 import {
   reserveTopicPublication,
   confirmTopicPublication,
   releaseTopicPublication,
+  settleTopicForPost,
 } from "./topicHistory";
 import type { MySql2Database } from "drizzle-orm/mysql2";
 import { getDb } from "../../db";
@@ -20,6 +21,7 @@ import {
 import {
   FacebookPublishError,
   publishPostToFacebook,
+  readRecentPagePosts,
 } from "./facebookPublisher.service";
 
 export class MarketingPublishError extends Error {
@@ -43,7 +45,7 @@ type PublicationClaim =
       imageUrl: string | null;
     };
 
-function buildMessage(post: typeof marketingPosts.$inferSelect): string {
+export function buildMessage(post: typeof marketingPosts.$inferSelect): string {
   return [
     post.content ?? post.title,
     post.cta ? `\n\n${post.cta}` : "",
@@ -350,4 +352,156 @@ export async function publishMarketingPost(
     );
   }
   return { fbPostId };
+}
+
+const normalizeText = (value: string) => value.replace(/\s+/g, " ").trim();
+// Facebook's created_time and our clock can disagree by a little.
+const CLAIM_SKEW_MS = 2 * 60 * 1000;
+
+async function readPublishingPost(postId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const [post] = await db
+    .select()
+    .from(marketingPosts)
+    .where(eq(marketingPosts.id, postId))
+    .limit(1);
+  if (!post) throw new Error("المنشور غير موجود");
+  if (post.status !== "publishing")
+    throw new Error("المنشور ليس في حالة قيد النشر");
+  const [claim] = await db
+    .select({ createdAt: marketingLogs.createdAt })
+    .from(marketingLogs)
+    .where(
+      and(
+        eq(marketingLogs.postId, postId),
+        eq(marketingLogs.action, "publish_claim"),
+      ),
+    )
+    .orderBy(desc(marketingLogs.createdAt))
+    .limit(1);
+  return { db, post, claimedAt: claim?.createdAt ?? post.updatedAt };
+}
+
+async function settlePublishingPost(
+  postId: number,
+  outcome: "published" | "not_published",
+  fbPostId: string | null,
+  message: string,
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.transaction(
+    async (
+      tx: Pick<MySql2Database, "select" | "update" | "insert" | "delete">,
+    ) => {
+      const [post] = await tx
+        .select()
+        .from(marketingPosts)
+        .where(eq(marketingPosts.id, postId))
+        .for("update");
+      if (post?.status !== "publishing")
+        throw new Error("تغيرت حالة المنشور؛ حدّث الصفحة");
+      await tx
+        .update(marketingPosts)
+        .set(
+          outcome === "published"
+            ? { status: "published", publishedAt: new Date(), fbPostId }
+            : { status: "draft" },
+        )
+        .where(eq(marketingPosts.id, postId));
+      await settleTopicForPost(
+        tx,
+        postId,
+        outcome === "published" ? "published" : "released",
+      );
+      await tx.insert(marketingLogs).values({
+        postId,
+        action: "publish_reconcile",
+        status: "info",
+        message,
+      });
+    },
+  );
+}
+
+/** Looks for a stuck post on its Facebook page and settles it when found. */
+export async function reconcilePublishingPost(
+  postId: number,
+  userId: number,
+): Promise<
+  | { state: "published"; fbPostId: string }
+  | { state: "unmatched"; reason: string }
+> {
+  const { db, post, claimedAt } = await readPublishingPost(postId);
+  const pageRole = post.pageRole ?? "center";
+  const [page] = await db
+    .select()
+    .from(marketingFacebookPages)
+    .where(eq(marketingFacebookPages.pageRole, pageRole))
+    .limit(1);
+  const [settings] = page
+    ? []
+    : await db.select().from(marketingSettings).limit(1);
+  const pageId =
+    page?.pageId ?? (pageRole === "center" ? settings?.fbPageId : null);
+  const accessToken =
+    page?.accessToken ??
+    (pageRole === "center" ? settings?.fbAccessToken : null);
+  if (!pageId || !accessToken)
+    return {
+      state: "unmatched",
+      reason: "الصفحة غير مربوطة؛ حدد النتيجة يدويًا",
+    };
+  const since = new Date(claimedAt.getTime() - CLAIM_SKEW_MS);
+  let posts;
+  try {
+    posts = await readRecentPagePosts(pageId, accessToken, since);
+  } catch (error) {
+    return {
+      state: "unmatched",
+      reason:
+        error instanceof FacebookPublishError
+          ? error.message
+          : "تعذر قراءة منشورات الصفحة؛ حدد النتيجة يدويًا",
+    };
+  }
+  const body = normalizeText(buildMessage(post));
+  const match = posts.find(
+    (candidate) =>
+      candidate.createdTime.getTime() >= since.getTime() &&
+      body.length > 0 &&
+      normalizeText(candidate.message).startsWith(body),
+  );
+  if (!match)
+    return {
+      state: "unmatched",
+      reason:
+        "لم نجد المنشور على الصفحة بعد وقت محاولة النشر؛ حدد النتيجة يدويًا",
+    };
+  await settlePublishingPost(
+    postId,
+    "published",
+    match.id,
+    `Reconciled by user ${userId}: found on Facebook as ${match.id}`,
+  );
+  return { state: "published", fbPostId: match.id };
+}
+
+/** Admin's manual decision for a stuck post that could not be matched. */
+export async function resolvePublishingPost(
+  postId: number,
+  outcome: "published" | "not_published",
+  userId: number,
+) {
+  await readPublishingPost(postId);
+  await settlePublishingPost(
+    postId,
+    outcome,
+    null,
+    outcome === "published"
+      ? `Marked published manually by user ${userId}`
+      : `Marked not published by user ${userId}; returned to draft and topic released`,
+  );
+  return { ok: true };
 }
