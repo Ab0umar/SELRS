@@ -21,6 +21,14 @@ export function verifyMetaSignature(
 export function englishFirst(text: string) {
   return /^[a-z]$/i.test(text.match(/\p{L}/u)?.[0] ?? "");
 }
+// The current message decides; the first message is used only when it has no letters.
+export function replyInEnglish(text: string, firstText?: string) {
+  return englishFirst(/\p{L}/u.test(text) ? text : (firstText ?? text));
+}
+export const unsupportedAcknowledgement = (english: boolean) =>
+  english
+    ? "We received your message and will pass it to a member of our team."
+    : "وصلتنا رسالتك، وهنحوّلها لموظف من المركز يرد عليك.";
 export function isSocialMessage(text: string) {
   const normalized = text
     .toLowerCase()
@@ -104,9 +112,7 @@ export function handoffText(
   publicComment: boolean,
 ) {
   if (publicComment)
-    return english
-      ? "Please message the page so our team can help with your question."
-      : "ابعتلنا رسالة على الصفحة وفريق المركز هيساعدك في استفسارك.";
+    return english ? "Please message us privately." : "نرجو التواصل على الخاص";
   if (reason === "clinical")
     return english
       ? "Diagnosis, treatment and LASIK suitability require an eye examination. I'll refer your message to our team to help you arrange a visit."
@@ -141,10 +147,19 @@ export function replyTargetMatches(
 }
 const normalize = (s: string) =>
   s.toLowerCase().replace(/[أإآ]/g, "ا").replace(/ى/g, "ي").replace(/ة/g, "ه");
+// Common words that would otherwise match nearly every entry.
+const stopWords = new Set(
+  [
+    "في", "من", "على", "علي", "الى", "إلى", "عن", "مع", "هل", "ما", "ماذا",
+    "هو", "هي", "انا", "انت", "ده", "دي", "دا", "اللي", "التي", "الذي", "او",
+    "أو", "لو", "يا", "عند", "ايه", "إيه", "كان", "بس", "كده", "هذا", "هذه",
+    "the", "and", "for", "you", "is", "to", "of", "in", "on", "do",
+  ].map(normalize),
+);
 export function retrieveKnowledge(query: string, entries: KnowledgeItem[]) {
   const terms = [
     ...new Set(normalize(query).match(/[\p{L}\p{N}]{2,}/gu) ?? []),
-  ];
+  ].filter((term) => !stopWords.has(term));
   return entries
     .map((entry) => ({
       entry,
@@ -164,18 +179,38 @@ export function retrieveKnowledge(query: string, entries: KnowledgeItem[]) {
     .slice(0, 8)
     .map((r) => r.entry);
 }
+const chunkSize = 3000;
+// Long teaching entries are ranked by paragraph; every chunk keeps the entry id for citations.
+function knowledgeChunks(entry: KnowledgeItem): KnowledgeItem[] {
+  if (entry.content.length <= chunkSize) return [entry];
+  const pieces: string[] = [];
+  let current = "";
+  for (const paragraph of entry.content.split(/\n\s*\n/)) {
+    for (let start = 0; start < paragraph.length; start += chunkSize) {
+      const part = paragraph.slice(start, start + chunkSize);
+      if (current && current.length + part.length + 2 > chunkSize) {
+        pieces.push(current);
+        current = "";
+      }
+      current = current ? `${current}\n\n${part}` : part;
+    }
+  }
+  if (current) pieces.push(current);
+  return pieces.map((content) => ({ ...entry, content }));
+}
 export function selectKnowledgeContext(
   query: string,
   entries: KnowledgeItem[],
   maxCharacters = 64000,
 ) {
-  const candidates = [...retrieveKnowledge(query, entries), ...entries];
+  const chunks = entries.flatMap(knowledgeChunks);
+  const candidates = [...retrieveKnowledge(query, chunks), ...chunks];
   const selected: KnowledgeItem[] = [];
-  const seen = new Set<number>();
+  const seen = new Set<KnowledgeItem>();
   let characters = 0;
   for (const entry of candidates) {
-    if (seen.has(entry.id)) continue;
-    seen.add(entry.id);
+    if (seen.has(entry)) continue;
+    seen.add(entry);
     const size = JSON.stringify(entry).length;
     if (characters + size > maxCharacters) continue;
     selected.push(entry);

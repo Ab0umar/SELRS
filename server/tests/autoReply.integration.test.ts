@@ -1088,7 +1088,7 @@ describe.skipIf(!testUrl)(
       expect(await db.select().from(jobs)).toHaveLength(0);
       expect(config.sendingEnabled).toBe(true);
     });
-    it("keeps an English conversation in English when handing off a later Arabic request", async () => {
+    it("hands off in the current message's language, not the first message's", async () => {
       await ingestEvents([event("first-english", "Hello")]);
       await enable();
       await ingestEvents([event("later-clinical", "علاج وجع العين")]);
@@ -1097,9 +1097,211 @@ describe.skipIf(!testUrl)(
       const outbound = (await db.select().from(messages)).find(
         (m) => m.direction === "bot",
       );
-      expect(outbound?.body).toMatch(/[A-Za-z]/);
-      expect(outbound?.body).not.toMatch(/[\u0600-\u06ff]/);
+      expect(outbound?.body).toMatch(/[\u0600-\u06ff]/);
+      expect(outbound?.body).not.toMatch(/[A-Za-z]/);
       expect((await db.select().from(conversations))[0].status).toBe("human");
+    });
+    it("ignores reactions and acknowledges other non-text messages once", async () => {
+      await enable();
+      await ingestEvents([event("first", "Hello")]);
+      await db.update(jobs).set({ state: "cancelled" });
+      await ingestEvents([
+        { ...event("voice"), text: "[رسالة غير نصية]", unsupported: true },
+      ]);
+      const [c] = await db.select().from(conversations);
+      expect(c).toMatchObject({
+        status: "human",
+        humanReason: "unsupported_message",
+      });
+      const queued = (await db.select().from(jobs)).filter(
+        (job) => job.state === "pending",
+      );
+      expect(queued).toHaveLength(1);
+      expect(queued[0]).toMatchObject({
+        handoff: true,
+        body: "We received your message and will pass it to a member of our team.",
+      });
+      await ingestEvents([
+        { ...event("image"), text: "[رسالة غير نصية]", unsupported: true },
+      ]);
+      expect(
+        (await db.select().from(jobs)).filter((job) => job.state === "pending"),
+      ).toHaveLength(0);
+    });
+    it("reopens an idle handoff after the configured hours but never a staff takeover", async () => {
+      await enable();
+      await ingestEvents([event("ask", "عايز موظف")]);
+      const [c] = await db.select().from(conversations);
+      expect(c.status).toBe("human");
+      await db.update(jobs).set({ state: "cancelled" });
+      const idle = new Date(Date.now() - 25 * 3600_000);
+      await db.update(conversations).set({ lastActivityAt: idle });
+      await ingestEvents([event("later", "عنوان الفرع")]);
+      expect((await db.select().from(conversations))[0].status).toBe("open");
+      expect(
+        (await db.select().from(jobs)).filter((job) => job.state === "pending"),
+      ).toHaveLength(1);
+      await setConversationStatus(c.id, "human");
+      await db.update(conversations).set({ lastActivityAt: idle });
+      await ingestEvents([event("after-takeover", "عنوان الفرع")]);
+      expect((await db.select().from(conversations))[0]).toMatchObject({
+        status: "human",
+        humanReason: "staff_takeover",
+      });
+    });
+    it("waits staffReplyPauseMinutes after a staff reply before resuming", async () => {
+      const config = await enable();
+      await saveSettings({ ...config, staffReplyPauseMinutes: 30 }, 1);
+      await ingestEvents([event("q1")]);
+      await ingestEvents([
+        { ...event("staff-echo", "رد الموظف"), humanEcho: true },
+      ]);
+      await db.update(jobs).set({ state: "cancelled" });
+      await ingestEvents([event("q2")]);
+      expect((await db.select().from(conversations))[0].humanReason).toBe(
+        "external_staff_reply",
+      );
+      expect(
+        (await db.select().from(jobs)).filter((job) => job.state === "pending"),
+      ).toHaveLength(0);
+      await db
+        .update(messages)
+        .set({ createdAt: new Date(Date.now() - 31 * 60_000) })
+        .where(eq(messages.direction, "staff"));
+      await ingestEvents([event("q3")]);
+      expect((await db.select().from(conversations))[0].status).toBe("open");
+      expect(
+        (await db.select().from(jobs)).filter((job) => job.state === "pending"),
+      ).toHaveLength(1);
+    });
+    it("does not repeat the outside-hours message within 6 hours", async () => {
+      const config = await enable();
+      await saveSettings(
+        {
+          ...config,
+          hoursEnabled: true,
+          hours: [{ day: 0, start: "00:00", end: "00:01" }],
+        },
+        1,
+      );
+      await ingestEvents([event("night")]);
+      mockNetwork();
+      await runAutoReplyTick();
+      await db.update(connections).set({ lastSentAt: null });
+      await ingestEvents([event("night-2")]);
+      await runAutoReplyTick();
+      expect(
+        (await db.select().from(jobs)).map((job) => [job.state, job.errorCode]),
+      ).toEqual([
+        ["sent", null],
+        ["cancelled", "OUTSIDE_HOURS_REPEAT"],
+      ]);
+    });
+    it("hands off a reply-cap conversation without a job", async () => {
+      const config = await enable();
+      await saveSettings({ ...config, maxAutoRepliesPerHour: 2 }, 1);
+      await ingestEvents([event("q1")]);
+      const [c] = await db.select().from(conversations);
+      await db.update(jobs).set({ state: "cancelled" });
+      for (const n of [1, 2])
+        await db.insert(messages).values({
+          conversationId: c.id,
+          eventKey: hash(`bot-${n}`),
+          direction: "bot",
+          body: "رد",
+          state: "sent",
+        });
+      await ingestEvents([event("q2")]);
+      expect((await db.select().from(conversations))[0]).toMatchObject({
+        status: "human",
+        humanReason: "rate_limited",
+      });
+      expect(
+        (await db.select().from(jobs)).filter((job) => job.state === "pending"),
+      ).toHaveLength(0);
+    });
+    it.each([
+      [true, "نرجو التواصل على الخاص"],
+      [false, null],
+    ])(
+      "answers an unanswerable comment publicly only when it is a question (%s)",
+      async (isQuestion, publicLine) => {
+        await enablePages();
+        await ingestEvents([
+          { ...pageEvent("456", "facebook_comment"), text: "ربنا يوفقكم" },
+        ]);
+        vi.stubGlobal(
+          "fetch",
+          vi.fn(async (url: string) =>
+            url.includes("generativelanguage")
+              ? Response.json({
+                  candidates: [
+                    {
+                      finishReason: "STOP",
+                      content: {
+                        parts: [
+                          {
+                            text: JSON.stringify({
+                              text: "",
+                              handoff: true,
+                              isQuestion,
+                              sourceIds: [],
+                            }),
+                          },
+                        ],
+                      },
+                    },
+                  ],
+                })
+              : Response.json({ id: "public-reply" }),
+          ),
+        );
+        await db.delete(knowledge);
+        await runAutoReplyTick();
+        const [job] = await db.select().from(jobs);
+        expect(job.state).toBe(publicLine ? "sent" : "cancelled");
+        if (!publicLine) expect(job.errorCode).toBe("SILENT_HANDOFF");
+        expect(
+          (await db.select().from(messages))
+            .filter((m) => m.direction === "bot")
+            .map((m) => m.body),
+        ).toEqual(publicLine ? [publicLine] : []);
+        expect((await db.select().from(conversations))[0].status).toBe(
+          "human",
+        );
+      },
+    );
+    it("replies to a nested comment only under one of the bot's own comments", async () => {
+      await enablePages();
+      await ingestEvents([
+        {
+          ...pageEvent("456", "facebook_comment"),
+          key: hash("nested-1"),
+          threadId: "nested-1",
+          providerId: "nested-1",
+          parentId: "someone-else",
+        },
+      ]);
+      expect(await db.select().from(jobs)).toHaveLength(0);
+      const [c] = await db.select().from(conversations);
+      await db.insert(messages).values({
+        conversationId: c.id,
+        eventKey: hash("bot-comment"),
+        providerId: "bot-comment",
+        direction: "bot",
+        body: "رد",
+        state: "sent",
+      });
+      await ingestEvents([
+        {
+          ...pageEvent("456", "facebook_comment"),
+          key: hash("nested-2"),
+          threadId: "nested-2",
+          providerId: "nested-2",
+          parentId: "bot-comment",
+        },
+      ]);
+      expect(await db.select().from(jobs)).toHaveLength(1);
     });
     it("cancels queued automation on staff takeover, and resume handles only new messages", async () => {
       await enable();

@@ -19,7 +19,7 @@ import type { Express, Request, Response } from "express";
 import express from "express";
 import { rateLimit } from "express-rate-limit";
 import crypto from "crypto";
-import { sql } from "drizzle-orm";
+import { and, eq, ne, sql } from "drizzle-orm";
 import type { MySql2Database } from "drizzle-orm/mysql2";
 import { ENV } from "./env";
 import { getDb } from "../db";
@@ -140,6 +140,7 @@ export function registerWhatsAppWebhook(app: Express) {
       }
 
       let newMessages: WhatsAppMessage[];
+      let db: Awaited<ReturnType<typeof getDb>>;
       try {
         await ingestConfirmationReceipts(req.body);
         const messages = extractMessages(req.body);
@@ -161,7 +162,7 @@ export function registerWhatsAppWebhook(app: Express) {
           return;
         }
 
-        const db = await getDb();
+        db = await getDb();
         if (!db) {
           console.error(
             "[whatsapp-webhook] Database not available, retry required for",
@@ -251,6 +252,21 @@ export function registerWhatsAppWebhook(app: Express) {
               });
               continue;
             }
+            // The fixed reply answers text only, once per number every 6 hours.
+            if (msg.type !== "text") continue;
+            const [recent] = await db!
+              .select({ id: whatsappInboundMessages.id })
+              .from(whatsappInboundMessages)
+              .where(
+                and(
+                  eq(whatsappInboundMessages.fromPhone, msg.from),
+                  eq(whatsappInboundMessages.messageType, "text"),
+                  ne(whatsappInboundMessages.waMessageId, msg.id),
+                  sql`${whatsappInboundMessages.receivedAt} >= NOW() - INTERVAL 6 HOUR`,
+                ),
+              )
+              .limit(1);
+            if (recent) continue;
             await sendWhatsAppReply({
               recipientPhone: msg.from,
               message: buildWhatsAppInboundAutoReply(),

@@ -22,9 +22,10 @@ const replyJsonSchema = {
   properties: {
     text: { type: "string" },
     handoff: { type: "boolean" },
+    isQuestion: { type: "boolean" },
     sourceIds: { type: "array", items: { type: "integer" } },
   },
-  required: ["text", "handoff", "sourceIds"],
+  required: ["text", "handoff", "isQuestion", "sourceIds"],
 };
 
 export function managedReplyPreview(
