@@ -163,14 +163,16 @@ describe("auto-reply webhook boundary", () => {
       ).status,
     ).toBe(403);
   });
-  it.each(["missing", "tampered", "invalid_json", "valid"])(
+  it.each(["missing", "tampered", "invalid_json", "invalid_schema", "valid"])(
     "validates exact body bytes: %s",
     async (kind) => {
       const url = await open();
       const raw =
         kind === "invalid_json"
           ? "{"
-          : JSON.stringify({ object: "page", entry: [] });
+          : kind === "invalid_schema"
+            ? JSON.stringify({ object: "page", entry: [{ id: 456 }] })
+            : JSON.stringify({ object: "page", entry: [] });
       const signed = kind === "tampered" ? raw + " " : raw;
       const response = await fetch(url, {
         method: "POST",
@@ -184,8 +186,13 @@ describe("auto-reply webhook boundary", () => {
               }),
         },
       });
+      // A signed but unexpected envelope is acknowledged so Meta stops redelivering it.
       expect(response.status).toBe(
-        kind === "valid" ? 200 : kind === "invalid_json" ? 400 : 401,
+        kind === "valid" || kind === "invalid_schema"
+          ? 200
+          : kind === "invalid_json"
+            ? 400
+            : 401,
       );
     },
   );
@@ -407,6 +414,26 @@ describe("channel policy", () => {
         now,
       ),
     ).toBe(false);
+  });
+  it("skips a malformed Messenger item and keeps the rest of the batch", () => {
+    const events = parseMetaEvents({
+      object: "page",
+      entry: [
+        {
+          id: "456",
+          messaging: [
+            { sender: { id: "user" }, timestamp: "not-a-number" },
+            {
+              sender: { id: "user" },
+              recipient: { id: "456" },
+              timestamp: Date.now(),
+              message: { mid: "good", text: "hello" },
+            },
+          ],
+        },
+      ],
+    });
+    expect(events.map((event) => event.providerId)).toEqual(["good"]);
   });
   it("ignores page echoes from this app and other pages", () => {
     const event = {

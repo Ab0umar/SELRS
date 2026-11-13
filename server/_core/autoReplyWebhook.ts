@@ -127,9 +127,11 @@ export function registerAutoReplyWebhook(app: Express) {
         logWebhookDiagnostic("accepted", payload, counts);
         res.sendStatus(200);
       } catch (error) {
+        // A signed payload with an unexpected shape will not improve on redelivery.
         if (error instanceof ZodError) {
+          console.warn("[auto-reply] WEBHOOK_INVALID_SCHEMA");
           logWebhookDiagnostic("invalid_schema", payload);
-          res.sendStatus(400);
+          res.sendStatus(200);
           return;
         }
         console.error("[auto-reply] WEBHOOK_STORAGE_UNAVAILABLE");

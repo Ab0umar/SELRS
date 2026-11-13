@@ -511,10 +511,19 @@ describe.skipIf(!testUrl)(
         expect(job.state).toBe(
           scenario === "success"
             ? "sent"
-            : scenario === "private_denied"
-              ? "failed"
-              : "unknown",
+            : scenario === "private_uncertain"
+              ? "unknown"
+              : "failed",
         );
+        if (scenario === "public_failed") {
+          expect(job.errorCode).toBe("PRIVATE_SENT_PUBLIC_FAILED");
+          // The private reply reached the customer, so it stays on record.
+          expect(
+            (await db.select().from(messages))
+              .filter((m) => m.direction === "bot")
+              .map((m) => [m.providerId, m.body]),
+          ).toEqual([["private-price", "سعر الكشف 260 جنيه"]]);
+        }
         if (scenario === "success") {
           expect(
             (await db.select().from(messages))
@@ -1286,6 +1295,17 @@ describe.skipIf(!testUrl)(
         errorCode: null,
       });
       expect((await db.select().from(jobs))[0].state).toBe("sent");
+    });
+    it("treats a staff-started conversation as having a closed reply window", async () => {
+      await enable();
+      await ingestEvents([{ ...event("staff-first", "أهلا"), humanEcho: true }]);
+      const [c] = await db.select().from(conversations);
+      expect(c.lastInboundAt.getTime()).toBe(0);
+      await expect(
+        autoReplyRouter
+          .createCaller(makeCallerAs("admin"))
+          .sendManual({ id: c.id, text: "مرحبا", requestId: randomUUID() }),
+      ).rejects.toMatchObject({ message: "انتهت نافذة الرد المسموح بها" });
     });
     it("hands off an interrupted send without ever sending it again", async () => {
       await enable();

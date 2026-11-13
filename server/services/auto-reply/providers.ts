@@ -304,7 +304,7 @@ export async function sendMetaReply(
             to: participantId,
             type: "text",
             text: { body },
-            context: { message_id: threadId },
+            ...(threadId ? { context: { message_id: threadId } } : {}),
           },
           accountId,
         )

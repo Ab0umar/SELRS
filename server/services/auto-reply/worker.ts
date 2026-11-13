@@ -20,6 +20,7 @@ import {
   getAutoReplyDb,
   purgeExpiredConversations,
   currentKnowledgeSourceCondition,
+  recordSentMessage,
   requeueJob,
 } from "./store";
 import { isRecipientAllowed } from "./recipients";
@@ -314,12 +315,14 @@ export async function runAutoReplyTick() {
       throw new ProviderError("REPLY_WINDOW_EXPIRED");
     let body = job.body;
     let privatePrice = false;
+    let englishComment = false;
     if (job.kind === "auto" && c.channel === "facebook_comment") {
       const [inbound] = await db
         .select()
         .from(messages)
         .where(eq(messages.id, job.inboundId ?? -1));
       privatePrice = Boolean(inbound && isPriceQuestion(inbound.body));
+      englishComment = Boolean(inbound && englishFirst(inbound.body));
     }
     let handoff = job.handoff;
     let reason: string | null = null;
@@ -379,6 +382,7 @@ export async function runAutoReplyTick() {
       }
     }
     if (!body) throw new ProviderError("EMPTY_REPLY");
+    // Step 1: one short locked transaction re-validates and marks the job sending.
     const prepared = await db.transaction(async (tx) => {
       const [s] = await tx
         .select()
@@ -400,14 +404,84 @@ export async function runAutoReplyTick() {
         !fresh ||
         fresh.revision !== job.revision ||
         freshJob.state !== "generating" ||
-        freshJob.claim !== job.claim ||
-        s.revision !== settingsRow.revision ||
+        freshJob.claim !== job.claim
+      )
+        return null;
+      if (
+        fresh.status === "closed" ||
         !settings.sendingEnabled ||
         (job.kind === "auto" &&
           (!isAutoReplyEnabled(settings, c.channel, c.accountId) ||
             !(await isRecipientAllowed(tx, settings, c))))
-      )
-        return false;
+      ) {
+        await tx
+          .update(jobs)
+          .set({ state: "cancelled", errorCode: "STOPPED_BEFORE_SEND" })
+          .where(eq(jobs.id, job.id));
+        return null;
+      }
+      // A settings or knowledge save made the generated text stale; a staff reply is still valid.
+      if (s.revision !== settingsRow.revision && job.kind === "auto") {
+        await requeueJob(tx, freshJob);
+        return null;
+      }
+      if (!withinReplyWindow(c.channel, fresh.lastInboundAt))
+        throw new ProviderError("REPLY_WINDOW_EXPIRED");
+      const [lastSend] = await tx
+        .select()
+        .from(connections)
+        .where(
+          and(
+            eq(connections.channel, c.channel),
+            eq(connections.accountId, c.accountId),
+          ),
+        );
+      // Another job of this account may be mid-call outside the lock.
+      const [inFlight] = await tx
+        .select({ id: jobs.id })
+        .from(jobs)
+        .innerJoin(conversations, eq(conversations.id, jobs.conversationId))
+        .where(
+          and(
+            eq(jobs.state, "sending"),
+            eq(conversations.channel, c.channel),
+            eq(conversations.accountId, c.accountId),
+          ),
+        )
+        .limit(1);
+      if (
+        inFlight ||
+        (lastSend?.lastSentAt &&
+          Date.now() - lastSend.lastSentAt.getTime() < 2000)
+      ) {
+        // Keep the generated text so the retry does not call the model again.
+        await tx
+          .update(jobs)
+          .set({
+            ...jobFailure(
+              new ProviderError("LOCAL_RATE_LIMIT", true, false, 2),
+              job.attempts,
+            ),
+            body,
+            handoff,
+            ...usage,
+            claim: null,
+            leaseUntil: null,
+          })
+          .where(eq(jobs.id, job.id));
+        return null;
+      }
+      const [inboundRow] = await tx
+        .select({ providerId: messages.providerId })
+        .from(messages)
+        .where(
+          and(
+            eq(messages.conversationId, c.id),
+            eq(messages.direction, "inbound"),
+          ),
+        )
+        .orderBy(sql`${messages.id} desc`)
+        .limit(1);
       if (handoff)
         await tx
           .update(conversations)
@@ -423,107 +497,64 @@ export async function runAutoReplyTick() {
           leaseUntil: new Date(Date.now() + 120_000),
         })
         .where(eq(jobs.id, job.id));
-      return true;
+      return { inboundProviderId: inboundRow?.providerId ?? "" };
     });
     if (!prepared) return;
+    // Step 2: Meta calls with no transaction open. A crash here resolves to
+    // `unknown` through lease expiry of the `sending` job.
+    const sendPricePrivately = privatePrice && !handoff;
+    if (sendPricePrivately) {
+      const privateId = await sendCommentPrivateReply(
+        c.accountId,
+        c.threadId,
+        body,
+      );
+      acceptedByMeta = true;
+      await recordSentMessage({
+        conversationId: c.id,
+        eventKey: hash(`private:${job.requestKey}`),
+        providerId: privateId,
+        direction: "bot",
+        body,
+        state: "sent",
+      });
+      acceptedByMeta = false;
+    }
+    const publicBody = sendPricePrivately
+      ? englishComment
+        ? "We have sent you the details in a private message."
+        : "تم إرسال التفاصيل في رسالة خاصة."
+      : body;
+    let providerId: string;
+    try {
+      providerId = await sendMetaReply(
+        c.channel,
+        c.participantId,
+        c.channel === "whatsapp" ? prepared.inboundProviderId : c.threadId,
+        publicBody,
+        c.accountId,
+      );
+    } catch (error) {
+      if (!sendPricePrivately) throw error;
+      // The private reply reached the customer; only the public line failed.
+      throw new ProviderError(
+        "PRIVATE_SENT_PUBLIC_FAILED",
+        false,
+        !(error instanceof ProviderError) || error.uncertain,
+      );
+    }
+    acceptedByMeta = true;
+    // Step 3: a second short transaction records the outcome.
     await db.transaction(async (tx) => {
-      const [s] = await tx
+      await tx
         .select()
         .from(settingsTable)
         .where(eq(settingsTable.id, 1))
         .for("update");
-      const [fresh] = await tx
-        .select()
-        .from(conversations)
-        .where(eq(conversations.id, c.id))
-        .for("update");
-      const [freshJob] = await tx
-        .select()
-        .from(jobs)
-        .where(eq(jobs.id, job.id))
-        .for("update");
-      const settings = autoReplySettingsSchema.parse(s.config);
-      if (
-        !fresh ||
-        fresh.revision !== job.revision ||
-        fresh.status === "closed" ||
-        freshJob.state !== "sending" ||
-        freshJob.claim !== job.claim ||
-        !settings.sendingEnabled ||
-        (job.kind === "auto" &&
-          (!isAutoReplyEnabled(settings, c.channel, c.accountId) ||
-            !(await isRecipientAllowed(tx, settings, c))))
-      ) {
-        await tx
-          .update(jobs)
-          .set({ state: "cancelled", errorCode: "STOPPED_BEFORE_SEND" })
-          .where(eq(jobs.id, job.id));
-        return;
-      }
-      // A settings or knowledge save made the generated text stale; a staff reply is still valid.
-      if (s.revision !== settingsRow.revision && job.kind === "auto") {
-        await requeueJob(tx, freshJob);
-        return;
-      }
-      if (!withinReplyWindow(c.channel, fresh.lastInboundAt))
-        throw new ProviderError("REPLY_WINDOW_EXPIRED");
-      const [lastSend] = await tx
-        .select()
-        .from(connections)
-        .where(
-          and(
-            eq(connections.channel, c.channel),
-            eq(connections.accountId, c.accountId),
-          ),
-        );
-      if (
-        lastSend?.lastSentAt &&
-        Date.now() - lastSend.lastSentAt.getTime() < 2000
-      )
-        throw new ProviderError("LOCAL_RATE_LIMIT", true, false, 2);
-      const context = await tx
-        .select({ providerId: messages.providerId })
-        .from(messages)
-        .where(
-          and(
-            eq(messages.conversationId, c.id),
-            eq(messages.direction, "inbound"),
-          ),
-        )
-        .orderBy(sql`${messages.id} desc`)
-        .limit(1);
-      const sendPricePrivately = privatePrice && !handoff;
-      if (sendPricePrivately) {
-        const privateId = await sendCommentPrivateReply(
-          c.accountId,
-          c.threadId,
-          body!,
-        );
-        acceptedByMeta = true;
-        await tx.insert(messages).values({
-          conversationId: c.id,
-          eventKey: hash(`private:${job.requestKey}`),
-          providerId: privateId,
-          direction: "bot",
-          body: body!,
-          state: "sent",
-        });
-      }
-      const publicBody = sendPricePrivately
-        ? "تم إرسال التفاصيل في رسالة خاصة."
-        : body!;
-      const providerId = await sendMetaReply(
-        c.channel,
-        c.participantId,
-        c.channel === "whatsapp" ? (context[0]?.providerId ?? "") : c.threadId,
-        publicBody,
-        c.accountId,
-      );
-      acceptedByMeta = true;
       await tx
         .update(jobs)
         .set({ state: "sent", providerId, errorCode: null, leaseUntil: null })
-        .where(eq(jobs.id, job.id));
+        .where(and(eq(jobs.id, job.id), eq(jobs.claim, job.claim)));
       await tx.insert(messages).values({
         conversationId: c.id,
         eventKey: hash(`out:${job.requestKey}`),
