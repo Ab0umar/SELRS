@@ -219,22 +219,6 @@ export function isAutoReplyRecipientAllowed(
 export function supportsGeminiSampling(model: string) {
   return /^gemini-(?:[12]\.|3\.[0-5](?:\D|$))/.test(model);
 }
-export const knowledgeKinds = [
-  "service",
-  "price",
-  "branch",
-  "doctor_schedule",
-  "faq",
-  "booking",
-] as const;
-export const knowledgeSchema = z.object({
-  targetPage: replyTargetSchema,
-  kind: z.enum(knowledgeKinds),
-  title: z.string().trim().min(1).max(255),
-  content: z.string().trim().min(1).max(4000),
-  keywords: z.string().trim().max(1000).default(""),
-  approved: z.boolean().default(false),
-});
 export const teachingSchema = z.object({
   title: z.string().trim().min(1).max(255),
   content: z.string().trim().min(1).max(30000),

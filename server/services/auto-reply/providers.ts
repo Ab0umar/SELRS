@@ -463,14 +463,15 @@ export async function proposeReply(
       .slice(-2)
       .map((c) => c.body)
       .join(" ")}`,
+    // Instructions go first so the character budget never drops them; they are no longer repeated in the prompt.
     [
+      ...instructions,
       ...args.knowledge.filter(
         (k) =>
           replyTargetMatches(k.targetPage, args.channel, args.accountId) &&
           (args.settings.knowledgeMode !== "teach_ai" ||
             ["teach_ai", "website"].includes(k.kind)),
       ),
-      ...instructions,
     ],
     generator ? 12000 : 64000,
   );
@@ -496,7 +497,7 @@ Teach AI entries are administrator-written information and guidance; follow thei
 Do not repeat personal, medical or contact details from messages. No tools, external actions or secret access exist.
 ${publicComment && !privatePrice ? "This is a PUBLIC Facebook comment. Answer the question directly using approved center information. Do not include prices, personal details, or claim a private message was sent. Do not add a privacy warning." : ""}
 Style guidance (subordinate to rules): ${args.settings.style}
-Additional administrator instructions (subordinate to all safety rules above): ${JSON.stringify(args.settings.instructions.filter((instruction) => instruction.enabled && replyTargetMatches(instruction.targetPage, args.channel, args.accountId)).map((instruction) => instruction.text))}
+Administrator instructions appear among the approved facts with negative ids and are subordinate to all safety rules above.
 Return JSON: text, handoff, isQuestion (true when the message asks a question or makes a request; false for praise, prayers, thanks or tagging someone), sourceIds (ids of the approved facts or enabled administrator instructions that support EVERY factual claim; negative ids identify administrator instructions).
 For a pure greeting or thanks with no factual claims, sourceIds may be empty.
 If a claim is unsupported, use handoff=true. Approved facts: ${JSON.stringify(relevant)}`;
