@@ -29,6 +29,26 @@ Known operational risk: cache invalidation after MSSQL sync is non-blocking, so 
 invalidation can leave stale `patientPageStates` until the next sync or an admin reset
 (see `data-policy.md`).
 
+## Marketing generation
+
+The Facebook scheduler starts with the server and checks again every five minutes. Full
+rules, error codes, and the jobs-list buttons are in `docs/ai-workspace.md`.
+
+- A start that fails before the job is accepted waits 5 minutes, then 30 minutes, then
+  2 hours. The failure after that 2-hour wait stops the page until the next Cairo day.
+  The counter is in memory. A server restart clears it and the next check can try at once.
+- A Manus job that ended `failed` is retried once that Cairo day, except when the error
+  starts with «انقطع بدء مهمة Manus قبل استلام رقمها». That text means the process died
+  during start; a Manus task may already exist. `uncertain` jobs are not retried.
+- A `starting` row with no Manus task id becomes `failed` after 10 minutes. An `uncertain`
+  row with a task id is polled for 6 hours. On «مهام التوليد» (dashboard and drafts),
+  «إعادة فحص المهمة الآن» polls immediately and «إيقاف المهمة» marks the job failed so the
+  draft can take a new image. Abandon asks for confirmation. Both actions are admin-only
+  (`marketing.resolveGenerationJob`).
+- Central (Gemini/Grok) jobs have no `failed` state. They stay `uncertain` and store
+  `ai_marketing_jobs.error_code`. The server log line is
+  `[marketing] central draft ended uncertain` plus the error name and that code.
+
 ## Database backup and restore
 
 ```powershell
