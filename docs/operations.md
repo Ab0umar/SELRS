@@ -167,7 +167,7 @@ Checked against `server/services/marketing/publish.service.ts`, `facebookPublish
 
 ### Stuck post on the dashboard
 
-**تحقق من Facebook** is rendered only for `status === "publishing"` inside **آخر المنشورات** on `/ai/marketing` (`MarketingDashboard`). That list is `dashboardSummary.recentPosts`: the five newest posts for the page selected in **الصفحة** (`center` = المركز, `doctor` = العيادة), ordered by `createdAt`. The drafts page has no button. A stuck post that is not in those five rows has no button; call `marketing.reconcilePublishingPost` with its id.
+**تحقق من Facebook** is rendered only for `status === "publishing"` inside **آخر المنشورات** on `/ai/marketing` (`MarketingDashboard`). `/marketing` redirects there (`legacyAiRoutes` in `client/src/features/ai/navigation.ts`). The card link **عرض المسودات** goes to `/marketing/drafts`, which redirects to `/ai/marketing/drafts`; that page does not render the button. The list is `dashboardSummary.recentPosts`: the five newest posts for the page selected in **الصفحة** (`center` = المركز, `doctor` = العيادة), ordered by `createdAt`. A stuck post that is not in those five rows has no button; call `marketing.reconcilePublishingPost` with its id.
 
 The button calls `reconcilePublishingPost`. A match toasts `وجدنا المنشور على Facebook وسجلناه كمنشور`. Anything else opens **حدد نتيجة النشر**:
 
