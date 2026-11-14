@@ -493,7 +493,7 @@ export async function finishCentralMarketingDraft(
         pageRole: input.pageRole,
         topic: input.topic,
         publicationSlot: marketingSlotLabel(input.postDay, input.pageRole),
-        bookingUrl: "https://selrs.cc/my/book-guest",
+        bookingUrl: `${(ENV.fbAppOrigin || "https://selrs.cc").replace(/\/+$/, "")}/my/book-guest`,
         brand: brand ?? null,
       }),
     };

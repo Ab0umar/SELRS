@@ -284,6 +284,19 @@ export default function MarketingSettings() {
     onError: (err: { message: string }) => toast.error(err.message),
   });
 
+  const reuseQuery = trpc.marketing.topicReuseMonths.useQuery();
+  const [reuseMonths, setReuseMonths] = useState(0);
+  useEffect(() => {
+    if (reuseQuery.data) setReuseMonths(reuseQuery.data.months);
+  }, [reuseQuery.data]);
+  const reuseMutation = trpc.marketing.setTopicReuseMonths.useMutation({
+    onSuccess: () => {
+      toast.success("تم حفظ مدة إعادة استخدام المواضيع");
+      void utils.marketing.topicReuseMonths.invalidate();
+    },
+    onError: (err: { message: string }) => toast.error(err.message),
+  });
+
   const ToggleRow = ({
     label,
     description,
@@ -595,6 +608,33 @@ export default function MarketingSettings() {
               >
                 <option value="forward">من البداية للنهاية</option>
                 <option value="reverse">بالعكس</option>
+              </select>
+            </div>
+            <div className="flex items-center justify-between gap-4 py-3">
+              <div>
+                <div className="text-sm font-medium text-foreground">
+                  إعادة استخدام المواضيع القديمة
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  للصفحتين معًا. بعد هذه المدة يمكن تناول موضوع منشور سابقًا
+                  بزاوية جديدة
+                </div>
+              </div>
+              <select
+                aria-label="مدة إعادة استخدام المواضيع"
+                value={reuseMonths}
+                disabled={reuseQuery.isLoading || reuseMutation.isPending}
+                onChange={(e) => {
+                  const months = Number(e.target.value);
+                  setReuseMonths(months);
+                  reuseMutation.mutate({ months });
+                }}
+                className="rounded-md border border-input bg-background px-2 py-1.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+              >
+                <option value={0}>أبدًا</option>
+                <option value={6}>بعد 6 أشهر</option>
+                <option value={12}>بعد سنة</option>
+                <option value={24}>بعد سنتين</option>
               </select>
             </div>
             <div className="flex items-center justify-between gap-4 py-3">

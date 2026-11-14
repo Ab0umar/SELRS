@@ -1420,5 +1420,47 @@ Router file: `server/routers/doctorPortal.ts`
 
 ---
 
+## 📣 Marketing Router (`marketing`): content scheduling and publishing
+
+Router file: `server/routers/marketing.ts`. Every procedure is `adminProcedure`. This section covers the AI Facebook post workflow changed by `docs/marketing-content-fix-plan.md` (PRs 1–4); WhatsApp campaigns and brand analysis are not described here.
+
+> **Default changed:** approval mode is **on** for both pages unless the owner turns it off. Scheduled drafts are generated and wait for an admin to publish them.
+
+### Procedures added or changed
+
+| Procedure | Type | Input | Notes |
+|---|---|---|---|
+| `resolveGenerationJob` | mutation | `{ jobId, action: "recheck" \| "abandon" }` | Re-checks a Manus job now, or marks it `failed` to free its draft. Abandon is logged with the user id. |
+| `reconcilePublishingPost` | mutation | `{ id }` | For a post stuck in `publishing`: reads the page's posts since the `publish_claim` log and marks it `published` on a match. Returns `{ state: "published", fbPostId }` or `{ state: "unmatched", reason }`. |
+| `resolvePublishingPost` | mutation | `{ id, outcome: "published" \| "not_published" }` | Manual decision after an unmatched reconcile. `not_published` returns the post to draft and releases its topic. Logged with the user id. |
+| `deletePost` | mutation | `{ id }` | Refuses posts in `publishing`. For drafts: releases a pending topic reservation, fails pending Manus jobs and removes generated/branded image files no other post uses. |
+| `createPost` / `updatePost` | mutation | — | `platform` accepts only `"facebook"` (Instagram was dropped). `status` accepts only `"draft"` until per-post scheduling lands. |
+| `listPosts` | query | — | Each row carries `contentFlags: string[]`, recomputed on read for drafts. |
+| `approvalMode` / `setApprovalMode` | query / mutation | `{ pageRole }` / `{ pageRole, required }` | Reads or sets approval mode for one page. |
+| `topicReuseMonths` / `setTopicReuseMonths` | query / mutation | — / `{ months }` (0–120) | Reads or sets `marketing_topic_reuse_months`. Set in the settings page; the change is logged with the user id. |
+| `getSchedulerStatus` | query | `{ pageRole }` | Now also returns `lastSkip: { reason, at } \| null`. |
+
+### System settings (no new columns)
+
+| Key | Default | Meaning |
+|---|---|---|
+| `marketing_require_approval_<pageRole>` | `true` (when never saved) | Scheduled drafts are not auto-published. |
+| `marketing_topic_reuse_months` | `0` | Months after which a published topic no longer blocks; the planner is told to use a new angle. Posts are dated by `publishedAt`, reservations by their creation time. |
+| `marketing_scheduler_skip_<pageRole>` | — | Last reason the scheduler skipped a page (written by the server). |
+
+Environment: `MARKETING_GRAPH_VERSION` (format `v<major>.<minor>`, default `v21.0`) selects the Graph API version used for publishing and reconciliation.
+
+### Scheduler and generation behaviour
+
+- A failed scheduled start backs off 5 minutes, 30 minutes, then 2 hours, and stops until the next Cairo day. The backoff is held in memory, so a restart resets it.
+- If the day's Manus job ended `failed`, one second attempt runs with a distinct request id. Uncertain jobs, and starts that expired without a Manus task id, are never retried automatically.
+- Manus jobs still `starting` without a task id after 10 minutes become `failed`. `uncertain` jobs with a task id are polled for 6 hours. A local save error after Manus succeeded is retried on the next 3 ticks.
+- Central jobs that fail stay `uncertain` with a specific `errorCode`: `ai_*`, `gateway_*`, `invalid_output`, `topic_unavailable`, `stale_execution` or `generation_or_persistence_failed`.
+- The duplicate-post guard uses Cairo midnight.
+- Every generated draft passes a content check (prices, offers, guarantees, percentages; phone numbers and links in the content). Flagged drafts are saved and never auto-published.
+- Admins are notified (in-app and push, title and reason only) when a draft is ready (for review, waiting for approval, flagged, or auto-published), when scheduled generation fails or ends uncertain, and when publishing fails, ends uncertain, or Facebook rejects the page token.
+
+---
+
 **Last Updated:** 2026-11-10
 **API Version:** 2.1.0

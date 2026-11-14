@@ -15,12 +15,16 @@ import {
   AiManagementStore,
   AiManagementError,
 } from "../services/ai/managementStore";
-import { getDbConnection } from "../db";
+import { getDbConnection, updateSystemSettings } from "../db";
 import { marketingGenerationInput } from "../../shared/ai-request-context";
 import { trackedAiOperation, readAiOperation } from "../services/ai/operations";
 import { readMarketingGenerationRequest } from "../services/marketing/generationRequest";
 import { readMarketingSchedulerStatus } from "../services/marketing/schedulerStatus";
 import { checkMarketingContent } from "../services/marketing/contentCheck";
+import {
+  marketingDraftFiles,
+  removeMarketingDraftFiles,
+} from "../services/marketing/imageCleanup";
 import {
   marketingApprovalRequired,
   setMarketingApprovalRequired,
@@ -76,6 +80,7 @@ import {
   publishedMarketingTopics,
   PublishedMarketingTopicError,
   settleTopicForPost,
+  marketingTopicReuseMonths,
 } from "../services/marketing/topicHistory";
 import { TRPCError } from "@trpc/server";
 import {
@@ -293,6 +298,23 @@ export const marketingRouter = router({
       }));
     }),
 
+  topicReuseMonths: adminProcedure.query(async () => ({
+    months: await marketingTopicReuseMonths(),
+  })),
+
+  setTopicReuseMonths: adminProcedure
+    .input(z.object({ months: z.number().int().min(0).max(120) }).strict())
+    .mutation(async ({ input, ctx }) => {
+      await updateSystemSettings("marketing_topic_reuse_months", input.months);
+      await addLog(
+        null,
+        "topic_reuse_months",
+        "info",
+        `Topic reuse window set to ${input.months} months by user ${ctx.user.id}`,
+      );
+      return { ok: true };
+    }),
+
   approvalMode: adminProcedure
     .input(z.object({ pageRole: z.enum(["center", "doctor"]) }).strict())
     .query(async ({ input }) => ({
@@ -418,6 +440,8 @@ export const marketingRouter = router({
     .mutation(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) throw new Error("Database not available");
+      const files = await marketingDraftFiles(input.id);
+      let wasDraft = false;
       await db.transaction(
         async (
           tx: Pick<MySql2Database, "select" | "insert" | "update" | "delete">,
@@ -433,6 +457,7 @@ export const marketingRouter = router({
               "المنشور قيد النشر؛ حدد نتيجة النشر أولًا ثم احذفه إن لزم",
             );
           if (post.status === "draft") {
+            wasDraft = true;
             await settleTopicForPost(tx, input.id, "released");
             await tx
               .update(marketingGenerationJobs)
@@ -453,6 +478,11 @@ export const marketingRouter = router({
             .where(eq(marketingPosts.id, input.id));
         },
       );
+      // Only drafts: a published post's image may still be live on Facebook.
+      if (wasDraft)
+        await removeMarketingDraftFiles(files).catch(() =>
+          console.error("[marketing] Could not remove draft images", input.id),
+        );
       await addLog(
         null,
         "delete_post",

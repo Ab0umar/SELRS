@@ -2,7 +2,7 @@ import { and, eq, isNotNull, ne, or } from "drizzle-orm";
 import type { MySql2Database } from "drizzle-orm/mysql2";
 import { drizzle } from "drizzle-orm/mysql2";
 import mysql from "mysql2/promise";
-import { getDb } from "../../db";
+import { getDb, getSystemSetting } from "../../db";
 import {
   marketingPosts,
   marketingTopicPublications,
@@ -22,10 +22,41 @@ type TopicWriter = Pick<
 export async function publishedMarketingTopics(
   reader?: TopicReader,
 ): Promise<string[]> {
+  return (await marketingTopicHistory(reader)).blocking;
+}
+
+/** Owner setting; 0 (the default) means a published topic never becomes reusable. */
+export async function marketingTopicReuseMonths(): Promise<number> {
+  try {
+    const row = await getSystemSetting("marketing_topic_reuse_months");
+    const months = Number(JSON.parse(String(row?.value ?? "0")));
+    return Number.isInteger(months) && months > 0 && months <= 120 ? months : 0;
+  } catch {
+    return 0;
+  }
+}
+
+export function topicReuseCutoff(months: number, now = new Date()) {
+  if (!months) return null;
+  const cutoff = new Date(now);
+  cutoff.setMonth(cutoff.getMonth() - months);
+  return cutoff;
+}
+
+/**
+ * Splits topic history by the reuse window. Posts are dated by publishedAt and
+ * reservations by their creation time; anything undated or still publishing blocks.
+ */
+export async function marketingTopicHistory(reader?: TopicReader) {
   const db = reader ?? (await getDb());
   if (!db) throw new Error("Database not available");
+  const cutoff = topicReuseCutoff(await marketingTopicReuseMonths());
   const rows = await db
-    .select({ topic: marketingPosts.topic, title: marketingPosts.title })
+    .select({
+      topic: marketingPosts.topic,
+      title: marketingPosts.title,
+      publishedAt: marketingPosts.publishedAt,
+    })
     .from(marketingPosts)
     .where(
       or(
@@ -38,15 +69,45 @@ export async function publishedMarketingTopics(
       ),
     );
   const history = await db
-    .select({ topic: marketingTopicPublications.normalizedTopic })
+    .select({
+      topic: marketingTopicPublications.normalizedTopic,
+      state: marketingTopicPublications.state,
+      createdAt: marketingTopicPublications.createdAt,
+    })
     .from(marketingTopicPublications);
-  return [
+  const entries = [
     ...rows.map(
-      (row: { topic: string | null; title: string }) =>
-        row.topic?.trim() || row.title,
+      (row: {
+        topic: string | null;
+        title: string;
+        publishedAt?: Date | null;
+      }) => ({
+        topic: row.topic?.trim() || row.title,
+        date: row.publishedAt ?? null,
+        pending: false,
+      }),
     ),
-    ...history.map((row: { topic: string }) => row.topic),
+    ...history.map(
+      (row: { topic: string; state?: string; createdAt?: Date | null }) => ({
+        topic: row.topic,
+        date: row.createdAt ?? null,
+        pending: row.state === "publishing",
+      }),
+    ),
   ];
+  const isOld = (entry: (typeof entries)[number]) =>
+    Boolean(cutoff && !entry.pending && entry.date && entry.date < cutoff);
+  const blocking = entries.filter((entry) => !isOld(entry)).map((e) => e.topic);
+  const blocked = new Set(blocking.map(marketingTopicIdentity));
+  const reusable = [
+    ...new Set(
+      entries
+        .filter((entry) => isOld(entry))
+        .map((entry) => entry.topic)
+        .filter((topic) => !blocked.has(marketingTopicIdentity(topic))),
+    ),
+  ];
+  return { blocking, reusable, cutoff };
 }
 export async function assertMarketingTopicAvailable(
   topic: string,
@@ -81,6 +142,21 @@ async function reserveInTransaction(
     .from(marketingTopicPublications)
     .where(eq(marketingTopicPublications.topicKey, topicKey))
     .for("update");
+  const cutoff = topicReuseCutoff(await marketingTopicReuseMonths());
+  if (
+    owner &&
+    owner.postId !== post.id &&
+    owner.state === "published" &&
+    cutoff &&
+    owner.createdAt < cutoff
+  ) {
+    // Outside the reuse window: this post takes over the old reservation.
+    await tx
+      .update(marketingTopicPublications)
+      .set({ postId: post.id, state: "publishing", createdAt: new Date() })
+      .where(eq(marketingTopicPublications.topicKey, topicKey));
+    return topicKey;
+  }
   if (!owner || owner.postId !== post.id || owner.state === "published")
     throw new Error("الموضوع سبق نشره أو محجوز للنشر؛ لن يُنشر مرة أخرى");
   return topicKey;
