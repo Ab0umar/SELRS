@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
+import { Link } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import {
@@ -11,13 +12,22 @@ import {
 } from "@/components/ui/dialog";
 import { marketingSlotLabel } from "@shared/marketingSchedule";
 
-const PAGE_LABEL = { center: "المركز", doctor: "الدكتور" } as const;
+const PAGE_LABEL = { center: "صفحة المركز", doctor: "صفحة الدكتور" } as const;
 const STATUS_LABEL: Record<string, string> = {
-  draft: "مسودة للمراجعة",
+  draft: "مسودة مستنية موافقتك",
   scheduled: "مجدول",
   publishing: "جاري النشر",
-  published: "منشور",
+  published: "اتنشر",
 };
+const STATUS_TONE: Record<string, string> = {
+  draft: "border-warning/40 bg-warning/10",
+  scheduled: "border-info/30 bg-info/5",
+  publishing: "border-info/30 bg-info/5",
+  published: "border-success/30 bg-success/5",
+};
+
+type PageRole = keyof typeof PAGE_LABEL;
+type Target = { pageRole: PageRole; date: string } | "week";
 
 function dayHeading(date: string) {
   return new Date(`${date}T12:00:00Z`).toLocaleDateString("ar-EG", {
@@ -38,7 +48,7 @@ function timeOf(iso: string) {
 
 export default function ContentCalendar() {
   const utils = trpc.useUtils();
-  const [confirmWeek, setConfirmWeek] = useState(false);
+  const [confirm, setConfirm] = useState<Target | null>(null);
   const calendar = trpc.marketing.contentCalendar.useQuery(undefined, {
     refetchInterval: 30_000,
   });
@@ -53,10 +63,10 @@ export default function ContentCalendar() {
     },
     onError: (error) => toast.error(error.message),
   });
-  const generateWeek = trpc.marketing.generateWeekDrafts.useMutation({
+  const generate = trpc.marketing.generateWeekDrafts.useMutation({
     onSuccess: () => {
-      setConfirmWeek(false);
-      toast.success("بدأ تجهيز مسودات الأسبوع، وستظهر هنا عند اكتمالها");
+      setConfirm(null);
+      toast.success("بدأ تجهيز المسودة، وهتظهر هنا لما تخلص");
       refresh();
     },
     onError: (error) => toast.error(error.message),
@@ -79,133 +89,195 @@ export default function ContentCalendar() {
     return [...byDate.entries()].sort(([a], [b]) => a.localeCompare(b));
   }, [data]);
 
+  const weekEnd = Date.now() + 7 * 24 * 60 * 60 * 1000;
   const emptyThisWeek =
     data?.slots.filter(
       (slot) =>
-        new Date(slot.at).getTime() < Date.now() + 7 * 24 * 60 * 60 * 1000 &&
+        new Date(slot.at).getTime() < weekEnd &&
+        !slot.generating &&
         !data.posts.some(
           (post) => post.date === slot.date && post.pageRole === slot.pageRole,
         ),
     ).length ?? 0;
+  const thisWeek = days.filter(
+    ([date]) => new Date(`${date}T12:00:00Z`).getTime() < weekEnd,
+  );
+  const nextWeek = days.filter(
+    ([date]) => new Date(`${date}T12:00:00Z`).getTime() >= weekEnd,
+  );
+
+  const renderDays = (list: typeof days) => (
+    <ol className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+      {list.flatMap(([date, day]) => [
+        ...day.posts.map((post) => (
+          <li
+            key={`post-${post.id}`}
+            className={`min-w-0 space-y-2 rounded-lg border p-3 text-sm ${STATUS_TONE[post.status] ?? "border-border"}`}
+          >
+            <p className="text-xs text-muted-foreground">
+              {dayHeading(date)}
+              {post.scheduledAt ? ` · ${timeOf(post.scheduledAt)}` : ""} ·{" "}
+              {PAGE_LABEL[post.pageRole]}
+            </p>
+            <p className="font-medium break-words">
+              {post.topic || post.title}
+            </p>
+            <p className="text-xs">{STATUS_LABEL[post.status] ?? post.status}</p>
+            {post.status === "draft" && (
+              <Link
+                href={`/ai/marketing/drafts?post=${post.id}`}
+                className="inline-flex min-h-11 items-center text-sm text-primary underline underline-offset-4"
+              >
+                راجع وانشر
+              </Link>
+            )}
+            {post.status === "scheduled" && (
+              <Button
+                size="sm"
+                variant="outline"
+                className="min-h-11"
+                disabled={unschedule.isPending}
+                onClick={() => unschedule.mutate({ id: post.id })}
+              >
+                إعادة إلى المسودات
+              </Button>
+            )}
+            {post.status === "published" && (
+              <Link
+                href="/ai/marketing/history"
+                className="inline-flex min-h-11 items-center text-sm text-primary underline underline-offset-4"
+              >
+                شوف الأداء
+              </Link>
+            )}
+          </li>
+        )),
+        ...day.slots
+          .filter(
+            (slot) => !day.posts.some((post) => post.pageRole === slot.pageRole),
+          )
+          .map((slot) => (
+            <li
+              key={`slot-${slot.pageRole}-${slot.at}`}
+              className="min-w-0 space-y-2 rounded-lg border border-dashed border-border p-3 text-sm"
+            >
+              <p className="text-xs text-muted-foreground">
+                {dayHeading(date)} · {timeOf(slot.at)} ·{" "}
+                {PAGE_LABEL[slot.pageRole]} (
+                {marketingSlotLabel(slot.slot, slot.pageRole)})
+              </p>
+              {slot.generating ? (
+                <p role="status">جارٍ تجهيز النص والصورة</p>
+              ) : (
+                <>
+                  <p className="text-muted-foreground">
+                    مفيش منشور لليوم ده.
+                  </p>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="min-h-11"
+                    disabled={generate.isPending}
+                    onClick={() =>
+                      setConfirm({ pageRole: slot.pageRole, date: slot.date })
+                    }
+                  >
+                    ولّد منشور
+                  </Button>
+                </>
+              )}
+            </li>
+          )),
+      ])}
+    </ol>
+  );
 
   return (
-    <div className="rounded-xl border border-border bg-card p-4">
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <div>
-          <h2 className="text-sm font-semibold">تقويم المحتوى</h2>
-          <p className="text-xs text-muted-foreground">
-            الأسبوعان القادمان: المسودات المجهزة والمنشورات المجدولة والمواعيد
-            الفارغة
-          </p>
-        </div>
+    <section
+      aria-labelledby="content-calendar-title"
+      className="space-y-4 rounded-xl border border-border bg-card p-4"
+    >
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h2 id="content-calendar-title" className="text-base font-semibold">
+          تقويم المحتوى
+        </h2>
         <Button
           size="sm"
-          variant="outline"
           className="min-h-11 h-auto whitespace-normal"
-          disabled={generateWeek.isPending || emptyThisWeek === 0}
-          onClick={() => setConfirmWeek(true)}
+          disabled={generate.isPending || emptyThisWeek === 0}
+          onClick={() => setConfirm("week")}
         >
-          تجهيز مسودات هذا الأسبوع
+          جهّز مسودات الأسبوع ده كلها
         </Button>
       </div>
       {calendar.isLoading && <p role="status">جارٍ تحميل التقويم...</p>}
       {calendar.error && (
         <p role="alert" className="text-sm text-destructive">
-          تعذر تحميل التقويم. حدّث الصفحة للمتابعة.
+          تعذر تحميل التقويم: {calendar.error.message}
         </p>
       )}
       {data && days.length === 0 && (
         <p className="text-sm text-muted-foreground">
-          لا توجد مواعيد نشر مفعلة في الأسبوعين القادمين. فعّل أيام النشر من
-          الإعدادات.
+          لا توجد مواعيد نشر مفعلة في الأسبوعين القادمين. فعّل أيام النشر واربط
+          الصفحة من الإعدادات.
         </p>
       )}
-      <ol className="space-y-3">
-        {days.map(([date, day]) => (
-          <li key={date}>
-            <p className="mb-1 text-xs font-semibold text-muted-foreground">
-              {dayHeading(date)}
-            </p>
-            <ul className="space-y-1">
-              {day.posts.map((post) => (
-                <li
-                  key={`post-${post.id}`}
-                  className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border px-3 py-2 text-sm"
-                >
-                  <span className="min-w-0">
-                    <span className="text-muted-foreground">
-                      {PAGE_LABEL[post.pageRole]} ·{" "}
-                      {post.scheduledAt ? timeOf(post.scheduledAt) : ""} ·{" "}
-                      {STATUS_LABEL[post.status] ?? post.status}:
-                    </span>{" "}
-                    {post.topic || post.title}
-                  </span>
-                  {post.status === "scheduled" && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      disabled={unschedule.isPending}
-                      onClick={() => unschedule.mutate({ id: post.id })}
-                    >
-                      إعادة إلى المسودات
-                    </Button>
-                  )}
-                  {post.status === "draft" && (
-                    <a
-                      className="text-xs text-primary underline underline-offset-2"
-                      href={`/marketing/drafts?post=${post.id}`}
-                    >
-                      مراجعة وجدولة
-                    </a>
-                  )}
-                </li>
-              ))}
-              {day.slots
-                .filter(
-                  (slot) =>
-                    !day.posts.some((post) => post.pageRole === slot.pageRole),
-                )
-                .map((slot) => (
-                  <li
-                    key={`slot-${slot.pageRole}-${slot.at}`}
-                    className="rounded-lg border border-dashed border-border px-3 py-2 text-sm text-muted-foreground"
-                  >
-                    {PAGE_LABEL[slot.pageRole]} · {timeOf(slot.at)} · موعد فارغ
-                    ({marketingSlotLabel(slot.slot, slot.pageRole)})
-                  </li>
-                ))}
-            </ul>
-          </li>
-        ))}
-      </ol>
-      <Dialog open={confirmWeek} onOpenChange={setConfirmWeek}>
+      {thisWeek.length > 0 && (
+        <div className="space-y-2">
+          <h3 className="text-sm font-semibold text-muted-foreground">
+            الأسبوع ده
+          </h3>
+          {renderDays(thisWeek)}
+        </div>
+      )}
+      {nextWeek.length > 0 && (
+        <div className="space-y-2">
+          <h3 className="text-sm font-semibold text-muted-foreground">
+            الأسبوع الجاي
+          </h3>
+          {renderDays(nextWeek)}
+        </div>
+      )}
+      <Dialog
+        open={confirm !== null}
+        onOpenChange={(open) => !open && setConfirm(null)}
+      >
         <DialogContent dir="rtl">
           <DialogHeader>
-            <DialogTitle>تجهيز مسودات هذا الأسبوع</DialogTitle>
+            <DialogTitle>
+              {confirm === "week" ? "تجهيز مسودات الأسبوع" : "تجهيز مسودة"}
+            </DialogTitle>
             <DialogDescription>
-              سنجهز مسودة لكل موعد فارغ في الأيام السبعة القادمة (
-              {emptyThisWeek} موعد) بمزوّد الجدولة لكل صفحة، وقد يستهلك ذلك
-              رصيدًا. لن تُنشر المسودات حتى تراجعها وتجدولها.
+              {confirm === "week"
+                ? `هنجهز مسودة لكل موعد فارغ في الأيام السبعة الجاية (${emptyThisWeek} موعد) بمزوّد الجدولة لكل صفحة، وده ممكن يستهلك رصيد.`
+                : confirm
+                  ? `هنجهز مسودة ل${PAGE_LABEL[confirm.pageRole]} يوم ${dayHeading(confirm.date)} بمزوّد الجدولة للصفحة، وده ممكن يستهلك رصيد.`
+                  : ""}{" "}
+              المسودات مش بتتنشر لحد ما تراجعها وتجدولها.
             </DialogDescription>
           </DialogHeader>
           <div className="flex flex-wrap gap-3">
             <Button
               className="min-h-11"
               variant="outline"
-              onClick={() => setConfirmWeek(false)}
+              onClick={() => setConfirm(null)}
             >
               إلغاء
             </Button>
             <Button
               className="min-h-11 h-auto whitespace-normal"
-              disabled={generateWeek.isPending}
-              onClick={() => generateWeek.mutate()}
+              disabled={generate.isPending}
+              onClick={() =>
+                generate.mutate(
+                  confirm && confirm !== "week" ? { slot: confirm } : undefined,
+                )
+              }
             >
               ابدأ التجهيز
             </Button>
           </div>
         </DialogContent>
       </Dialog>
-    </div>
+    </section>
   );
 }

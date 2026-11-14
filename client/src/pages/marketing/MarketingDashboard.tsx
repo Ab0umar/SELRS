@@ -6,7 +6,6 @@ import {
   removePending,
 } from "@/features/ai/pending-request";
 import { Link } from "wouter";
-import { GROK_TEXT_MODEL, GROK_IMAGE_MODEL } from "@shared/marketing-providers";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -15,14 +14,10 @@ import { toast } from "sonner";
 import ManusGenerationJobs from "./ManusGenerationJobs";
 import PublishingPostResolve from "./PublishingPostResolve";
 import ContentCalendar from "./ContentCalendar";
-import AssistantModelSelect from "@/features/ai/AssistantModelSelect";
 import { Input } from "@/components/ui/input";
 import {
-  CalendarDays,
   CheckCircle2,
-  Clock,
   ExternalLink,
-  FileText,
   Hash,
   Image,
   Lightbulb,
@@ -30,11 +25,7 @@ import {
   MessageSquare,
   Play,
   RefreshCw,
-  Send,
   Sparkles,
-  ToggleLeft,
-  ToggleRight,
-  XCircle,
   Zap,
 } from "lucide-react";
 
@@ -43,14 +34,7 @@ import {
   marketingSlotDescription,
 } from "@shared/marketingSchedule";
 type PageRole = "center" | "doctor";
-
-const STATUS_BADGE: Record<string, { label: string; className: string }> = {
-  draft: { label: "مسودة", className: "bg-muted text-muted-foreground" },
-  publishing: { label: "جاري النشر", className: "bg-info/15 text-info" },
-  published: { label: "منشور", className: "bg-success/15 text-success" },
-  failed: { label: "فشل", className: "bg-destructive/15 text-destructive" },
-  scheduled: { label: "مجدول", className: "bg-info/15 text-info" },
-};
+const PAGE_NAME = { center: "صفحة المركز", doctor: "صفحة الدكتور" } as const;
 
 interface GeneratedPreview {
   id: number;
@@ -97,48 +81,15 @@ export default function MarketingDashboard() {
     enabled: capabilities.data?.enabled,
     retry: false,
   });
-  const geminiText = profiles.data?.find(
-    (profile) => profile.workload === "marketing.text",
-  );
   const configuredAssistant = configuredMarketingAssistant(profiles.data ?? []);
   const assistant =
     assistantOverride ??
     (configuredAssistant
       ? marketingAssistantValue(configuredAssistant)
-      : capabilities.data?.enabled
-        ? ""
-        : "manus:standard");
-  const geminiImage = profiles.data?.find(
-    (profile) => profile.workload === "marketing.image",
-  );
-  const geminiModels = trpc.marketing.assistantModels.useQuery(undefined, {
-    enabled: capabilities.data?.enabled,
-    retry: false,
-    staleTime: 300000,
-  });
-  const textModels = [
-    ...new Set([
-      ...(geminiModels.data
-        ?.filter((model) => model.kind === "text")
-        .map((model) => model.id) ?? []),
-      ...(geminiText?.provider === "gemini" ? [geminiText.model] : []),
-    ]),
-  ];
-  const imageModels = [
-    ...new Set([
-      ...(geminiModels.data
-        ?.filter((model) => model.kind === "image")
-        .map((model) => model.id) ?? []),
-      ...(geminiImage?.provider === "gemini" ? [geminiImage.model] : []),
-    ]),
-  ];
+      : "manus:standard");
   const [generateDay, setGenerateDay] = useState<
     "saturday" | "tuesday" | "thursday"
   >(restored?.postDay ?? "saturday");
-  const [publishId, setPublishId] = useState<number | null>(null);
-  const [publishPageRoles, setPublishPageRoles] = useState<
-    Record<number, PageRole>
-  >({});
   const [preview, setPreview] = useState<GeneratedPreview | null>(null);
 
   const utils = trpc.useUtils();
@@ -256,26 +207,22 @@ export default function MarketingDashboard() {
     });
   }
 
-  const publishMutation = trpc.marketing.publishPost.useMutation({
-    onSuccess: () => {
-      toast.success("تم تحديث حالة المنشور إلى منشور");
-      setPublishId(null);
-      void utils.marketing.dashboardSummary.invalidate();
-    },
-    onError: (err) => {
-      toast.error(err.message);
-      setPublishId(null);
-    },
-  });
-
-  const updateSettingsMutation = trpc.marketing.setPageAutoPublish.useMutation({
-    onSuccess: () => {
-      toast.success("تم تحديث الإعدادات");
-      void utils.marketing.getSettings.invalidate();
-      void utils.marketing.getSchedulerStatus.invalidate();
-    },
-    onError: (err) => toast.error(err.message),
-  });
+  const centerStatus = trpc.marketing.getSchedulerStatus.useQuery(
+    { pageRole: "center" },
+    { refetchInterval: 30_000 },
+  );
+  const doctorStatus = trpc.marketing.getSchedulerStatus.useQuery(
+    { pageRole: "doctor" },
+    { refetchInterval: 30_000 },
+  );
+  const centerApproval = trpc.marketing.approvalMode.useQuery(
+    { pageRole: "center" },
+    { enabled: isAdmin, retry: false },
+  );
+  const doctorApproval = trpc.marketing.approvalMode.useQuery(
+    { pageRole: "doctor" },
+    { enabled: isAdmin, retry: false },
+  );
 
   const runNowMutation = trpc.marketing.runSchedulerNow.useMutation({
     onSuccess: (data) => {
@@ -299,8 +246,10 @@ export default function MarketingDashboard() {
   });
 
   const summary = summaryQuery.data;
-  const settings = schedulerQuery.data;
   const recentPosts = summary?.recentPosts ?? [];
+  const stuckPublishing = recentPosts.filter(
+    (post: { status: string }) => post.status === "publishing",
+  );
   const counts = summary?.counts ?? {
     draft: 0,
     publishing: 0,
@@ -310,132 +259,56 @@ export default function MarketingDashboard() {
     total: 0,
   };
 
-  const statCards = [
-    {
-      label: "الإجمالي",
-      value: counts.total,
-      icon: CalendarDays,
-      tone: "text-foreground",
-      accent: "bg-muted/30 border-border",
-    },
-    {
-      label: "مسودات",
-      value: counts.draft,
-      icon: FileText,
-      tone: "text-muted-foreground",
-      accent: "bg-muted/20 border-border",
-    },
-    {
-      label: "جاري النشر",
-      value: counts.publishing,
-      icon: Loader2,
-      tone: "text-info",
-      accent: "bg-info/10 border-info/20",
-    },
-    {
-      label: "منشورة",
-      value: counts.published,
-      icon: CheckCircle2,
-      tone: "text-success",
-      accent: "bg-success/10 border-success/20",
-    },
-    {
-      label: "مجدولة",
-      value: counts.scheduled,
-      icon: Clock,
-      tone: "text-info",
-      accent: "bg-info/10 border-info/20",
-    },
-    {
-      label: "فشلت",
-      value: counts.failed,
-      icon: XCircle,
-      tone: "text-destructive",
-      accent: "bg-destructive/10 border-destructive/20",
-    },
-  ];
+  const modeLine = (
+    role: PageRole,
+    status: typeof centerStatus,
+    approval: typeof centerApproval,
+  ) => {
+    if (status.isLoading) return "جارٍ القراءة…";
+    if (status.isError) return "تعذّرت قراءة الحالة";
+    if (!status.data?.fbConnected) return "مش مربوطة بفيسبوك";
+    if (!status.data.autoPublish) return "متوقف: مفيش توليد ولا نشر بالجدول";
+    if (!isAdmin || !approval.data) return "الجدول شغّال";
+    return approval.data.required
+      ? "بيجهّز المنشورات، والنشر بعد موافقتك"
+      : "بيجهّز وينشر لوحده";
+  };
 
   return (
-    <div className="mobile-flat-marketing space-y-6">
-      {/* Stats */}
-      <div className="mobile-summary-cards grid grid-cols-2 gap-3 sm:grid-cols-6">
-        {statCards.map((card) => (
-          <div
-            key={card.label}
-            className={`rounded-lg border p-3 ${card.accent}`}
-          >
-            <div className="flex items-center gap-1.5 text-xs font-semibold text-foreground/60">
-              <card.icon className="h-3.5 w-3.5" />
-              {card.label}
-            </div>
-            <div className={`mt-1.5 text-2xl font-bold ${card.tone}`}>
-              {summaryQuery.isLoading ? (
-                <Loader2 className="h-5 w-5 animate-spin" />
-              ) : (
-                card.value
-              )}
-            </div>
-          </div>
+    <div className="mobile-flat-marketing space-y-5">
+      {/* Publish mode per page */}
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
+        {(
+          [
+            ["center", centerStatus, centerApproval],
+            ["doctor", doctorStatus, doctorApproval],
+          ] as const
+        ).map(([role, status, approval]) => (
+          <span key={role} className="min-w-0">
+            <span className="font-medium">{PAGE_NAME[role]}:</span>{" "}
+            <span className="text-muted-foreground">
+              {modeLine(role, status, approval)}
+            </span>
+          </span>
         ))}
+        {isAdmin && (
+          <Link
+            href="/ai/marketing/settings"
+            className="inline-flex min-h-11 items-center text-primary underline underline-offset-4"
+          >
+            غيّر
+          </Link>
+        )}
       </div>
 
-      {/* Scheduler Status */}
-      <SchedulerCard
-        data={schedulerQuery.data}
-        isLoading={schedulerQuery.isLoading}
-        isRunning={runNowMutation.isPending}
-        canRunNow={isAdmin}
-        pageRole={generatePage}
-        onRunNow={(day) =>
-          runNowMutation.mutate({
-            day: day ?? generateDay,
-            pageRole: generatePage,
-          })
-        }
-      />
+      <ContentCalendar />
 
-      {/* Actions */}
-      <div className="rounded-xl border border-border bg-card p-4">
-        <h2 className="mb-4 text-sm font-semibold text-foreground">
-          إجراءات سريعة
-        </h2>
-        <div className="mb-4 grid gap-4 sm:grid-cols-2">
-          <AssistantModelSelect
-            value={assistant}
-            onChange={(value) => {
-              setAssistant(value);
-            }}
-            disabled={generationLocked || !selectionReady}
-            options={[
-              ...(!assistant
-                ? [
-                    {
-                      value: "",
-                      label: "تعذرت قراءة إعدادات المساعد",
-                      disabled: true,
-                    },
-                  ]
-                : []),
-              { value: "manus:standard", label: "Manus · Standard" },
-              { value: "manus:lite", label: "Manus · Lite" },
-              { value: "manus:max", label: "Manus · Max" },
-              {
-                value: `grok:${geminiText?.provider === "grok" ? geminiText.model : GROK_TEXT_MODEL}|${geminiImage?.provider === "grok" ? geminiImage.model : GROK_IMAGE_MODEL}`,
-                label: "Grok · نص وصورة",
-                disabled:
-                  !capabilities.data?.credentials.grok ||
-                  !geminiText?.enabled ||
-                  !geminiImage?.enabled,
-              },
-              ...textModels.flatMap((model) =>
-                imageModels.map((imageModel) => ({
-                  value: `gemini:${model}|${imageModel}`,
-                  label: `Gemini · نص: ${model} / صورة: ${imageModel}`,
-                  disabled: !geminiText?.enabled || !geminiImage?.enabled,
-                })),
-              ),
-            ]}
-          />
+      {/* Off-schedule post */}
+      <details className="rounded-xl border border-border bg-card p-4">
+        <summary className="flex min-h-11 cursor-pointer items-center text-sm font-semibold">
+          منشور خارج الجدول
+        </summary>
+        <div className="mt-3 grid gap-4 sm:grid-cols-2">
           <label className="grid gap-2 text-sm">
             الصفحة
             <select
@@ -447,8 +320,26 @@ export default function MarketingDashboard() {
                 setGeneratePage(event.target.value as PageRole)
               }
             >
-              <option value="center">المركز</option>
-              <option value="doctor">العيادة</option>
+              <option value="center">{PAGE_NAME.center}</option>
+              <option value="doctor">{PAGE_NAME.doctor}</option>
+            </select>
+          </label>
+          <label className="grid gap-2 text-sm">
+            نوع المحتوى
+            <select
+              aria-label="يوم توليد المنشور"
+              value={generateDay}
+              disabled={generationLocked}
+              onChange={(e) =>
+                setGenerateDay(e.target.value as typeof generateDay)
+              }
+              className="min-h-11 max-w-full rounded-md border border-input bg-background px-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+            >
+              {(["saturday", "tuesday", "thursday"] as const).map((slot) => (
+                <option key={slot} value={slot}>
+                  {marketingSlotDescription(slot, generatePage)}
+                </option>
+              ))}
             </select>
           </label>
           <label className="grid gap-2 text-sm sm:col-span-2">
@@ -463,87 +354,31 @@ export default function MarketingDashboard() {
             />
           </label>
         </div>
-        <div className="flex flex-wrap gap-3">
-          {/* Generate Post */}
-          <div className="flex min-w-0 flex-wrap items-center gap-2">
-            <select
-              aria-label="يوم توليد المنشور"
-              value={generateDay}
-              disabled={generationLocked}
-              onChange={(e) =>
-                setGenerateDay(e.target.value as typeof generateDay)
-              }
-              className="min-h-11 max-w-full rounded-md border border-input bg-background px-2 py-1.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
-            >
-              {(["saturday", "tuesday", "thursday"] as const).map((slot) => (
-                <option key={slot} value={slot}>
-                  {marketingSlotDescription(slot, generatePage)}
-                </option>
-              ))}
-            </select>
-            <Button
-              size="sm"
-              variant="default"
-              onClick={startGeneration}
-              disabled={generationLocked || !selectionReady}
-            >
-              {generateMutation.isPending ? (
-                <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
-              ) : (
-                <Sparkles className="mr-1.5 h-4 w-4" />
-              )}
-              {generateMutation.isPending
-                ? "جارٍ بدء التوليد…"
-                : "توليد النص والصورة"}
-            </Button>
-          </div>
-
-          {/* Auto Publish toggle: page settings stay admin-only */}
-          {isAdmin && (
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() =>
-                updateSettingsMutation.mutate({
-                  pageRole: generatePage,
-                  autoPublish: !settings?.autoPublish,
-                })
-              }
-              disabled={
-                updateSettingsMutation.isPending ||
-                schedulerQuery.isLoading ||
-                !settings?.fbConnected
-              }
-            >
-              {settings?.autoPublish ? (
-                <>
-                  <ToggleRight className="mr-1.5 h-4 w-4 text-success" />
-                  النشر التلقائي: مفعّل
-                </>
-              ) : (
-                <>
-                  <ToggleLeft className="mr-1.5 h-4 w-4 text-muted-foreground" />
-                  النشر التلقائي: موقوف
-                </>
-              )}
-            </Button>
-          )}
-
+        <div className="mt-4 flex flex-wrap items-center gap-3">
           <Button
-            size="sm"
-            variant="ghost"
-            aria-label="تحديث"
-            onClick={() => void utils.marketing.dashboardSummary.invalidate()}
+            className="min-h-11"
+            onClick={startGeneration}
+            disabled={generationLocked || !selectionReady}
           >
-            <RefreshCw className="h-4 w-4" />
+            {generateMutation.isPending ? (
+              <Loader2 className="ml-1.5 h-4 w-4 animate-spin" />
+            ) : (
+              <Sparkles className="ml-1.5 h-4 w-4" />
+            )}
+            {generateMutation.isPending
+              ? "جارٍ بدء التوليد…"
+              : "توليد النص والصورة"}
           </Button>
+          <span className="text-xs text-muted-foreground">
+            {selectionReady
+              ? "بالمساعد المختار في صفحة الذكاء الاصطناعي."
+              : capabilities.isError || profiles.isError
+                ? "تعذّرت قراءة إعدادات المساعد."
+                : "جارٍ قراءة إعدادات المساعد…"}
+          </span>
         </div>
         {generationRequest && (
           <div className="mt-4 space-y-2 text-sm" role="status">
-            <p>
-              معرف الطلب: <bdi className="break-all">{generationRequest}</bdi>.
-              تابع حالة نفس الطلب قبل بدء توليد جديد.
-            </p>
             <p>
               حالة الطلب:{" "}
               {knownGeneration
@@ -556,11 +391,21 @@ export default function MarketingDashboard() {
                       "نتيجة غير محسومة؛ راجع المهمة الأصلية قبل طلب بديل",
                   }[knownGeneration.state]
                 : "جارٍ التحقق من النتيجة"}
+              . تابع نفس الطلب قبل بدء توليد جديد.
             </p>
+            <details className="text-xs text-muted-foreground">
+              <summary className="inline-flex min-h-11 cursor-pointer items-center">
+                تفاصيل للدعم الفني
+              </summary>
+              <p>
+                رقم الطلب: <bdi className="break-all">{generationRequest}</bdi>
+              </p>
+            </details>
             {(knownGeneration?.state === "completed" ||
               knownGeneration?.state === "failed") && (
               <Button
                 variant="outline"
+                className="min-h-11"
                 onClick={() => {
                   try {
                     sessionStorage.removeItem("selrs.ai.marketing.request");
@@ -576,8 +421,6 @@ export default function MarketingDashboard() {
             )}
           </div>
         )}
-
-        {/* Generating indicator */}
         {generateMutation.isPending && (
           <div className="mt-4 flex items-center gap-2 rounded-lg border border-primary/20 bg-primary/5 px-4 py-3 text-sm text-primary">
             <Loader2 className="h-4 w-4 animate-spin" />
@@ -590,11 +433,9 @@ export default function MarketingDashboard() {
             </span>
           </div>
         )}
-      </div>
+      </details>
 
-      <ContentCalendar />
-
-      {/* Generated Content Preview */}
+      {/* Generation jobs and their recovery */}
       <ManusGenerationJobs
         onCompleted={(postId) => {
           void utils.marketing.getPost
@@ -611,98 +452,90 @@ export default function MarketingDashboard() {
         }}
       />
       {preview && (
-        <div className="rounded-xl border border-primary/30 bg-primary/5 p-4 space-y-4">
-          <div className="flex items-start justify-between gap-3">
-            <div className="flex items-center gap-2">
+        <div className="space-y-4 rounded-xl border border-primary/30 bg-primary/5 p-4">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="flex min-w-0 flex-wrap items-center gap-2">
               <Sparkles className="h-4 w-4 text-primary" />
               <h2 className="text-sm font-semibold text-primary">
                 تم توليد المنشور
               </h2>
-              <Badge className="bg-primary/15 text-primary text-xs">
+              <Badge className="bg-primary/15 text-xs text-primary">
                 {preview.topic}
               </Badge>
             </div>
             <div className="flex items-center gap-2">
-              <Link href="/marketing/drafts">
-                <Button size="sm" variant="outline" className="gap-1.5 text-xs">
+              <Link href="/ai/marketing/drafts">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="min-h-11 gap-1.5 text-xs"
+                >
                   <ExternalLink className="h-3.5 w-3.5" />
-                  فتح المسودات
+                  راجع وانشر من المسودات
                 </Button>
               </Link>
               <Button
                 variant="bare"
                 onClick={() => setPreview(null)}
                 aria-label="إغلاق المعاينة"
-                className="text-xs text-muted-foreground hover:text-foreground"
+                className="min-h-11 min-w-11 text-xs text-muted-foreground hover:text-foreground"
               >
                 ✕
               </Button>
             </div>
           </div>
-
-          {/* Title */}
           <div>
-            <p className="text-xs font-semibold text-muted-foreground mb-1">
+            <p className="mb-1 text-xs font-semibold text-muted-foreground">
               العنوان
             </p>
             <p className="text-sm font-semibold text-foreground">
               {preview.title}
             </p>
           </div>
-
-          {/* Idea */}
           {preview.idea && (
             <div className="flex gap-2">
-              <Lightbulb className="h-4 w-4 text-warning-text shrink-0 mt-0.5" />
+              <Lightbulb className="mt-0.5 h-4 w-4 shrink-0 text-warning-text" />
               <div>
-                <p className="text-xs font-semibold text-foreground/50 mb-0.5">
+                <p className="mb-0.5 text-xs font-semibold text-foreground/50">
                   الفكرة التسويقية
                 </p>
                 <p className="text-sm text-foreground">{preview.idea}</p>
               </div>
             </div>
           )}
-
-          {/* Content */}
           <div className="flex gap-2">
-            <MessageSquare className="h-4 w-4 text-primary shrink-0 mt-0.5" />
-            <div className="flex-1">
-              <p className="text-xs font-semibold text-foreground/50 mb-0.5">
+            <MessageSquare className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+            <div className="min-w-0 flex-1">
+              <p className="mb-0.5 text-xs font-semibold text-foreground/50">
                 نص المنشور
               </p>
-              <p className="whitespace-pre-wrap text-sm text-foreground leading-relaxed">
+              <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground">
                 {preview.content}
               </p>
             </div>
           </div>
-
-          {/* CTA */}
           {preview.cta && (
             <div className="rounded-lg border border-primary/20 bg-background px-3 py-2">
-              <p className="text-xs font-semibold text-foreground/50 mb-0.5">
-                نداء للعمل (CTA)
+              <p className="mb-0.5 text-xs font-semibold text-foreground/50">
+                جملة الدعوة للتواصل
               </p>
               <p className="text-sm font-medium text-primary">{preview.cta}</p>
             </div>
           )}
-
-          {/* Hashtags */}
           {preview.hashtags && (
             <div className="flex gap-2">
-              <Hash className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
+              <Hash className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
               <p className="text-sm text-primary/80">{preview.hashtags}</p>
             </div>
           )}
-
-          {/* Image prompt */}
           {preview.imagePrompt && (
             <div className="flex gap-2">
-              <Image className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
+              <Image className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
               <div>
-                <p className="text-xs font-semibold text-foreground/50 mb-0.5">
-                  وصف الصورة (AI Image Prompt)
+                <p className="mb-0.5 text-xs font-semibold text-foreground/50">
+                  وصف الصورة
                 </p>
-                <p className="text-xs text-muted-foreground italic">
+                <p className="text-xs italic text-muted-foreground">
                   {preview.imagePrompt}
                 </p>
               </div>
@@ -711,124 +544,94 @@ export default function MarketingDashboard() {
         </div>
       )}
 
-      {/* Recent Posts */}
-      <div className="rounded-xl border border-border bg-card">
-        <div className="border-b border-border px-4 py-3 flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-foreground">
-            آخر المنشورات
+      {/* Posts stuck in publishing */}
+      {stuckPublishing.length > 0 && (
+        <section
+          aria-labelledby="stuck-publishing-title"
+          className="space-y-2 rounded-xl border border-warning/40 bg-card p-4"
+        >
+          <h2 id="stuck-publishing-title" className="text-sm font-semibold">
+            منشورات واقفة في النشر
           </h2>
-          <Link href="/marketing/drafts">
-            <span className="text-xs text-primary hover:underline cursor-pointer">
-              عرض المسودات ←
-            </span>
-          </Link>
+          <ul className="divide-y divide-border">
+            {stuckPublishing.map((post: any) => (
+              <li
+                key={post.id}
+                className="flex flex-wrap items-center justify-between gap-2 py-2 text-sm"
+              >
+                <span className="min-w-0 break-words">
+                  {post.title} ·{" "}
+                  {PAGE_NAME[(post.pageRole ?? "center") as PageRole]}
+                </span>
+                <PublishingPostResolve postId={post.id} />
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {/* Scheduler status: kept, folded away */}
+      <details className="rounded-xl border border-border bg-card p-4">
+        <summary className="flex min-h-11 cursor-pointer items-center text-sm font-semibold">
+          حالة المجدول والأرقام
+        </summary>
+        <div className="mt-3 space-y-3">
+          <div
+            role="group"
+            aria-label="الصفحة"
+            className="inline-flex rounded-lg border p-1"
+          >
+            {(["center", "doctor"] as const).map((role) => (
+              <button
+                key={role}
+                type="button"
+                aria-pressed={generatePage === role}
+                disabled={generationLocked}
+                onClick={() => setGeneratePage(role)}
+                className={`min-h-11 rounded-md px-3 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
+                  generatePage === role
+                    ? "bg-primary text-primary-foreground"
+                    : "text-foreground"
+                }`}
+              >
+                {PAGE_NAME[role]}
+              </button>
+            ))}
+          </div>
+          <p className="text-sm text-muted-foreground">
+            {summaryQuery.isLoading
+              ? "جارٍ تحميل الأرقام…"
+              : summaryQuery.isError
+                ? "تعذّر تحميل الأرقام."
+                : `الإجمالي ${counts.total} · مسودات ${counts.draft} · مجدولة ${counts.scheduled} · جاري النشر ${counts.publishing} · منشورة ${counts.published} · فشلت ${counts.failed}`}
+          </p>
+          <SchedulerCard
+            data={schedulerQuery.data}
+            isLoading={schedulerQuery.isLoading}
+            isRunning={runNowMutation.isPending}
+            canRunNow={isAdmin}
+            pageRole={generatePage}
+            onRunNow={(day) =>
+              runNowMutation.mutate({
+                day: day ?? generateDay,
+                pageRole: generatePage,
+              })
+            }
+          />
+          <Button
+            size="sm"
+            variant="ghost"
+            className="min-h-11"
+            onClick={() => {
+              void utils.marketing.dashboardSummary.invalidate();
+              void utils.marketing.getSchedulerStatus.invalidate();
+            }}
+          >
+            <RefreshCw className="ml-1.5 h-4 w-4" />
+            تحديث
+          </Button>
         </div>
-        {summaryQuery.isLoading ? (
-          <div className="flex items-center justify-center py-10">
-            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-          </div>
-        ) : recentPosts.length === 0 ? (
-          <div className="py-10 text-center text-sm text-muted-foreground">
-            لا توجد منشورات بعد — ابدأ بتوليد منشور
-          </div>
-        ) : (
-          <div className="divide-y divide-border">
-            {recentPosts.map((post: any) => {
-              const badge = STATUS_BADGE[post.status] ?? {
-                label: post.status,
-                className: "",
-              };
-              return (
-                <div
-                  key={post.id}
-                  className="flex items-start justify-between gap-3 px-4 py-3"
-                >
-                  <div className="min-w-0 flex-1">
-                    <div className="truncate text-sm font-medium text-foreground">
-                      {post.title}
-                    </div>
-                    <div className="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                      {post.postDay && (
-                        <span>
-                          {marketingSlotLabel(
-                            post.postDay,
-                            post.pageRole ?? "center",
-                          )}
-                        </span>
-                      )}
-                      {post.topic && (
-                        <>
-                          <span>·</span>
-                          <span>{post.topic}</span>
-                        </>
-                      )}
-                      <span>·</span>
-                      <span>
-                        {new Date(post.createdAt).toLocaleDateString("ar-EG")}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="flex shrink-0 items-center gap-2">
-                    <Badge className={`text-xs ${badge.className}`}>
-                      {badge.label}
-                    </Badge>
-                    {post.status === "publishing" && (
-                      <PublishingPostResolve postId={post.id} />
-                    )}
-                    {post.status === "draft" && (
-                      <>
-                        <select
-                          aria-label="صفحة النشر"
-                          value={
-                            publishPageRoles[post.id] ??
-                            post.pageRole ??
-                            "center"
-                          }
-                          onChange={(event) =>
-                            setPublishPageRoles((current) => ({
-                              ...current,
-                              [post.id]: event.target.value as PageRole,
-                            }))
-                          }
-                          className="h-9 rounded-md border border-input bg-background px-2 text-xs text-foreground"
-                        >
-                          <option value="center">المركز</option>
-                          <option value="doctor">الدكتور</option>
-                        </select>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => {
-                            setPublishId(post.id);
-                            publishMutation.mutate({
-                              id: post.id,
-                              pageRole:
-                                publishPageRoles[post.id] ??
-                                post.pageRole ??
-                                "center",
-                            });
-                          }}
-                          disabled={
-                            publishMutation.isPending && publishId === post.id
-                          }
-                        >
-                          {publishMutation.isPending &&
-                          publishId === post.id ? (
-                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                          ) : (
-                            <Send className="h-3.5 w-3.5" />
-                          )}
-                          <span className="mr-1.5">نشر الآن</span>
-                        </Button>
-                      </>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
+      </details>
     </div>
   );
 }
@@ -985,7 +788,7 @@ function SchedulerCard({
 
       {!data?.autoPublish && (
         <p className="mt-2 text-xs text-muted-foreground">
-          النشر التلقائي معطّل — فعّله من الإعدادات
+          الجدول متوقف لهذه الصفحة — غيّر طريقة النشر من الإعدادات
         </p>
       )}
       {data?.lastSkip && (

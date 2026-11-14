@@ -109,7 +109,7 @@ export default function CentralMarketingDraft() {
             }
           >
             <option value="center">المركز</option>
-            <option value="doctor">العيادة</option>
+            <option value="doctor">الدكتور</option>
           </select>
         </label>
         <label className="grid gap-2">
@@ -153,9 +153,14 @@ export default function CentralMarketingDraft() {
         </Button>
       </form>
       {requestId && (
-        <p className="break-all text-sm">
-          معرف المهمة: <bdi>{requestId}</bdi>
-        </p>
+        <details className="text-sm text-muted-foreground">
+          <summary className="inline-flex min-h-11 cursor-pointer items-center">
+            تفاصيل للدعم الفني
+          </summary>
+          <p className="break-all">
+            رقم المهمة: <bdi>{requestId}</bdi>
+          </p>
+        </details>
       )}
       {create.error && (
         <p role="alert">
@@ -208,7 +213,7 @@ export default function CentralMarketingDraft() {
       <ul className="space-y-2">
         {jobs.data?.slice(0, 10).map((job) => (
           <li key={job.id} className="border-t border-border pt-2">
-            <b>{job.pageRole === "center" ? "المركز" : "العيادة"}</b> ·{" "}
+            <b>{job.pageRole === "center" ? "المركز" : "الدكتور"}</b> ·{" "}
             {job.topic} ·{" "}
             {job.state === "completed"
               ? `مسودة ${job.postId}`
