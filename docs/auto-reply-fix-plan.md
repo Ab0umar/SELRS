@@ -49,6 +49,15 @@ Tests: transient check keeps `checkOk`; failed row recovers; manual job survives
 
 ## PR 2 — webhook and send path
 
+Shipped in #30 (`edfebfe6`), merged as `26e3e893` on `fix/auto-reply-pr1-silent-outages`. Operator detail: `docs/auto-reply-setup.md` (webhook status table, price-comment outcome, مسار الإرسال). Agent summary: `docs/AI_CONTEXT.md` section "Auto-reply webhook and send".
+
+Landed constraints the sketch below does not spell out:
+
+- Spacing also treats any other job of the same channel and account in `sending` as in flight. A hit stores `body` and returns `LOCAL_RATE_LIMIT` (retry in 2 seconds, attempt not consumed).
+- `PRIVATE_SENT_PUBLIC_FAILED` is not retryable. A definite Meta rejection of the public line is `failed`. A network error or an already-uncertain provider error is `unknown`. The private row is written before the public call. Lease expiry of a `sending` job is `unknown` / `SEND_INTERRUPTED` (120s). A throw after Meta accepted the call being recorded is `unknown` / `SEND_COMMIT_UNCERTAIN`.
+- Per-item `safeParse` is Messenger `entry.messaging` only. An envelope `ZodError` on a signed body returns 200.
+- The English public price line is in `worker.ts`. The integration fixture covers the Arabic line only. Live Meta sends are outside the tests.
+
 1. **Tolerant parsing** (`events.ts`, `autoReplyWebhook.ts`): parse each `messaging` item with `safeParse` and skip invalid ones. A correctly signed payload that still fails the envelope returns 200 after a diagnostic log. 503 stays for storage failures only.
 2. **Meta request outside the lock** (`worker.ts`): three steps.
    1. One short transaction re-validates everything (conversation revision, claim, kill switch, channel enabled, recipient allowed, reply window, 2-second account rate limit) and marks the job `sending`.
