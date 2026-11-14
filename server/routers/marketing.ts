@@ -15,7 +15,7 @@ import {
   AiManagementStore,
   AiManagementError,
 } from "../services/ai/managementStore";
-import { getDbConnection } from "../db";
+import { getDbConnection, updateSystemSettings } from "../db";
 import { marketingGenerationInput } from "../../shared/ai-request-context";
 import { trackedAiOperation, readAiOperation } from "../services/ai/operations";
 import { readMarketingGenerationRequest } from "../services/marketing/generationRequest";
@@ -80,6 +80,7 @@ import {
   publishedMarketingTopics,
   PublishedMarketingTopicError,
   settleTopicForPost,
+  marketingTopicReuseMonths,
 } from "../services/marketing/topicHistory";
 import { TRPCError } from "@trpc/server";
 import {
@@ -295,6 +296,23 @@ export const marketingRouter = router({
         ...row,
         contentFlags: row.status === "draft" ? checkMarketingContent(row) : [],
       }));
+    }),
+
+  topicReuseMonths: adminProcedure.query(async () => ({
+    months: await marketingTopicReuseMonths(),
+  })),
+
+  setTopicReuseMonths: adminProcedure
+    .input(z.object({ months: z.number().int().min(0).max(120) }).strict())
+    .mutation(async ({ input, ctx }) => {
+      await updateSystemSettings("marketing_topic_reuse_months", input.months);
+      await addLog(
+        null,
+        "topic_reuse_months",
+        "info",
+        `Topic reuse window set to ${input.months} months by user ${ctx.user.id}`,
+      );
+      return { ok: true };
     }),
 
   approvalMode: adminProcedure

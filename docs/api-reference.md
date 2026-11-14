@@ -1437,6 +1437,7 @@ Router file: `server/routers/marketing.ts`. Every procedure is `adminProcedure`.
 | `createPost` / `updatePost` | mutation | — | `platform` accepts only `"facebook"` (Instagram was dropped). `status` accepts only `"draft"` until per-post scheduling lands. |
 | `listPosts` | query | — | Each row carries `contentFlags: string[]`, recomputed on read for drafts. |
 | `approvalMode` / `setApprovalMode` | query / mutation | `{ pageRole }` / `{ pageRole, required }` | Reads or sets approval mode for one page. |
+| `topicReuseMonths` / `setTopicReuseMonths` | query / mutation | — / `{ months }` (0–120) | Reads or sets `marketing_topic_reuse_months`. Set in the settings page; the change is logged with the user id. |
 | `getSchedulerStatus` | query | `{ pageRole }` | Now also returns `lastSkip: { reason, at } \| null`. |
 
 ### System settings (no new columns)
