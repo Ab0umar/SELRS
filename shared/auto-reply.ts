@@ -17,6 +17,7 @@ const handoffReasonLabels: Record<string, string> = {
   output_guard: "الرد يحتاج مراجعة",
   personal_information: "بيانات شخصية في تعليق",
   rate_limited: "تجاوز حد الردود الآلية",
+  contacts_unavailable: "جهات اتصال واتساب غير جاهزة",
   outside_hours: "خارج مواعيد العمل",
   comment_deleted: "تعليق محذوف",
 };

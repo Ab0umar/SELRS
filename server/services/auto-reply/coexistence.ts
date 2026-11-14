@@ -466,8 +466,15 @@ export async function initiateCoexistenceSync() {
         ),
       );
       requestId = response.request_id;
-    } catch {
+    } catch (error) {
       /* An uncertain POST is never automatically repeated. */
+      console.warn(
+        "[auto-reply] COEXISTENCE_SYNC_REQUEST_FAILED",
+        kind,
+        error instanceof Error && /^[A-Z_]{1,64}$/.test(error.message)
+          ? error.message
+          : "INVALID_RESPONSE",
+      );
     }
     await db.transaction(async (tx) => {
       const [row] = await tx
