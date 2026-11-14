@@ -1,8 +1,8 @@
 # SRV100 AI Context Document
 
 > Single "read this first" file for any AI model (Cursor, Codex, Claude, GPT, Gemini, GLM, Kimi).
-> Version: 2.3.0 — companion to `docs/PROJECT_PRINCIPLES.md`. Updated 2026-10-26: moved out of `specs/`, spec-driven workflow removed. Updated 2026-11-10: patient WhatsApp OTP login, public clinic landing at `/`, paid leave type, follow-up list includes sheet items stored on examination visits, medical assistant review restore and treatment-medicine repair.
-> Version: 2.3.0 — companion to `docs/PROJECT_PRINCIPLES.md`. Updated 2026-10-26: moved out of `specs/`, spec-driven workflow removed. Updated 2026-11-10: patient WhatsApp OTP login, public clinic landing at `/`, paid leave type, follow-up list membership, autoref/refraction completeness, medical assistant review restore and treatment-medicine repair.
+> Version: 2.3.0 — companion to `docs/PROJECT_PRINCIPLES.md`. Updated 2026-10-26: moved out of `specs/`, spec-driven workflow removed. Updated 2026-11-10: patient WhatsApp OTP login, public clinic landing at `/`, paid leave type, follow-up list includes sheet items stored on examination visits, medical assistant review restore and treatment-medicine repair. Updated 2026-11-14: marketing content procedures use per-screen page permissions; live URLs are under `/ai/marketing`.
+> Version: 2.3.0 — companion to `docs/PROJECT_PRINCIPLES.md`. Updated 2026-10-26: moved out of `specs/`, spec-driven workflow removed. Updated 2026-11-10: patient WhatsApp OTP login, public clinic landing at `/`, paid leave type, follow-up list membership, autoref/refraction completeness, medical assistant review restore and treatment-medicine repair. Updated 2026-11-14: marketing content procedures use per-screen page permissions; live URLs are under `/ai/marketing`.
 
 ---
 
@@ -97,6 +97,7 @@ MySQL (selrs26)                    MSSQL (op2026)
 - Accounting routes: `/accounting/*` — all gated by `allowedRoles` or path-based permission
 - Attendance routes: `/attendance/*` — gated by attendance permission
 - KF routes: `/kf/*` — gated by KF permission
+- Marketing content is mounted from `client/src/routes/ai-routes.tsx` at `/ai/marketing`, `/ai/marketing/drafts`, and `/ai/marketing/history` (brand, settings, and WhatsApp sit beside them). `/marketing` and the same subpaths redirect there via `legacyAiRoutes`. `client/src/routes/marketing-routes.tsx` is not included in `App.tsx`. Staff grants are the page ids `/marketing`, `/marketing/drafts`, and `/marketing/history`. Contract: `docs/api-reference.md` (Marketing Router).
 - Key renames done: `/txhub` → `/treatment`, `/today` → `/bookings`, `/admin-hub` → `/booking-triage` (redirects in place)
 - Backend: `server/routers/index.ts` composes `appRouter = { medical, patient, accounting, attendance, kf, doctorPortal, patientPortal, ... }`
 
@@ -147,6 +148,7 @@ server/_core/
 - `makeAttWriteProcedure(path)` — attendance write; admin bypass OR path-based `:rw` permission check
 - `kfProcedure` — KF read; accountant+admin bypass OR `/kf` permission
 - `kfWriteProcedure` — KF write; accountant+admin bypass OR `/kf:rw` permission
+- Marketing content reads and writes (`contentRead` / `contentWrite` in `server/routers/marketing.ts`) — `protectedProcedure` plus `getEffectiveUserPermissions`. Role `admin` bypasses. Any other role needs the exact screen path (`/marketing`, `/marketing/drafts`, or `/marketing/history`). Mutations need that path with `:rw`. This check does not use `permMatchesPath` or `makePageProcedure`. Settings, Facebook connection, scheduler provider, brand library, and WhatsApp campaigns stay `adminProcedure`.
 
 ## React Structure
 
