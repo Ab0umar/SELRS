@@ -22,6 +22,10 @@ import { readMarketingGenerationRequest } from "../services/marketing/generation
 import { readMarketingSchedulerStatus } from "../services/marketing/schedulerStatus";
 import { checkMarketingContent } from "../services/marketing/contentCheck";
 import {
+  readMarketingPostStats,
+  refreshMarketingPostStats,
+} from "../services/marketing/postInsights";
+import {
   cairoSlotTime,
   generateWeekDrafts,
   marketingCalendar,
@@ -499,6 +503,10 @@ export const marketingRouter = router({
       );
       return { ok: true };
     }),
+
+  postStats: adminProcedure.query(() => readMarketingPostStats()),
+
+  refreshPostStats: adminProcedure.mutation(() => refreshMarketingPostStats()),
 
   contentCalendar: adminProcedure.query(() => marketingCalendar(14)),
 

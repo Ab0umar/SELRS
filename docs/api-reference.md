@@ -1422,7 +1422,7 @@ Router file: `server/routers/doctorPortal.ts`
 
 ## 📣 Marketing Router (`marketing`): content scheduling and publishing
 
-Router file: `server/routers/marketing.ts`. Every procedure is `adminProcedure`. This section covers the AI Facebook post workflow changed by `docs/marketing-content-fix-plan.md` (PRs 1–5); WhatsApp campaigns and brand analysis are not described here.
+Router file: `server/routers/marketing.ts`. Every procedure is `adminProcedure`. This section covers the AI Facebook post workflow changed by `docs/marketing-content-fix-plan.md` (PRs 1–6); WhatsApp campaigns and brand analysis are not described here.
 
 > **Default changed:** approval mode is **on** for both pages unless the owner turns it off. Scheduled drafts are generated and wait for an admin to publish them.
 
@@ -1441,6 +1441,7 @@ Router file: `server/routers/marketing.ts`. Every procedure is `adminProcedure`.
 | `contentCalendar` | query | — | Next 14 days: enabled slots of connected pages, and posts with a `scheduledAt` (scheduled posts and drafts generated for a slot). |
 | `schedulePost` / `unschedulePost` | mutation | `{ id, pageRole, date (yyyy-MM-dd), hour }` (Cairo) / `{ id }` | Draft → `scheduled` at that time, or back to draft. A minute worker publishes due posts through the normal publish claim and notifies admins. `updatePost` also edits scheduled posts. |
 | `generateWeekDrafts` | mutation | — | Starts one draft per empty enabled slot in the next 7 days with each page's scheduler provider. The drafts carry the slot time in `scheduledAt` and are not published until an admin schedules them; the daily scheduler skips a slot that already has a planned post. |
+| `postStats` / `refreshPostStats` | query / mutation | — | Reach (`post_impressions_unique`) and reactions/comments/shares for posts published in the last 60 days, stored in the system setting `marketing_post_stats_v1` and refreshed once a day. `state: "unavailable"` with a reason when the page token lacks `read_insights`. The topic planner receives the best and worst 5 topics as data. |
 | `getSchedulerStatus` | query | `{ pageRole }` | Now also returns `lastSkip: { reason, at } \| null`. |
 
 ### System settings (no new columns)
