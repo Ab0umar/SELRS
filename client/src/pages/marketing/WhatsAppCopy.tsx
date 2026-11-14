@@ -10,8 +10,18 @@ import {
 } from "@/features/ai/pending-request";
 
 const storageKey = "selrs.whatsapp.copy.request";
-type Kind = "reminder" | "lasik" | "cataract" | "exam";
-type Day = "الأحد" | "الثلاثاء" | "الخميس";
+// "reminder", or "offer:<id>" for a saved offer. Older kinds only appear
+// while a request started before offers became editable is still tracked.
+type Choice = string;
+const LEGACY_KIND: Record<string, string> = {
+  lasik: "تصحيح الإبصار",
+  cataract: "المياه البيضاء للتأمين الصحي",
+  exam: "كشف الأخصائي",
+};
+const cairoToday = () =>
+  new Intl.DateTimeFormat("en-CA", { timeZone: "Africa/Cairo" }).format(
+    new Date(),
+  );
 function pendingId() {
   try {
     const id = sessionStorage.getItem(storageKey);
@@ -33,9 +43,17 @@ export default function WhatsAppCopy() {
   const enabled = profiles.data?.some(
     (profile) => profile.workload === "whatsapp.marketing" && profile.enabled,
   );
-  const [kind, setKind] = useState<Kind>(restored?.kind ?? "reminder");
-  const [days, setDays] = useState<Day[]>(
-    restored?.days ?? ["الأحد", "الثلاثاء", "الخميس"],
+  const [choice, setChoice] = useState<Choice>(
+    restored?.kind === "offer"
+      ? `offer:${restored.offerId}`
+      : (restored?.kind ?? "reminder"),
+  );
+  const offers = trpc.marketing.whatsappOffers.useQuery(undefined, {
+    retry: false,
+  });
+  const today = cairoToday();
+  const activeOffers = (offers.data ?? []).filter(
+    (offer) => offer.enabled && (!offer.endsOn || offer.endsOn >= today),
   );
   const [requestId, setRequestId] = useState(
     () => restored?.requestId ?? pendingId(),
@@ -91,57 +109,35 @@ export default function WhatsAppCopy() {
   if (!status.data?.enabled || !status.data.whatsappCopyAvailable)
     return <p role="status">صياغة واتساب غير مفعّلة على الخادم حاليًا.</p>;
   return (
-    <section
-      className="rounded-xl border bg-card p-5 space-y-4"
-      aria-label="صياغة رسائل واتساب"
-    >
-      <h3 className="font-bold">صياغة رسائل واتساب</h3>
+    <section className="space-y-4" aria-label="صياغة رسائل واتساب">
       <WorkloadModelSelect
         workload="whatsapp.marketing"
         disabled={Boolean(requestId) || generate.isPending}
         onReadyChange={setModelReady}
       />
-      <p className="text-sm text-muted-foreground">
-        ثلاث صيغ للمراجعة والنسخ. لإرسال صيغة جديدة في حملة، سجّلها أولًا كقالب
-        لدى Meta وانتظر اعتمادها.
-      </p>
       <label className="block space-y-2">
         نوع الرسالة
         <select
           className="block min-h-11 w-full rounded-md border bg-background px-3"
-          value={kind}
+          value={choice}
           disabled={Boolean(requestId) || generate.isPending}
-          onChange={(e) => setKind(e.target.value as Kind)}
+          onChange={(e) => setChoice(e.target.value)}
         >
           <option value="reminder">تذكير بالمركز والليزك</option>
-          <option value="lasik">تصحيح الإبصار: خصم يصل إلى 15%</option>
-          <option value="cataract">مياه بيضاء: خصم 1000ج للتأمين الصحي</option>
-          <option value="exam">كشف الأخصائي: 200ج بدلًا من 260ج</option>
+          {activeOffers.map((offer) => (
+            <option key={offer.id} value={`offer:${offer.id}`}>
+              {offer.name}
+            </option>
+          ))}
+          {LEGACY_KIND[choice] && (
+            <option value={choice}>{LEGACY_KIND[choice]}</option>
+          )}
         </select>
       </label>
-      {kind === "exam" && (
-        <fieldset
-          disabled={Boolean(requestId)}
-          className="flex flex-wrap gap-3"
-        >
-          <legend>أيام العرض في المركز</legend>
-          {(["الأحد", "الثلاثاء", "الخميس"] as const).map((day) => (
-            <label key={day} className="flex min-h-11 items-center gap-2">
-              <input
-                type="checkbox"
-                checked={days.includes(day)}
-                onChange={(e) =>
-                  setDays((current) =>
-                    e.target.checked
-                      ? [...current, day]
-                      : current.filter((d) => d !== day),
-                  )
-                }
-              />
-              {day}
-            </label>
-          ))}
-        </fieldset>
+      {offers.isError && (
+        <p role="alert" className="text-sm text-destructive">
+          تعذّر تحميل العروض، فالتذكير بس متاح دلوقتي.
+        </p>
       )}
       {!enabled && (
         <p className="text-sm">
@@ -159,14 +155,15 @@ export default function WhatsAppCopy() {
             !enabled ||
             !modelReady ||
             generate.isPending ||
-            (kind === "exam" && !days.length)
+            Boolean(LEGACY_KIND[choice])
           }
           onClick={() =>
             void submitCopy(
               whatsappRequestContext.parse({
                 requestId: createRequestId(),
-                kind,
-                ...(kind === "exam" ? { days } : {}),
+                ...(choice.startsWith("offer:")
+                  ? { kind: "offer", offerId: choice.slice("offer:".length) }
+                  : { kind: "reminder" }),
               }),
             )
           }
@@ -176,9 +173,15 @@ export default function WhatsAppCopy() {
       )}
       {requestId && !result.data?.variants && (
         <div role="status" className="space-y-2">
-          <p>
-            متابعة طلب الصياغة: <bdi className="break-all">{requestId}</bdi>
-          </p>
+          <p>جارٍ تجهيز الصيغ…</p>
+          <details className="text-xs text-muted-foreground">
+            <summary className="inline-flex min-h-11 cursor-pointer items-center">
+              تفاصيل للدعم الفني
+            </summary>
+            <p className="break-all">
+              رقم الطلب: <bdi>{requestId}</bdi>
+            </p>
+          </details>
           <Button
             type="button"
             variant="outline"
@@ -204,7 +207,7 @@ export default function WhatsAppCopy() {
       {message && <p role="alert">{message}</p>}
       {result.isError && (
         <p role="alert">
-          تعذرت متابعة نفس الطلب. معرّفه محفوظ؛ حدّث النتيجة دون بدء طلب بديل.
+          تعذرت متابعة نفس الطلب. رقمه محفوظ؛ حدّث النتيجة دون بدء طلب بديل.
         </p>
       )}
       {result.data?.variants?.map((text, index) => (
@@ -237,6 +240,7 @@ export default function WhatsAppCopy() {
               setRequestId(undefined);
               setRequestContext(undefined);
               setMessage("");
+              if (LEGACY_KIND[choice]) setChoice("reminder");
             }}
           >
             صياغة رسالة أخرى
