@@ -16,12 +16,14 @@ const WhatsAppCampaigns = lazy(
   () => import("../pages/marketing/WhatsAppCampaigns"),
 );
 
+// Dashboard, history and drafts use page permissions (/marketing, /marketing/history,
+// /marketing/drafts). Brand, WhatsApp and settings stay admin-only.
 export const MarketingRoutes = (
   <>
     <Route
       path={ROUTES.marketing}
       component={() => (
-        <ProtectedRoute requiredRoles={["admin"]}>
+        <ProtectedRoute>
           <MarketingLayout>
             <MarketingDashboard />
           </MarketingLayout>
@@ -31,7 +33,7 @@ export const MarketingRoutes = (
     <Route
       path={ROUTES.marketingHistory}
       component={() => (
-        <ProtectedRoute requiredRoles={["admin"]}>
+        <ProtectedRoute>
           <MarketingLayout>
             <PostHistory />
           </MarketingLayout>
@@ -41,7 +43,7 @@ export const MarketingRoutes = (
     <Route
       path={ROUTES.marketingDrafts}
       component={() => (
-        <ProtectedRoute requiredRoles={["admin"]}>
+        <ProtectedRoute>
           <MarketingLayout>
             <DraftPosts />
           </MarketingLayout>

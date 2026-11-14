@@ -8,6 +8,7 @@ import {
 import { Link } from "wouter";
 import { GROK_TEXT_MODEL, GROK_IMAGE_MODEL } from "@shared/marketing-providers";
 import { trpc } from "@/lib/trpc";
+import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
@@ -67,6 +68,8 @@ import {
   marketingAssistantValue,
 } from "@shared/marketing-assistant";
 export default function MarketingDashboard() {
+  const { user } = useAuth();
+  const isAdmin = user?.role === "admin";
   const [restored] = useState(() =>
     readPending("selrs.ai.marketing.context", marketingGenerationInput),
   );
@@ -87,10 +90,10 @@ export default function MarketingDashboard() {
     restored?.pageRole ?? "center",
   );
   const [generateTopic, setGenerateTopic] = useState(restored?.topic ?? "");
-  const capabilities = trpc.aiManagement.status.useQuery(undefined, {
+  const capabilities = trpc.marketing.assistantStatus.useQuery(undefined, {
     retry: false,
   });
-  const profiles = trpc.aiManagement.profiles.useQuery(undefined, {
+  const profiles = trpc.marketing.assistantProfiles.useQuery(undefined, {
     enabled: capabilities.data?.enabled,
     retry: false,
   });
@@ -108,7 +111,7 @@ export default function MarketingDashboard() {
   const geminiImage = profiles.data?.find(
     (profile) => profile.workload === "marketing.image",
   );
-  const geminiModels = trpc.aiManagement.models.useQuery(undefined, {
+  const geminiModels = trpc.marketing.assistantModels.useQuery(undefined, {
     enabled: capabilities.data?.enabled,
     retry: false,
     staleTime: 300000,
@@ -381,6 +384,7 @@ export default function MarketingDashboard() {
         data={schedulerQuery.data}
         isLoading={schedulerQuery.isLoading}
         isRunning={runNowMutation.isPending}
+        canRunNow={isAdmin}
         pageRole={generatePage}
         onRunNow={(day) =>
           runNowMutation.mutate({
@@ -494,34 +498,36 @@ export default function MarketingDashboard() {
             </Button>
           </div>
 
-          {/* Auto Publish toggle */}
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() =>
-              updateSettingsMutation.mutate({
-                pageRole: generatePage,
-                autoPublish: !settings?.autoPublish,
-              })
-            }
-            disabled={
-              updateSettingsMutation.isPending ||
-              schedulerQuery.isLoading ||
-              !settings?.fbConnected
-            }
-          >
-            {settings?.autoPublish ? (
-              <>
-                <ToggleRight className="mr-1.5 h-4 w-4 text-success" />
-                النشر التلقائي: مفعّل
-              </>
-            ) : (
-              <>
-                <ToggleLeft className="mr-1.5 h-4 w-4 text-muted-foreground" />
-                النشر التلقائي: موقوف
-              </>
-            )}
-          </Button>
+          {/* Auto Publish toggle: page settings stay admin-only */}
+          {isAdmin && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() =>
+                updateSettingsMutation.mutate({
+                  pageRole: generatePage,
+                  autoPublish: !settings?.autoPublish,
+                })
+              }
+              disabled={
+                updateSettingsMutation.isPending ||
+                schedulerQuery.isLoading ||
+                !settings?.fbConnected
+              }
+            >
+              {settings?.autoPublish ? (
+                <>
+                  <ToggleRight className="mr-1.5 h-4 w-4 text-success" />
+                  النشر التلقائي: مفعّل
+                </>
+              ) : (
+                <>
+                  <ToggleLeft className="mr-1.5 h-4 w-4 text-muted-foreground" />
+                  النشر التلقائي: موقوف
+                </>
+              )}
+            </Button>
+          )}
 
           <Button
             size="sm"
@@ -854,12 +860,14 @@ function SchedulerCard({
   isLoading,
   isRunning,
   onRunNow,
+  canRunNow,
 }: {
   pageRole: PageRole;
   data: SchedulerData | null | undefined;
   isLoading: boolean;
   isRunning: boolean;
   onRunNow: (day?: "saturday" | "tuesday" | "thursday") => void;
+  canRunNow: boolean;
 }) {
   if (isLoading) return null;
 
@@ -899,19 +907,21 @@ function SchedulerCard({
             </Badge>
           )}
         </div>
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={() => onRunNow(undefined)}
-          disabled={isRunning}
-        >
-          {isRunning ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <Play className="h-4 w-4" />
-          )}
-          <span className="mr-1.5 text-xs">تشغيل الآن</span>
-        </Button>
+        {canRunNow && (
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => onRunNow(undefined)}
+            disabled={isRunning}
+          >
+            {isRunning ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Play className="h-4 w-4" />
+            )}
+            <span className="mr-1.5 text-xs">تشغيل الآن</span>
+          </Button>
+        )}
       </div>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 text-xs">

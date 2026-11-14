@@ -11,11 +11,16 @@ import { assertDraftImageAvailable } from "../services/marketing/draftImageClaim
 import type { RowDataPacket } from "mysql2/promise";
 import type { MySql2Database } from "drizzle-orm/mysql2";
 import { configuredMarketingAssistant } from "../../shared/marketing-assistant";
+import { availableGeminiModels } from "../services/auto-reply/ai-configuration";
 import {
   AiManagementStore,
   AiManagementError,
 } from "../services/ai/managementStore";
-import { getDbConnection, updateSystemSettings } from "../db";
+import {
+  getDbConnection,
+  getEffectiveUserPermissions,
+  updateSystemSettings,
+} from "../db";
 import { marketingGenerationInput } from "../../shared/ai-request-context";
 import { trackedAiOperation, readAiOperation } from "../services/ai/operations";
 import { readMarketingGenerationRequest } from "../services/marketing/generationRequest";
@@ -64,7 +69,12 @@ import path from "node:path";
 import fs from "node:fs/promises";
 import { nanoid } from "nanoid";
 import { randomBytes, randomUUID } from "node:crypto";
-import { router, adminProcedure } from "../_core/procedures";
+import {
+  router,
+  adminProcedure,
+  protectedProcedure,
+  writePermissionPath,
+} from "../_core/procedures";
 import { getDb } from "../db";
 import {
   marketingPosts,
@@ -112,6 +122,53 @@ import {
   marketingSummary,
   sendMarketingBatch,
 } from "../services/whatsappMarketing.service";
+
+// Marketing content screens open to staff by page permission. Each procedure
+// requires the permission of a screen that uses it (exact path, no parent
+// inheritance); mutations need ":rw". Settings, Facebook connection, scheduler
+// provider and the brand library stay adminProcedure.
+const DASHBOARD = "/marketing";
+const DRAFTS = "/marketing/drafts";
+const HISTORY = "/marketing/history";
+type ContentScreen = typeof DASHBOARD | typeof DRAFTS | typeof HISTORY;
+
+export function marketingScreenAllowed(
+  permissions: unknown[],
+  screens: ContentScreen[],
+  write: boolean,
+) {
+  return permissions.some((permission) => {
+    const raw = String(permission ?? "").trim();
+    const clean = write
+      ? writePermissionPath(raw)
+      : raw.replace(/:r[w]?$/, "").trim();
+    if (clean === null) return false;
+    const normalized = clean.toLowerCase().replace(/\/+$/, "");
+    return screens.some((screen) => normalized === screen);
+  });
+}
+
+function contentAccess(screens: ContentScreen[], write: boolean) {
+  return protectedProcedure.use(async ({ ctx, next }) => {
+    if (ctx.user.role === "admin") return next();
+    const permissions = await getEffectiveUserPermissions(
+      ctx.user.id,
+      ctx.user.role ?? undefined,
+    );
+    if (!marketingScreenAllowed(permissions, screens, write))
+      throw new TRPCError({
+        code: "FORBIDDEN",
+        message: write
+          ? "تحتاج صلاحية تعديل محتوى التسويق"
+          : "تحتاج صلاحية محتوى التسويق",
+      });
+    return next();
+  });
+}
+const contentRead = (...screens: ContentScreen[]) =>
+  contentAccess(screens, false);
+const contentWrite = (...screens: ContentScreen[]) =>
+  contentAccess(screens, true);
 
 const MAX_REFERENCE_IMAGE_BYTES = 10 * 1024 * 1024;
 const MAX_PROFILE_ANALYSES = 12;
@@ -265,7 +322,7 @@ export const marketingRouter = router({
 
   // ─── Posts ────────────────────────────────────────────────
 
-  listPosts: adminProcedure
+  listPosts: contentRead(DRAFTS, HISTORY)
     .input(
       z.object({
         status: z
@@ -350,7 +407,7 @@ export const marketingRouter = router({
       return { ok: true };
     }),
 
-  getPost: adminProcedure
+  getPost: contentRead(DASHBOARD, DRAFTS)
     .input(z.object({ id: z.number().int().positive() }))
     .query(async ({ input }) => {
       const db = await getDb();
@@ -363,7 +420,7 @@ export const marketingRouter = router({
       return row ?? null;
     }),
 
-  createPost: adminProcedure
+  createPost: contentWrite(DRAFTS)
     .input(
       z.object({
         title: z.string().min(1).max(255),
@@ -406,7 +463,7 @@ export const marketingRouter = router({
       return { id };
     }),
 
-  updatePost: adminProcedure
+  updatePost: contentWrite(DRAFTS)
     .input(
       z.object({
         id: z.number().int().positive(),
@@ -447,7 +504,7 @@ export const marketingRouter = router({
       return { ok: true };
     }),
 
-  deletePost: adminProcedure
+  deletePost: contentWrite(DRAFTS, HISTORY)
     .input(z.object({ id: z.number().int().positive() }))
     .mutation(async ({ input, ctx }) => {
       const db = await getDb();
@@ -504,13 +561,15 @@ export const marketingRouter = router({
       return { ok: true };
     }),
 
-  postStats: adminProcedure.query(() => readMarketingPostStats()),
+  postStats: contentRead(HISTORY).query(() => readMarketingPostStats()),
 
-  refreshPostStats: adminProcedure.mutation(() => refreshMarketingPostStats()),
+  refreshPostStats: contentWrite(HISTORY).mutation(() =>
+    refreshMarketingPostStats(),
+  ),
 
-  contentCalendar: adminProcedure.query(() => marketingCalendar(14)),
+  contentCalendar: contentRead(DASHBOARD).query(() => marketingCalendar(14)),
 
-  schedulePost: adminProcedure
+  schedulePost: contentWrite(DRAFTS)
     .input(
       z
         .object({
@@ -547,7 +606,7 @@ export const marketingRouter = router({
       return { ok: true, scheduledAt: at.toISOString() };
     }),
 
-  unschedulePost: adminProcedure
+  unschedulePost: contentWrite(DASHBOARD)
     .input(z.object({ id: z.number().int().positive() }).strict())
     .mutation(async ({ input, ctx }) => {
       const db = await getDb();
@@ -572,7 +631,7 @@ export const marketingRouter = router({
       return { ok: true };
     }),
 
-  generateWeekDrafts: adminProcedure.mutation(async ({ ctx }) => {
+  generateWeekDrafts: contentWrite(DASHBOARD).mutation(async ({ ctx }) => {
     const providers = await marketingSchedulerProviders();
     const run = generateWeekDrafts(
       async ({ requestId, pageRole, slot, avoid }) => {
@@ -611,13 +670,13 @@ export const marketingRouter = router({
     return { ok: true };
   }),
 
-  reconcilePublishingPost: adminProcedure
+  reconcilePublishingPost: contentWrite(DASHBOARD)
     .input(z.object({ id: z.number().int().positive() }).strict())
     .mutation(({ input, ctx }) =>
       reconcilePublishingPost(input.id, ctx.user.id),
     ),
 
-  resolvePublishingPost: adminProcedure
+  resolvePublishingPost: contentWrite(DASHBOARD)
     .input(
       z
         .object({
@@ -630,7 +689,7 @@ export const marketingRouter = router({
       resolvePublishingPost(input.id, input.outcome, ctx.user.id),
     ),
 
-  publishPost: adminProcedure
+  publishPost: contentWrite(DASHBOARD, DRAFTS)
     .input(
       z.object({
         id: z.number().int().positive(),
@@ -642,7 +701,7 @@ export const marketingRouter = router({
       return { ok: true, fbPostId: result.fbPostId };
     }),
 
-  generatePost: adminProcedure
+  generatePost: contentWrite(DASHBOARD)
     .input(marketingGenerationInput)
     .mutation(async ({ input, ctx }) => {
       const operation = trackedAiOperation(
@@ -722,14 +781,45 @@ export const marketingRouter = router({
       return { jobId: input.requestId, topic: "" };
     }),
 
-  generationRequest: adminProcedure
+  generationRequest: contentRead(DASHBOARD)
     .input(z.object({ requestId: z.string().uuid() }).strict())
     .query(({ input, ctx }) =>
       readMarketingGenerationRequest(input.requestId, ctx.user.id),
     ),
 
-  generationJobs: adminProcedure.query(() => listManusGenerationJobs()),
-  resolveGenerationJob: adminProcedure
+  // Staff-readable subset of aiManagement.status/profiles/models (admin-only there).
+  assistantStatus: contentRead(DASHBOARD, DRAFTS).query(() => ({
+    enabled: process.env.AI_CORE_MANAGEMENT_ENABLED === "true",
+    marketingDraftAvailable: true,
+    marketingWorkflowAvailable: true,
+    marketingRecoveryAvailable: true,
+    credentials: {
+      grok: Boolean(process.env.XAI_API_KEY),
+      gemini: Boolean(process.env.GEMINI_API_KEY),
+      manus: Boolean(process.env.MANUS_API_KEY),
+    },
+  })),
+  assistantProfiles: contentRead(DASHBOARD, DRAFTS).query(async () => {
+    if (process.env.AI_CORE_MANAGEMENT_ENABLED !== "true") return [];
+    return (await new AiManagementStore(getDbConnection).listProfiles()).filter(
+      (profile) => profile.workload.startsWith("marketing."),
+    );
+  }),
+  assistantModels: contentRead(DASHBOARD, DRAFTS).query(async () =>
+    (await availableGeminiModels(process.env.GEMINI_API_KEY ?? "", true)).map(
+      (model) => ({
+        id: model.name.replace(/^models\//, ""),
+        label: model.displayName ?? model.name,
+        kind: /image|nano-banana/i.test(model.name)
+          ? ("image" as const)
+          : ("text" as const),
+      }),
+    ),
+  ),
+  generationJobs: contentRead(DASHBOARD, DRAFTS).query(() =>
+    listManusGenerationJobs(),
+  ),
+  resolveGenerationJob: contentWrite(DASHBOARD, DRAFTS)
     .input(
       z
         .object({
@@ -741,17 +831,19 @@ export const marketingRouter = router({
     .mutation(({ input, ctx }) =>
       resolveManusGenerationJob(input.jobId, input.action, ctx.user.id),
     ),
-  centralGenerationJobs: adminProcedure.query(() => centralMarketingJobs()),
+  centralGenerationJobs: contentRead(DASHBOARD, DRAFTS).query(() =>
+    centralMarketingJobs(),
+  ),
   generateWhatsAppCopy: adminProcedure
     .input(whatsappCopyInput)
     .mutation(({ input, ctx }) => generateWhatsAppCopy(input, ctx.user.id)),
   readWhatsAppCopy: adminProcedure
     .input(z.object({ requestId: z.string().uuid() }).strict())
     .query(({ input, ctx }) => readWhatsAppCopy(input.requestId, ctx.user.id)),
-  centralRecoveryPlan: adminProcedure
+  centralRecoveryPlan: contentRead(DASHBOARD, DRAFTS)
     .input(z.object({ jobId: z.string().uuid() }).strict())
     .query(({ input }) => marketingRecoveryPlan(input.jobId)),
-  recoverCentralJob: adminProcedure
+  recoverCentralJob: contentWrite(DASHBOARD, DRAFTS)
     .input(recoveryInput)
     .mutation(({ input, ctx }) => recoverCentralMarketing(input, ctx.user.id)),
   centralSchedulerProviders: adminProcedure.query(() =>
@@ -767,7 +859,7 @@ export const marketingRouter = router({
         .strict(),
     )
     .mutation(({ input }) => saveMarketingSchedulerProvider(input)),
-  regenerateCentralImage: adminProcedure
+  regenerateCentralImage: contentWrite(DRAFTS)
     .input(
       z
         .object({
@@ -779,13 +871,13 @@ export const marketingRouter = router({
     .mutation(({ input, ctx }) =>
       regenerateCentralMarketingImage(input, ctx.user.id),
     ),
-  centralGenerationJob: adminProcedure
+  centralGenerationJob: contentRead(DASHBOARD, DRAFTS)
     .input(z.object({ requestId: z.string().uuid() }).strict())
     .query(
       async ({ input }) =>
         (await centralMarketingJobs(input.requestId))[0] ?? null,
     ),
-  generateCentralPost: adminProcedure
+  generateCentralPost: contentWrite(DASHBOARD)
     .input(centralMarketingInput)
     .mutation(async ({ input, ctx }) => {
       try {
@@ -807,7 +899,7 @@ export const marketingRouter = router({
 
   // ─── Image Generation ─────────────────────────────────────
 
-  generateImageForPost: adminProcedure
+  generateImageForPost: contentWrite(DRAFTS)
     .input(
       z.object({
         postId: z.number().int().positive(),
@@ -1037,7 +1129,7 @@ export const marketingRouter = router({
 
   // ─── Dashboard summary ─────────────────────────────────────
 
-  dashboardSummary: adminProcedure
+  dashboardSummary: contentRead(DASHBOARD)
     .input(z.object({ pageRole: z.enum(["center", "doctor"]) }).optional())
     .query(async ({ input }) => {
       const db = await getDb();
@@ -1745,7 +1837,7 @@ export const marketingRouter = router({
       return { ok: true };
     }),
 
-  getSchedulerStatus: adminProcedure
+  getSchedulerStatus: contentRead(DASHBOARD)
     .input(
       z
         .object({ pageRole: z.enum(["center", "doctor"]).default("center") })
