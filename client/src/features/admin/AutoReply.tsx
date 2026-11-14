@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import {
   autoReplyChannels,
   autoReplyErrorLabel,
+  handoffReasonLabel,
   channelLabels,
   autoReplySettingsSchema,
   supportsGeminiSampling,
@@ -35,7 +36,8 @@ type Tab =
   | "instructions"
   | "memory"
   | "test"
-  | "activity";
+  | "activity"
+  | "metrics";
 
 function ChannelTabs({
   value,
@@ -412,6 +414,7 @@ export default function AutoReply() {
             ["memory", "ذاكرة وحدود الرد"],
             ["test", "اختبار داخلي"],
             ["activity", "السجل"],
+            ["metrics", "الأرقام"],
           ] as [Tab, string][]
         )
           .filter(
@@ -493,6 +496,7 @@ export default function AutoReply() {
             {tab === "activity" && (
               <Activity key={scope} pages={settings.data.pages} scope={scope} />
             )}
+            {tab === "metrics" && <Metrics key={scope} scope={scope} />}
           </>
         )
       )}
@@ -2649,6 +2653,129 @@ function InternalTest({
             </p>
           )}
         </div>
+      )}
+    </section>
+  );
+}
+const count = (value: number) => value.toLocaleString("ar-EG");
+function duration(seconds: number | null) {
+  if (seconds === null) return "—";
+  if (seconds < 90) return `${count(Math.round(seconds))} ثانية`;
+  if (seconds < 5400) return `${count(Math.round(seconds / 60))} دقيقة`;
+  return `${count(Math.round(seconds / 3600))} ساعة`;
+}
+function Metrics({ scope }: { scope: string }) {
+  const [days, setDays] = useState(7);
+  const query = trpc.autoReply.metrics.useQuery({ scope, days });
+  const data = query.data;
+  return (
+    <section className="ar-panel" aria-label="أرقام الرد الآلي">
+      <div className="ar-section-heading">
+        <div>
+          <h2>أرقام الرد الآلي</h2>
+          <p className="ar-muted">
+            محسوبة من المهام والمحادثات المحفوظة فقط.
+            {data &&
+              ` الأقدم من ${count(data.retentionDays)} يومًا يُحذف حسب إعداد الاحتفاظ، فلا يظهر هنا.`}
+          </p>
+        </div>
+        <Field label="الفترة">
+          <select
+            value={days}
+            onChange={(e) => setDays(Number(e.target.value))}
+          >
+            <option value={1}>آخر يوم</option>
+            <option value={7}>آخر 7 أيام</option>
+            <option value={30}>آخر 30 يومًا</option>
+            <option value={90}>آخر 90 يومًا</option>
+          </select>
+        </Field>
+      </div>
+      {query.isLoading && <p role="status">جارٍ حساب الأرقام…</p>}
+      {query.error && (
+        <ErrorState
+          message={query.error.message}
+          retry={() => void query.refetch()}
+        />
+      )}
+      {data && (
+        <>
+          <dl className="ar-form-grid">
+            <div>
+              <dt>ردود آلية قبلتها Meta</dt>
+              <dd>{count(data.sentAuto)}</dd>
+            </div>
+            <div>
+              <dt>ردود موظفين من الشاشة</dt>
+              <dd>{count(data.sentStaff)}</dd>
+            </div>
+            <div>
+              <dt>نسبة التحويل لموظف</dt>
+              <dd>
+                {data.autoJobs
+                  ? `${count(Math.round((data.handoffs / data.autoJobs) * 100))}٪ (${count(data.handoffs)} من ${count(data.autoJobs)})`
+                  : "—"}
+              </dd>
+            </div>
+            <div>
+              <dt>متوسط زمن الرد الآلي (الوسيط)</dt>
+              <dd>{duration(data.medianReplySeconds)}</dd>
+            </div>
+          </dl>
+          <h3>أسباب المحادثات المحوّلة حاليًا</h3>
+          {data.handoffReasons.length === 0 ? (
+            <p>لا توجد محادثات مع موظف في هذه الفترة.</p>
+          ) : (
+            <div className="ar-table-wrap" role="region" aria-label="أسباب التحويل" tabIndex={0}>
+              <table>
+                <thead>
+                  <tr>
+                    <th>السبب</th>
+                    <th>المحادثات</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {data.handoffReasons.map((row) => (
+                    <tr key={row.reason}>
+                      <td>{handoffReasonLabel(row.reason)}</td>
+                      <td>{count(row.count)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+          <h3>التوكنز لكل قناة يوميًا</h3>
+          {data.tokensByDay.length === 0 ? (
+            <p>لا يوجد استهلاك مسجل في هذه الفترة.</p>
+          ) : (
+            <div className="ar-table-wrap" role="region" aria-label="التوكنز اليومية" tabIndex={0}>
+              <table>
+                <thead>
+                  <tr>
+                    <th>اليوم</th>
+                    <th>القناة</th>
+                    <th>التوكنز</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {data.tokensByDay.map((row) => (
+                    <tr key={`${row.day}:${row.channel}`}>
+                      <td>
+                        <bdi>{row.day}</bdi>
+                      </td>
+                      <td>
+                        {channelLabels[row.channel as AutoReplyChannel] ??
+                          row.channel}
+                      </td>
+                      <td>{count(row.tokens)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </>
       )}
     </section>
   );

@@ -65,6 +65,7 @@ import {
 } from "../services/auto-reply/providers";
 import { inWorkingHours } from "../services/auto-reply/policy";
 import { whatsappContactAudience } from "../services/auto-reply/recipients";
+import { autoReplyMetrics } from "../services/auto-reply/metrics";
 import {
   logAuditEvent,
   getDbConnection,
@@ -766,6 +767,23 @@ export const autoReplyRouter = router({
         });
       }
     }),
+  metrics: autoReplyAdminProcedure
+    .input(
+      z.object({
+        scope: z.string().regex(/^(whatsapp|\d{1,32})$/),
+        days: z.number().int().min(1).max(365).default(7),
+      }),
+    )
+    .query(({ input }) =>
+      autoReplyMetrics({
+        days: input.days,
+        channels:
+          input.scope === "whatsapp"
+            ? ["whatsapp"]
+            : ["messenger", "facebook_comment"],
+        accountId: input.scope === "whatsapp" ? undefined : input.scope,
+      }),
+    ),
   activity: autoReplyAdminProcedure
     .input(
       z
