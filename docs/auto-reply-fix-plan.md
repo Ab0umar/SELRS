@@ -34,6 +34,8 @@ Every ingest, send and settings mutation serialises on `SELECT … FOR UPDATE` o
 
 ## PR 1 — stop silent outages
 
+Shipped on `main` (merge of the auto-reply silent-outage PR). Operator notes are in `docs/auto-reply-setup.md` under «السلوك والاعتمادية». The steps below are the record of what landed; later PRs in this file are still open.
+
 1. **Transient check failure must not disable a channel** (`worker.ts`, periodic check in `startAutoReplyWorker`).
    - A network error, HTTP 429, HTTP 5xx, or Meta codes 1/2 during `checkMetaConnection` is transient: leave the `auto_reply_connections` row untouched.
    - Stop skipping rows with `checkOk = false`; re-check them too, as long as the fingerprint is current and `checkedAt` is set.

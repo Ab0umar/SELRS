@@ -41,6 +41,20 @@ The dashboard polls `marketing.generationRequest` every 4 seconds (`MarketingDas
 
 `AI_CORE_MANAGEMENT_ENABLED=true` with no request `assistant` resolves the configured marketing assistant. If none is configured, the operation throws `AiManagementError("unavailable")`. On the empty-topic path that rejection is the generic toast above.
 
+## Scheduled generation after a failure
+
+`checkDueMarketingPosts` in `server/services/marketing/scheduler.service.ts` skips a page while `marketingStartAllowed` is false. `runScheduledPost` returning `ok: false` calls `recordMarketingStartFailure`. If generation was not accepted, the unused claim is released. If it was accepted, the claim stays and the backoff still advances. Delays for that page and Cairo day are 5 minutes, 30 minutes, then 2 hours (`MARKETING_RETRY_DELAYS_MS`). Another failure the same day sets `nextAt` to infinity until the Cairo date changes. The map is in memory: a process restart allows an immediate attempt. A run that returns `ok: true`, including a skip, calls `clearMarketingStartFailures`.
+
+After a claim is accepted, a job whose state is `failed` gets one second claim. The request id is the schedule hash of `marketing:<cairo-day>:<slot>:<pageRole>:retry`. A job failed with the orphan prefix `انقطع بدء مهمة Manus قبل استلام رقمها`, and any `uncertain` job, does not get that second claim.
+
+`processManusGenerationJobs` marks a `starting` row with no `taskId` older than 10 minutes as `failed`, and the error says a Manus task may already exist. Rows with a `taskId` in `uncertain` keep being polled for 6 hours (`UNCERTAIN_POLL_MS`). Other pending rows still become `uncertain` after 30 minutes (`MAX_AGE_MS`). A `LocalFinishError` while saving a finished Manus result stays on the job and is tried again on later ticks while the in-memory count is at most 3 (`MAX_LOCAL_RETRIES`). The next failure marks it `failed`. Restarting the process clears that count.
+
+`marketing.resolveGenerationJob` (`adminProcedure`) takes `recheck` or `abandon` for a job still in `starting`, `running`, or `uncertain`. Recheck needs a `taskId`. Abandon sets `failed` with «أوقفها المسؤول يدويًا» and frees the draft. The drafts job list calls this.
+
+Central drafts still have no `failed` state. `finishCentralMarketingDraft` logs the error name and `centralDraftErrorCode`, then stores that code on an `uncertain` row: `stale_execution`, `ai_<code>`, `gateway_<code>_<status>`, `invalid_output`, `topic_unavailable`, or `generation_or_persistence_failed`.
+
+Topic planning sends `topic` and `title` only. `PLANNER_PUBLISHED_CAP` is 200. Exact-identity exclusion still uses the full published list in code.
+
 ## WhatsApp campaign deliveries
 
 `WhatsAppCampaigns.tsx` polls `marketing.whatsappSummary` every 15 seconds. The query's `deliveries` array comes from `marketingDeliveryResults()` in `server/services/whatsappMarketing.service.ts`.
