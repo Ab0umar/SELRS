@@ -22,12 +22,15 @@ import {
 } from "../services/auto-reply/coexistence";
 import { and, desc, eq, sql, inArray } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
-import { adminProcedure, router } from "../_core/procedures";
+import {
+  adminProcedure,
+  protectedProcedure,
+  router,
+} from "../_core/procedures";
 import {
   autoReplyChannels,
   autoReplySettingsSchema,
   settingsForTarget,
-  knowledgeSchema,
   isAutoReplyEnabled,
   supportsGeminiSampling,
   teachingSchema,
@@ -39,11 +42,12 @@ import {
   autoReplyKnowledge as knowledge,
   autoReplySettings as settingsTable,
 } from "../../drizzle/autoReply";
-import { services } from "../../drizzle/schema";
 import {
   conversationContext,
   getAutoReplyDb,
   queueManualReply,
+  approveSuggestion,
+  discardSuggestion,
   readSettings,
   saveSettings,
   setConversationStatus,
@@ -61,7 +65,12 @@ import {
 } from "../services/auto-reply/providers";
 import { inWorkingHours } from "../services/auto-reply/policy";
 import { whatsappContactAudience } from "../services/auto-reply/recipients";
-import { logAuditEvent, getDbConnection } from "../db";
+import { autoReplyMetrics } from "../services/auto-reply/metrics";
+import {
+  logAuditEvent,
+  getDbConnection,
+  getEffectiveUserPermissions,
+} from "../db";
 import {
   availableGeminiModels,
   previewWebsite,
@@ -82,7 +91,45 @@ const autoReplyAdminProcedure = adminProcedure.use(async ({ next }) => {
   }
   return result;
 });
+// Admins always; reception only with the inbox page permission. A read-only grant cannot reply.
+export const AUTO_REPLY_INBOX_PERMISSION = "/admin-hub/auto-reply-inbox";
+function autoReplyInboxProcedure(write: boolean) {
+  return protectedProcedure.use(async ({ ctx, next }) => {
+    if (ctx.user.role !== "admin") {
+      const grants =
+        ctx.user.role === "reception"
+          ? await getEffectiveUserPermissions(ctx.user.id, ctx.user.role)
+          : [];
+      const grant = grants.find(
+        (entry) => entry.replace(/:rw?$/, "") === AUTO_REPLY_INBOX_PERMISSION,
+      );
+      if (!grant || (write && grant.endsWith(":r")))
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "ليس لديك صلاحية لمحادثات الرد الآلي",
+        });
+    }
+    const result = await next();
+    if (!result.ok && result.error.code === "INTERNAL_SERVER_ERROR")
+      return {
+        ...result,
+        error: new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "AUTO_REPLY_STORAGE_ERROR",
+        }),
+      };
+    return result;
+  });
+}
+const autoReplyInboxRead = autoReplyInboxProcedure(false);
+const autoReplyInboxWrite = autoReplyInboxProcedure(true);
 export const autoReplyRouter = router({
+  inboxContext: autoReplyInboxRead.query(async () => ({
+    sendingEnabled: (await readSettings()).sendingEnabled,
+    pages: facebookPages()
+      .filter((page) => page.accountId)
+      .map(({ accountId, label }) => ({ accountId, label })),
+  })),
   models: autoReplyAdminProcedure.query(async () =>
     (await availableGeminiModels()).map((model) => ({
       id: model.name.replace(/^models\//, ""),
@@ -201,6 +248,12 @@ export const autoReplyRouter = router({
               ),
       );
       const count = await db.transaction(async (tx) => {
+        // Settings row first, the same lock order as every other auto-reply write.
+        await tx
+          .select()
+          .from(settingsTable)
+          .where(eq(settingsTable.id, 1))
+          .for("update");
         const selected = await tx
           .select({ id: conversations.id })
           .from(conversations)
@@ -477,7 +530,7 @@ export const autoReplyRouter = router({
         .onDuplicateKeyUpdate({ set: values });
       return { ok, errorCode };
     }),
-  conversations: autoReplyAdminProcedure
+  conversations: autoReplyInboxRead
     .input(
       z.object({
         channel: z.enum(autoReplyChannels).optional(),
@@ -504,7 +557,7 @@ export const autoReplyRouter = router({
         .offset((input.page - 1) * 30);
       return { rows: rows.slice(0, 30), hasMore: rows.length > 30 };
     }),
-  conversation: autoReplyAdminProcedure
+  conversation: autoReplyInboxRead
     .input(recordId)
     .query(async ({ input }) => {
       const db = await getAutoReplyDb();
@@ -528,7 +581,43 @@ export const autoReplyRouter = router({
           .limit(30),
       };
     }),
-  setStatus: autoReplyAdminProcedure
+  approveSuggestion: autoReplyInboxWrite
+    .input(
+      z.object({
+        jobId: recordId,
+        text: z.string().trim().min(1).max(2000),
+        requestId: z.uuid(),
+      }),
+    )
+    .mutation(async ({ input, ctx }) => {
+      const result = await approveSuggestion(
+        input.jobId,
+        input.text,
+        input.requestId,
+        ctx.user.id,
+      );
+      await logAuditEvent(
+        ctx.user.id,
+        "AUTO_REPLY_SUGGESTION_APPROVED",
+        "auto_reply",
+        input.jobId,
+        { jobId: result.id },
+      );
+      return result;
+    }),
+  discardSuggestion: autoReplyInboxWrite
+    .input(z.object({ jobId: recordId }))
+    .mutation(async ({ input, ctx }) => {
+      await discardSuggestion(input.jobId, ctx.user.id);
+      await logAuditEvent(
+        ctx.user.id,
+        "AUTO_REPLY_SUGGESTION_DISCARDED",
+        "auto_reply",
+        input.jobId,
+      );
+      return { ok: true };
+    }),
+  setStatus: autoReplyInboxWrite
     .input(
       z.object({ id: recordId, status: z.enum(["open", "human", "closed"]) }),
     )
@@ -543,7 +632,7 @@ export const autoReplyRouter = router({
       );
       return { ok: true };
     }),
-  sendManual: autoReplyAdminProcedure
+  sendManual: autoReplyInboxWrite
     .input(
       z.object({
         id: recordId,
@@ -566,113 +655,6 @@ export const autoReplyRouter = router({
       );
       return result;
     }),
-  knowledge: autoReplyAdminProcedure.query(async () =>
-    (await getAutoReplyDb())
-      .select()
-      .from(knowledge)
-      .where(currentKnowledgeSourceCondition())
-      .orderBy(desc(knowledge.updatedAt))
-      .limit(2000),
-  ),
-  saveKnowledge: autoReplyAdminProcedure
-    .input(knowledgeSchema.extend({ id: recordId.optional() }))
-    .mutation(async ({ input, ctx }) => {
-      if (input.id) {
-        const db = await getAutoReplyDb();
-        const [existing] = await db
-          .select({ source: knowledge.source })
-          .from(knowledge)
-          .where(eq(knowledge.id, input.id));
-        if (existing?.source?.startsWith("tests:"))
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message:
-              "مصدر الخدمات هو صفحة خدمات المركز فقط؛ لا يمكن اعتماد فحوص من المصدر القديم",
-          });
-      }
-      if (input.kind === "booking") {
-        const links = input.content.match(/https:\/\/[^\s]+/g) ?? [];
-        if (!links.length)
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: "أدخل رابط حجز معتمد يبدأ بـ https://",
-          });
-      }
-      const { id, ...values } = input;
-      await withKnowledgeUpdate(async (tx) => {
-        if (id)
-          await tx
-            .update(knowledge)
-            .set({ ...values, updatedBy: ctx.user.id })
-            .where(eq(knowledge.id, id));
-        else
-          await tx
-            .insert(knowledge)
-            .values({ ...values, updatedBy: ctx.user.id });
-      });
-      await logAuditEvent(
-        ctx.user.id,
-        "AUTO_REPLY_KNOWLEDGE",
-        "auto_reply",
-        id ?? 0,
-        { approved: input.approved, kind: input.kind },
-      );
-      return { ok: true };
-    }),
-  deleteKnowledge: autoReplyAdminProcedure
-    .input(recordId)
-    .mutation(async ({ input, ctx }) => {
-      await withKnowledgeUpdate(async (tx) =>
-        tx.delete(knowledge).where(eq(knowledge.id, input)),
-      );
-      await logAuditEvent(
-        ctx.user.id,
-        "AUTO_REPLY_KNOWLEDGE_DELETE",
-        "auto_reply",
-        input,
-      );
-      return { ok: true };
-    }),
-  importCatalog: autoReplyAdminProcedure.mutation(async ({ ctx }) => {
-    const db = await getAutoReplyDb();
-    const [catalog, present] = await Promise.all([
-      db
-        .select()
-        .from(services)
-        .where(
-          and(eq(services.isActive, true), eq(services.locationType, "center")),
-        )
-        .limit(1000),
-      db.select({ source: knowledge.source }).from(knowledge),
-    ]);
-    const sources = new Set(present.map((k) => k.source));
-    const candidates = catalog
-      .map((s) => ({
-        source: `services:${s.id}`,
-        title: s.name,
-        content: `${s.name}${Number(s.price) > 0 ? `: السعر المسجل ${s.price} جنيه مصري` : ": السعر غير معتمد للنشر"}`,
-        kind: "service",
-        keywords: `${s.code} ${s.category ?? ""}`,
-      }))
-      .filter((c) => !sources.has(c.source));
-    // Catalog prices are drafts until an administrator approves them for customer replies.
-    if (candidates.length)
-      await db.insert(knowledge).values(
-        candidates.map((c) => ({
-          ...c,
-          approved: false,
-          updatedBy: ctx.user.id,
-        })),
-      );
-    await logAuditEvent(
-      ctx.user.id,
-      "AUTO_REPLY_IMPORT_CATALOG",
-      "auto_reply",
-      0,
-      { count: candidates.length },
-    );
-    return { count: candidates.length };
-  }),
   test: autoReplyAdminProcedure
     .input(
       z.object({
@@ -785,6 +767,23 @@ export const autoReplyRouter = router({
         });
       }
     }),
+  metrics: autoReplyAdminProcedure
+    .input(
+      z.object({
+        scope: z.string().regex(/^(whatsapp|\d{1,32})$/),
+        days: z.number().int().min(1).max(365).default(7),
+      }),
+    )
+    .query(({ input }) =>
+      autoReplyMetrics({
+        days: input.days,
+        channels:
+          input.scope === "whatsapp"
+            ? ["whatsapp"]
+            : ["messenger", "facebook_comment"],
+        accountId: input.scope === "whatsapp" ? undefined : input.scope,
+      }),
+    ),
   activity: autoReplyAdminProcedure
     .input(
       z

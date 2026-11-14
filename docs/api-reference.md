@@ -1,6 +1,6 @@
 # SELRS tRPC API Reference
 
-> **May be outdated.** Written in mid-2026 and partly maintained since; it does not cover every router (for example `accounting`, `marketing`, `autoReply`, `whatsapp*`). `server/routers/index.ts` and the router files are the source of truth, and the admin API tools page lists current procedures.
+> **May be outdated.** Written in mid-2026 and partly maintained since; it does not cover every router (for example `accounting`, `marketing`, `autoReply`, `whatsapp*`). `server/routers/index.ts` and the router files are the source of truth, and the admin API tools page lists current procedures. The legacy `autoReply.knowledge`, `saveKnowledge`, `deleteKnowledge` and `importCatalog` procedures were removed on 2026-11-14; auto-reply knowledge is managed through `teaching`, `saveTeaching` and `deleteTeaching`.
 
 ## API Structure
 

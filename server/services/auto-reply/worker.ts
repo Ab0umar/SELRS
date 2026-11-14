@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { managedReplyLive } from "../ai/replyPreview";
-import { and, eq, inArray, lt, lte, sql } from "drizzle-orm";
+import { and, eq, gte, inArray, lt, lte, sql } from "drizzle-orm";
 import {
   autoReplySettingsSchema,
   isAutoReplyEnabled,
@@ -20,8 +20,17 @@ import {
   getAutoReplyDb,
   purgeExpiredConversations,
   currentKnowledgeSourceCondition,
+  recordSentMessage,
+  recordTranscript,
   requeueJob,
+  claimHandoffNotifications,
 } from "./store";
+import { pushAppNotification } from "../../_core/appNotifications";
+import {
+  channelLabels,
+  handoffReasonLabel,
+} from "../../../shared/auto-reply";
+import { ROUTES } from "../../../shared/routes";
 import { isRecipientAllowed } from "./recipients";
 import {
   channelCredentials,
@@ -33,6 +42,7 @@ import {
   sendCommentPrivateReply,
   checkMetaConnection,
   isTransientCheckFailure,
+  transcribeVoice,
 } from "./providers";
 import {
   englishFirst,
@@ -40,6 +50,8 @@ import {
   inWorkingHours,
   safetyDecision,
   isPriceQuestion,
+  replyInEnglish,
+  unsupportedAcknowledgement,
   withinReplyWindow,
 } from "./policy";
 
@@ -314,12 +326,14 @@ export async function runAutoReplyTick() {
       throw new ProviderError("REPLY_WINDOW_EXPIRED");
     let body = job.body;
     let privatePrice = false;
+    let englishComment = false;
     if (job.kind === "auto" && c.channel === "facebook_comment") {
       const [inbound] = await db
         .select()
         .from(messages)
         .where(eq(messages.id, job.inboundId ?? -1));
       privatePrice = Boolean(inbound && isPriceQuestion(inbound.body));
+      englishComment = Boolean(inbound && englishFirst(inbound.body));
     }
     let handoff = job.handoff;
     let reason: string | null = null;
@@ -328,6 +342,73 @@ export async function runAutoReplyTick() {
       inputTokens: job.inputTokens,
       outputTokens: job.outputTokens,
     };
+    // Ends the job without a Meta call, under the settings lock like every other write.
+    const finishWithoutSend = (
+      errorCode: string,
+      humanReason: string | null,
+      jobUsage = {},
+    ) =>
+      db.transaction(async (tx) => {
+        await tx
+          .select()
+          .from(settingsTable)
+          .where(eq(settingsTable.id, 1))
+          .for("update");
+        const [updated] = await tx
+          .update(jobs)
+          .set({ state: "cancelled", errorCode, leaseUntil: null, ...jobUsage })
+          .where(
+            and(
+              eq(jobs.id, job.id),
+              eq(jobs.claim, job.claim),
+              eq(jobs.state, "generating"),
+            ),
+          );
+        if (humanReason && updated.affectedRows)
+          await tx
+            .update(conversations)
+            .set({ status: "human", humanReason })
+            .where(
+              and(
+                eq(conversations.id, c.id),
+                eq(conversations.revision, job.revision),
+              ),
+            );
+      });
+    if (job.kind === "auto" && !body) {
+      const [inbound] = await db
+        .select()
+        .from(messages)
+        .where(eq(messages.id, job.inboundId ?? -1));
+      if (!inbound) throw new ProviderError("INBOUND_MISSING");
+      const context = await conversationContext(c.id);
+      if (inbound.mediaId) {
+        let transcript: string | null = null;
+        try {
+          transcript = await transcribeVoice(
+            inbound.mediaId,
+            c.accountId,
+            config.model,
+          );
+        } catch (error) {
+          if (!(error instanceof ProviderError)) throw error;
+        }
+        await recordTranscript(
+          inbound.id,
+          transcript ? `🎤 ${transcript}` : "[رسالة صوتية لم تُفرّغ]",
+        );
+        inbound.body = transcript ? `🎤 ${transcript}` : inbound.body;
+        inbound.mediaId = null;
+        if (!transcript) {
+          // Too long, too large or not transcribed: the same acknowledgement as other non-text messages.
+          body = unsupportedAcknowledgement(
+            replyInEnglish("", context.firstText),
+          );
+          handoff = true;
+          reason = "unsupported_message";
+        }
+      }
+    }
     if (job.kind === "auto" && !body) {
       const [inbound] = await db
         .select()
@@ -340,9 +421,26 @@ export async function runAutoReplyTick() {
         !safetyDecision(inbound.body) &&
         c.channel !== "facebook_comment"
       ) {
-        body = englishFirst(context.firstText ?? inbound.body)
+        body = replyInEnglish(inbound.body, context.firstText)
           ? config.outsideMessageEn
           : config.outsideMessage;
+        // One outside-hours notice per conversation every 6 hours is enough.
+        const [repeat] = await db
+          .select({ id: messages.id })
+          .from(messages)
+          .where(
+            and(
+              eq(messages.conversationId, c.id),
+              eq(messages.direction, "bot"),
+              eq(messages.body, body),
+              gte(messages.createdAt, new Date(Date.now() - 6 * 3600_000)),
+            ),
+          )
+          .limit(1);
+        if (repeat) {
+          await finishWithoutSend("OUTSIDE_HOURS_REPEAT", null);
+          return;
+        }
       } else {
         const approved = await db
           .select()
@@ -360,7 +458,8 @@ export async function runAutoReplyTick() {
             accountId: c.accountId,
             text: inbound.body,
             firstText: context.firstText,
-            context: context.rows,
+            // The current message is sent separately, not again as history.
+            context: context.rows.filter((row) => row.id !== inbound.id),
             settings: config,
             knowledge: approved,
           },
@@ -376,9 +475,61 @@ export async function runAutoReplyTick() {
           inputTokens: proposal.inputTokens,
           outputTokens: proposal.outputTokens,
         };
+        // A comment that asks nothing (praise, prayers, tags) is handed off without a public reply.
+        if (
+          c.channel === "facebook_comment" &&
+          proposal.handoff &&
+          !proposal.publicReply
+        ) {
+          await finishWithoutSend(
+            "SILENT_HANDOFF",
+            proposal.reason ?? "needs_review",
+            usage,
+          );
+          return;
+        }
       }
     }
     if (!body) throw new ProviderError("EMPTY_REPLY");
+    // Suggest mode: keep the draft for staff approval and send nothing.
+    if (job.kind === "auto" && config.replyMode === "suggest") {
+      await db.transaction(async (tx) => {
+        await tx
+          .select()
+          .from(settingsTable)
+          .where(eq(settingsTable.id, 1))
+          .for("update");
+        const [updated] = await tx
+          .update(jobs)
+          .set({
+            state: "suggested",
+            body,
+            handoff,
+            ...usage,
+            errorCode: null,
+            leaseUntil: null,
+          })
+          .where(
+            and(
+              eq(jobs.id, job.id),
+              eq(jobs.claim, job.claim),
+              eq(jobs.state, "generating"),
+            ),
+          );
+        if (handoff && updated.affectedRows)
+          await tx
+            .update(conversations)
+            .set({ status: "human", humanReason: reason ?? "needs_review" })
+            .where(
+              and(
+                eq(conversations.id, c.id),
+                eq(conversations.revision, job.revision),
+              ),
+            );
+      });
+      return;
+    }
+    // Step 1: one short locked transaction re-validates and marks the job sending.
     const prepared = await db.transaction(async (tx) => {
       const [s] = await tx
         .select()
@@ -400,55 +551,11 @@ export async function runAutoReplyTick() {
         !fresh ||
         fresh.revision !== job.revision ||
         freshJob.state !== "generating" ||
-        freshJob.claim !== job.claim ||
-        s.revision !== settingsRow.revision ||
-        !settings.sendingEnabled ||
-        (job.kind === "auto" &&
-          (!isAutoReplyEnabled(settings, c.channel, c.accountId) ||
-            !(await isRecipientAllowed(tx, settings, c))))
+        freshJob.claim !== job.claim
       )
-        return false;
-      if (handoff)
-        await tx
-          .update(conversations)
-          .set({ status: "human", humanReason: reason ?? "needs_review" })
-          .where(eq(conversations.id, c.id));
-      await tx
-        .update(jobs)
-        .set({
-          body,
-          handoff,
-          ...usage,
-          state: "sending",
-          leaseUntil: new Date(Date.now() + 120_000),
-        })
-        .where(eq(jobs.id, job.id));
-      return true;
-    });
-    if (!prepared) return;
-    await db.transaction(async (tx) => {
-      const [s] = await tx
-        .select()
-        .from(settingsTable)
-        .where(eq(settingsTable.id, 1))
-        .for("update");
-      const [fresh] = await tx
-        .select()
-        .from(conversations)
-        .where(eq(conversations.id, c.id))
-        .for("update");
-      const [freshJob] = await tx
-        .select()
-        .from(jobs)
-        .where(eq(jobs.id, job.id))
-        .for("update");
-      const settings = autoReplySettingsSchema.parse(s.config);
+        return null;
       if (
-        !fresh ||
-        fresh.revision !== job.revision ||
         fresh.status === "closed" ||
-        freshJob.state !== "sending" ||
-        freshJob.claim !== job.claim ||
         !settings.sendingEnabled ||
         (job.kind === "auto" &&
           (!isAutoReplyEnabled(settings, c.channel, c.accountId) ||
@@ -458,12 +565,12 @@ export async function runAutoReplyTick() {
           .update(jobs)
           .set({ state: "cancelled", errorCode: "STOPPED_BEFORE_SEND" })
           .where(eq(jobs.id, job.id));
-        return;
+        return null;
       }
       // A settings or knowledge save made the generated text stale; a staff reply is still valid.
       if (s.revision !== settingsRow.revision && job.kind === "auto") {
         await requeueJob(tx, freshJob);
-        return;
+        return null;
       }
       if (!withinReplyWindow(c.channel, fresh.lastInboundAt))
         throw new ProviderError("REPLY_WINDOW_EXPIRED");
@@ -476,12 +583,42 @@ export async function runAutoReplyTick() {
             eq(connections.accountId, c.accountId),
           ),
         );
+      // Another job of this account may be mid-call outside the lock.
+      const [inFlight] = await tx
+        .select({ id: jobs.id })
+        .from(jobs)
+        .innerJoin(conversations, eq(conversations.id, jobs.conversationId))
+        .where(
+          and(
+            eq(jobs.state, "sending"),
+            eq(conversations.channel, c.channel),
+            eq(conversations.accountId, c.accountId),
+          ),
+        )
+        .limit(1);
       if (
-        lastSend?.lastSentAt &&
-        Date.now() - lastSend.lastSentAt.getTime() < 2000
-      )
-        throw new ProviderError("LOCAL_RATE_LIMIT", true, false, 2);
-      const context = await tx
+        inFlight ||
+        (lastSend?.lastSentAt &&
+          Date.now() - lastSend.lastSentAt.getTime() < 2000)
+      ) {
+        // Keep the generated text so the retry does not call the model again.
+        await tx
+          .update(jobs)
+          .set({
+            ...jobFailure(
+              new ProviderError("LOCAL_RATE_LIMIT", true, false, 2),
+              job.attempts,
+            ),
+            body,
+            handoff,
+            ...usage,
+            claim: null,
+            leaseUntil: null,
+          })
+          .where(eq(jobs.id, job.id));
+        return null;
+      }
+      const [inboundRow] = await tx
         .select({ providerId: messages.providerId })
         .from(messages)
         .where(
@@ -492,38 +629,83 @@ export async function runAutoReplyTick() {
         )
         .orderBy(sql`${messages.id} desc`)
         .limit(1);
-      const sendPricePrivately = privatePrice && !handoff;
-      if (sendPricePrivately) {
-        const privateId = await sendCommentPrivateReply(
-          c.accountId,
-          c.threadId,
-          body!,
-        );
-        acceptedByMeta = true;
-        await tx.insert(messages).values({
-          conversationId: c.id,
-          eventKey: hash(`private:${job.requestKey}`),
-          providerId: privateId,
-          direction: "bot",
-          body: body!,
-          state: "sent",
-        });
-      }
-      const publicBody = sendPricePrivately
-        ? "تم إرسال التفاصيل في رسالة خاصة."
-        : body!;
-      const providerId = await sendMetaReply(
+      if (handoff)
+        await tx
+          .update(conversations)
+          .set({
+            status: "human",
+            // A queued handoff (acknowledgement, safety) keeps the reason set at ingest.
+            humanReason: reason ?? fresh.humanReason ?? "needs_review",
+          })
+          .where(eq(conversations.id, c.id));
+      await tx
+        .update(jobs)
+        .set({
+          body,
+          handoff,
+          ...usage,
+          state: "sending",
+          leaseUntil: new Date(Date.now() + 120_000),
+        })
+        .where(eq(jobs.id, job.id));
+      return { inboundProviderId: inboundRow?.providerId ?? "" };
+    });
+    if (!prepared) return;
+    // Step 2: Meta calls with no transaction open. A crash here resolves to
+    // `unknown` through lease expiry of the `sending` job.
+    const sendPricePrivately = privatePrice && !handoff;
+    if (sendPricePrivately) {
+      const privateId = await sendCommentPrivateReply(
+        c.accountId,
+        c.threadId,
+        body,
+      );
+      acceptedByMeta = true;
+      await recordSentMessage({
+        conversationId: c.id,
+        eventKey: hash(`private:${job.requestKey}`),
+        providerId: privateId,
+        direction: "bot",
+        body,
+        state: "sent",
+      });
+      acceptedByMeta = false;
+    }
+    const publicBody = sendPricePrivately
+      ? englishComment
+        ? "We have sent you the details in a private message."
+        : "تم إرسال التفاصيل في رسالة خاصة."
+      : body;
+    let providerId: string;
+    try {
+      providerId = await sendMetaReply(
         c.channel,
         c.participantId,
-        c.channel === "whatsapp" ? (context[0]?.providerId ?? "") : c.threadId,
+        c.channel === "whatsapp" ? prepared.inboundProviderId : c.threadId,
         publicBody,
         c.accountId,
       );
-      acceptedByMeta = true;
+    } catch (error) {
+      if (!sendPricePrivately) throw error;
+      // The private reply reached the customer; only the public line failed.
+      throw new ProviderError(
+        "PRIVATE_SENT_PUBLIC_FAILED",
+        false,
+        !(error instanceof ProviderError) || error.uncertain,
+      );
+    }
+    acceptedByMeta = true;
+    // Step 3: a second short transaction records the outcome.
+    await db.transaction(async (tx) => {
+      await tx
+        .select()
+        .from(settingsTable)
+        .where(eq(settingsTable.id, 1))
+        .for("update");
       await tx
         .update(jobs)
         .set({ state: "sent", providerId, errorCode: null, leaseUntil: null })
-        .where(eq(jobs.id, job.id));
+        .where(and(eq(jobs.id, job.id), eq(jobs.claim, job.claim)));
       await tx.insert(messages).values({
         conversationId: c.id,
         eventKey: hash(`out:${job.requestKey}`),
@@ -588,6 +770,24 @@ export async function runAutoReplyTick() {
     });
   }
 }
+// Channel, reason and a link only: customer text never goes into a push payload.
+export async function notifyHandoffs() {
+  for (const row of await claimHandoffNotifications()) {
+    const reason = row.humanReason ?? "needs_review";
+    await pushAppNotification({
+      title: "محادثة تحتاج موظف",
+      message: `${channelLabels[row.channel] ?? row.channel} · ${handoffReasonLabel(reason)}`,
+      kind: "warning",
+      targetRoles: ["admin", "reception"],
+      source: "auto_reply",
+      entityType: "auto_reply_conversation",
+      entityId: row.id,
+      meta: { path: `${ROUTES.aiInbox}?conversation=${row.id}` },
+    }).catch(() => {
+      console.warn("[auto-reply] HANDOFF_NOTIFICATION_FAILED", { id: row.id });
+    });
+  }
+}
 export function startAutoReplyWorker() {
   if (process.env.AUTO_REPLY_WORKER_ENABLED !== "true") return;
   let busy = false;
@@ -616,6 +816,7 @@ export function startAutoReplyWorker() {
         lastConnectionCheck = Date.now();
       }
       await runAutoReplyTick();
+      await notifyHandoffs();
       if (Date.now() - lastPurge > 3600_000) {
         await purgeExpiredConversations();
         lastPurge = Date.now();

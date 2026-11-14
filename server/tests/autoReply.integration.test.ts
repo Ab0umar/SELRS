@@ -38,9 +38,14 @@ import {
 vi.mock("../db", () => ({
   getDb: vi.fn(),
   getDbConnection: vi.fn(),
+  getEffectiveUserPermissions: vi.fn().mockResolvedValue([]),
   logAuditEvent: vi.fn().mockResolvedValue(undefined),
 }));
-import { getDb, getDbConnection } from "../db";
+vi.mock("../_core/appNotifications", () => ({
+  pushAppNotification: vi.fn().mockResolvedValue({}),
+}));
+import { getDb, getDbConnection, getEffectiveUserPermissions } from "../db";
+import { pushAppNotification } from "../_core/appNotifications";
 import {
   autoReplyConversations as conversations,
   autoReplyJobs as jobs,
@@ -52,7 +57,6 @@ import {
   autoReplyContacts as contacts,
 } from "../../drizzle/autoReply";
 import { autoReplySettingsSchema } from "../../shared/auto-reply";
-import { services as catalogServices } from "../../drizzle/schema";
 import {
   conversationContext,
   ingestEvents,
@@ -66,7 +70,10 @@ import {
 } from "../services/auto-reply/store";
 import { hash } from "../services/auto-reply/policy";
 import { connectionFingerprint } from "../services/auto-reply/providers";
-import { runAutoReplyTick } from "../services/auto-reply/worker";
+import {
+  notifyHandoffs,
+  runAutoReplyTick,
+} from "../services/auto-reply/worker";
 import { whatsappContactAudience } from "../services/auto-reply/recipients";
 import type { InboundEvent } from "../services/auto-reply/events";
 import { autoReplyRouter } from "../routers/autoReply";
@@ -136,6 +143,9 @@ describe.skipIf(!testUrl)(
         "0107_auto_reply_targets.sql",
         "0108_auto_reply_teaching.sql",
         "0113_auto_reply_provider_indexes.sql",
+        "0114_auto_reply_handoff_notified.sql",
+        "0115_auto_reply_suggestions.sql",
+        "0116_auto_reply_voice.sql",
       ]) {
         const migration = await readFile(
           new URL(`../../drizzle/${file}`, import.meta.url),
@@ -220,6 +230,59 @@ describe.skipIf(!testUrl)(
         deleted: false,
       };
     }
+    function oggFixture(seconds: number) {
+      const head = Buffer.alloc(19);
+      head.write("OpusHead", 0);
+      head.writeUInt16LE(312, 10);
+      const page = Buffer.alloc(27);
+      page.write("OggS", 0);
+      page.writeBigUInt64LE(BigInt(312 + 48000 * seconds), 6);
+      return Buffer.concat([Buffer.from("OggS"), Buffer.alloc(24), head, page]);
+    }
+    function mockVoiceNetwork(seconds: number) {
+      const fetcher = vi.fn(async (url: string, init?: RequestInit) => {
+        if (url.includes("generativelanguage")) {
+          const voice = String(init?.body).includes("inline_data");
+          return Response.json({
+            candidates: [
+              {
+                finishReason: "STOP",
+                content: {
+                  parts: [
+                    {
+                      text: voice
+                        ? "عنوان الفرع فين"
+                        : JSON.stringify({
+                            text: "العنوان المعتمد للاختبار",
+                            handoff: false,
+                            sourceIds: [1],
+                          }),
+                    },
+                  ],
+                },
+              },
+            ],
+          });
+        }
+        if (url.includes("voice-media-1"))
+          return Response.json({
+            url: "https://lookaside.example/voice",
+            mime_type: "audio/ogg; codecs=opus",
+            file_size: 4000,
+          });
+        if (url.startsWith("https://lookaside.example/"))
+          return new Response(oggFixture(seconds));
+        return Response.json({ messages: [{ id: "sent-1" }] });
+      });
+      vi.stubGlobal("fetch", fetcher);
+      return fetcher;
+    }
+    const voiceEvent = (): InboundEvent => ({
+      ...event("voice-1"),
+      text: "[رسالة صوتية]",
+      unsupported: true,
+      mediaId: "voice-media-1",
+    });
     async function enable() {
       const config = autoReplySettingsSchema.parse({
         sendingEnabled: true,
@@ -511,10 +574,19 @@ describe.skipIf(!testUrl)(
         expect(job.state).toBe(
           scenario === "success"
             ? "sent"
-            : scenario === "private_denied"
-              ? "failed"
-              : "unknown",
+            : scenario === "private_uncertain"
+              ? "unknown"
+              : "failed",
         );
+        if (scenario === "public_failed") {
+          expect(job.errorCode).toBe("PRIVATE_SENT_PUBLIC_FAILED");
+          // The private reply reached the customer, so it stays on record.
+          expect(
+            (await db.select().from(messages))
+              .filter((m) => m.direction === "bot")
+              .map((m) => [m.providerId, m.body]),
+          ).toEqual([["private-price", "سعر الكشف 260 جنيه"]]);
+        }
         if (scenario === "success") {
           expect(
             (await db.select().from(messages))
@@ -720,68 +792,7 @@ describe.skipIf(!testUrl)(
       });
       expect(network).not.toHaveBeenCalled();
     });
-    it("imports only the services-page catalog, keeps approval explicit and does not duplicate imports", async () => {
-      await db.insert(catalogServices).values([
-        {
-          id: "center-service",
-          code: "fixture-center",
-          name: "خدمة المركز",
-          serviceType: "exam",
-          price: "120.00",
-          locationType: "center",
-          isActive: true,
-        },
-        {
-          id: "zero-service",
-          code: "fixture-zero",
-          name: "خدمة بلا سعر معتمد",
-          serviceType: "exam",
-          price: "0",
-          locationType: "center",
-          isActive: true,
-        },
-        {
-          id: "inactive-service",
-          code: "fixture-inactive",
-          name: "خدمة متوقفة",
-          serviceType: "exam",
-          price: "50",
-          locationType: "center",
-          isActive: false,
-        },
-        {
-          id: "external-service",
-          code: "fixture-external",
-          name: "خدمة خارجية",
-          serviceType: "exam",
-          price: "50",
-          locationType: "external",
-          isActive: true,
-        },
-      ]);
-      await db.insert(knowledge).values({
-        kind: "service",
-        title: "فحص من مصدر قديم",
-        content: "معلومة قديمة",
-        source: "tests:legacy",
-        keywords: "",
-        approved: false,
-      });
-      const caller = autoReplyRouter.createCaller(makeCallerAs("admin"));
-      expect(await caller.importCatalog()).toEqual({ count: 2 });
-      expect(await caller.importCatalog()).toEqual({ count: 0 });
-      const visible = await caller.knowledge();
-      expect(visible.map((row) => row.source).sort()).toEqual([
-        "services:center-service",
-        "services:zero-service",
-      ]);
-      expect(visible.every((row) => !row.approved)).toBe(true);
-      expect(
-        visible.find((row) => row.source === "services:zero-service")?.content,
-      ).toContain("السعر غير معتمد للنشر");
-      expect(await db.select().from(knowledge)).toHaveLength(3);
-    });
-    it("excludes legacy test knowledge even if previously approved and refuses reapproval", async () => {
+    it("excludes legacy test knowledge even if previously approved", async () => {
       await db.insert(knowledge).values({
         kind: "service",
         title: "عنوان قديم",
@@ -790,9 +801,7 @@ describe.skipIf(!testUrl)(
         keywords: "عنوان",
         approved: true,
       });
-      const [legacy] = await db.select().from(knowledge);
       const caller = autoReplyRouter.createCaller(makeCallerAs("admin"));
-      expect(await caller.knowledge()).toEqual([]);
       const fetcher = vi.fn();
       vi.stubGlobal("fetch", fetcher);
       expect(
@@ -803,16 +812,6 @@ describe.skipIf(!testUrl)(
         model: null,
       });
       expect(fetcher).not.toHaveBeenCalled();
-      await expect(
-        caller.saveKnowledge({
-          id: legacy.id,
-          kind: "service",
-          title: legacy.title,
-          content: legacy.content,
-          keywords: "عنوان",
-          approved: true,
-        }),
-      ).rejects.toMatchObject({ code: "BAD_REQUEST" });
     });
     it("persists enabled and disabled administrator instructions without replacing legacy style", async () => {
       const config = autoReplySettingsSchema.parse({
@@ -828,27 +827,6 @@ describe.skipIf(!testUrl)(
         instructions: config.instructions,
         sendingEnabled: false,
       });
-    });
-    it("allows manual service and price knowledge independently of the catalog import", async () => {
-      const caller = autoReplyRouter.createCaller(makeCallerAs("admin"));
-      const values = {
-        title: "معلومة إدارة",
-        content: "محتوى للمراجعة",
-        keywords: "",
-        approved: false,
-      };
-      for (const kind of ["service", "price"] as const)
-        await caller.saveKnowledge({ ...values, kind });
-      await caller.saveKnowledge({ ...values, kind: "faq" });
-      const rows = await caller.knowledge();
-      expect(rows.map((row) => row.kind).sort()).toEqual([
-        "faq",
-        "price",
-        "service",
-      ]);
-      expect(rows.every((row) => row.source === null && !row.approved)).toBe(
-        true,
-      );
     });
     it("stores inbound messages with sending disabled by default", async () => {
       await ingestEvents([event()]);
@@ -1079,7 +1057,7 @@ describe.skipIf(!testUrl)(
       expect(await db.select().from(jobs)).toHaveLength(0);
       expect(config.sendingEnabled).toBe(true);
     });
-    it("keeps an English conversation in English when handing off a later Arabic request", async () => {
+    it("hands off in the current message's language, not the first message's", async () => {
       await ingestEvents([event("first-english", "Hello")]);
       await enable();
       await ingestEvents([event("later-clinical", "علاج وجع العين")]);
@@ -1088,9 +1066,211 @@ describe.skipIf(!testUrl)(
       const outbound = (await db.select().from(messages)).find(
         (m) => m.direction === "bot",
       );
-      expect(outbound?.body).toMatch(/[A-Za-z]/);
-      expect(outbound?.body).not.toMatch(/[\u0600-\u06ff]/);
+      expect(outbound?.body).toMatch(/[\u0600-\u06ff]/);
+      expect(outbound?.body).not.toMatch(/[A-Za-z]/);
       expect((await db.select().from(conversations))[0].status).toBe("human");
+    });
+    it("ignores reactions and acknowledges other non-text messages once", async () => {
+      await enable();
+      await ingestEvents([event("first", "Hello")]);
+      await db.update(jobs).set({ state: "cancelled" });
+      await ingestEvents([
+        { ...event("voice"), text: "[رسالة غير نصية]", unsupported: true },
+      ]);
+      const [c] = await db.select().from(conversations);
+      expect(c).toMatchObject({
+        status: "human",
+        humanReason: "unsupported_message",
+      });
+      const queued = (await db.select().from(jobs)).filter(
+        (job) => job.state === "pending",
+      );
+      expect(queued).toHaveLength(1);
+      expect(queued[0]).toMatchObject({
+        handoff: true,
+        body: "We received your message and will pass it to a member of our team.",
+      });
+      await ingestEvents([
+        { ...event("image"), text: "[رسالة غير نصية]", unsupported: true },
+      ]);
+      expect(
+        (await db.select().from(jobs)).filter((job) => job.state === "pending"),
+      ).toHaveLength(0);
+    });
+    it("reopens an idle handoff after the configured hours but never a staff takeover", async () => {
+      await enable();
+      await ingestEvents([event("ask", "عايز موظف")]);
+      const [c] = await db.select().from(conversations);
+      expect(c.status).toBe("human");
+      await db.update(jobs).set({ state: "cancelled" });
+      const idle = new Date(Date.now() - 25 * 3600_000);
+      await db.update(conversations).set({ lastActivityAt: idle });
+      await ingestEvents([event("later", "عنوان الفرع")]);
+      expect((await db.select().from(conversations))[0].status).toBe("open");
+      expect(
+        (await db.select().from(jobs)).filter((job) => job.state === "pending"),
+      ).toHaveLength(1);
+      await setConversationStatus(c.id, "human");
+      await db.update(conversations).set({ lastActivityAt: idle });
+      await ingestEvents([event("after-takeover", "عنوان الفرع")]);
+      expect((await db.select().from(conversations))[0]).toMatchObject({
+        status: "human",
+        humanReason: "staff_takeover",
+      });
+    });
+    it("waits staffReplyPauseMinutes after a staff reply before resuming", async () => {
+      const config = await enable();
+      await saveSettings({ ...config, staffReplyPauseMinutes: 30 }, 1);
+      await ingestEvents([event("q1")]);
+      await ingestEvents([
+        { ...event("staff-echo", "رد الموظف"), humanEcho: true },
+      ]);
+      await db.update(jobs).set({ state: "cancelled" });
+      await ingestEvents([event("q2")]);
+      expect((await db.select().from(conversations))[0].humanReason).toBe(
+        "external_staff_reply",
+      );
+      expect(
+        (await db.select().from(jobs)).filter((job) => job.state === "pending"),
+      ).toHaveLength(0);
+      await db
+        .update(messages)
+        .set({ createdAt: new Date(Date.now() - 31 * 60_000) })
+        .where(eq(messages.direction, "staff"));
+      await ingestEvents([event("q3")]);
+      expect((await db.select().from(conversations))[0].status).toBe("open");
+      expect(
+        (await db.select().from(jobs)).filter((job) => job.state === "pending"),
+      ).toHaveLength(1);
+    });
+    it("does not repeat the outside-hours message within 6 hours", async () => {
+      const config = await enable();
+      await saveSettings(
+        {
+          ...config,
+          hoursEnabled: true,
+          hours: [{ day: 0, start: "00:00", end: "00:01" }],
+        },
+        1,
+      );
+      await ingestEvents([event("night")]);
+      mockNetwork();
+      await runAutoReplyTick();
+      await db.update(connections).set({ lastSentAt: null });
+      await ingestEvents([event("night-2")]);
+      await runAutoReplyTick();
+      expect(
+        (await db.select().from(jobs)).map((job) => [job.state, job.errorCode]),
+      ).toEqual([
+        ["sent", null],
+        ["cancelled", "OUTSIDE_HOURS_REPEAT"],
+      ]);
+    });
+    it("hands off a reply-cap conversation without a job", async () => {
+      const config = await enable();
+      await saveSettings({ ...config, maxAutoRepliesPerHour: 2 }, 1);
+      await ingestEvents([event("q1")]);
+      const [c] = await db.select().from(conversations);
+      await db.update(jobs).set({ state: "cancelled" });
+      for (const n of [1, 2])
+        await db.insert(messages).values({
+          conversationId: c.id,
+          eventKey: hash(`bot-${n}`),
+          direction: "bot",
+          body: "رد",
+          state: "sent",
+        });
+      await ingestEvents([event("q2")]);
+      expect((await db.select().from(conversations))[0]).toMatchObject({
+        status: "human",
+        humanReason: "rate_limited",
+      });
+      expect(
+        (await db.select().from(jobs)).filter((job) => job.state === "pending"),
+      ).toHaveLength(0);
+    });
+    it.each([
+      [true, "نرجو التواصل على الخاص"],
+      [false, null],
+    ])(
+      "answers an unanswerable comment publicly only when it is a question (%s)",
+      async (isQuestion, publicLine) => {
+        await enablePages();
+        await ingestEvents([
+          { ...pageEvent("456", "facebook_comment"), text: "ربنا يوفقكم" },
+        ]);
+        vi.stubGlobal(
+          "fetch",
+          vi.fn(async (url: string) =>
+            url.includes("generativelanguage")
+              ? Response.json({
+                  candidates: [
+                    {
+                      finishReason: "STOP",
+                      content: {
+                        parts: [
+                          {
+                            text: JSON.stringify({
+                              text: "",
+                              handoff: true,
+                              isQuestion,
+                              sourceIds: [],
+                            }),
+                          },
+                        ],
+                      },
+                    },
+                  ],
+                })
+              : Response.json({ id: "public-reply" }),
+          ),
+        );
+        await db.delete(knowledge);
+        await runAutoReplyTick();
+        const [job] = await db.select().from(jobs);
+        expect(job.state).toBe(publicLine ? "sent" : "cancelled");
+        if (!publicLine) expect(job.errorCode).toBe("SILENT_HANDOFF");
+        expect(
+          (await db.select().from(messages))
+            .filter((m) => m.direction === "bot")
+            .map((m) => m.body),
+        ).toEqual(publicLine ? [publicLine] : []);
+        expect((await db.select().from(conversations))[0].status).toBe(
+          "human",
+        );
+      },
+    );
+    it("replies to a nested comment only under one of the bot's own comments", async () => {
+      await enablePages();
+      await ingestEvents([
+        {
+          ...pageEvent("456", "facebook_comment"),
+          key: hash("nested-1"),
+          threadId: "nested-1",
+          providerId: "nested-1",
+          parentId: "someone-else",
+        },
+      ]);
+      expect(await db.select().from(jobs)).toHaveLength(0);
+      const [c] = await db.select().from(conversations);
+      await db.insert(messages).values({
+        conversationId: c.id,
+        eventKey: hash("bot-comment"),
+        providerId: "bot-comment",
+        direction: "bot",
+        body: "رد",
+        state: "sent",
+      });
+      await ingestEvents([
+        {
+          ...pageEvent("456", "facebook_comment"),
+          key: hash("nested-2"),
+          threadId: "nested-2",
+          providerId: "nested-2",
+          parentId: "bot-comment",
+        },
+      ]);
+      expect(await db.select().from(jobs)).toHaveLength(1);
     });
     it("cancels queued automation on staff takeover, and resume handles only new messages", async () => {
       await enable();
@@ -1286,6 +1466,238 @@ describe.skipIf(!testUrl)(
         errorCode: null,
       });
       expect((await db.select().from(jobs))[0].state).toBe("sent");
+    });
+    it("sends the current message once, not again as history", async () => {
+      await enable();
+      await ingestEvents([event()]);
+      const network = mockNetwork();
+      await runAutoReplyTick();
+      const gemini = network.mock.calls.find(([url]) =>
+        String(url).includes("generativelanguage"),
+      );
+      const input = JSON.parse(
+        JSON.parse(String((gemini as unknown as [string, RequestInit])[1].body))
+          .contents[0].parts[0].text,
+      );
+      expect(input).toEqual({ history: [], message: "عنوان الفرع" });
+    });
+    it("gives reception the inbox only with its page permission, and nothing else", async () => {
+      await enable();
+      await ingestEvents([event()]);
+      const [c] = await db.select().from(conversations);
+      const as = (role: string) =>
+        autoReplyRouter.createCaller(makeCallerAs(role));
+      const grant = vi.mocked(getEffectiveUserPermissions);
+      await expect(as("reception").conversations({})).rejects.toMatchObject({
+        code: "FORBIDDEN",
+      });
+      grant.mockResolvedValue(["/admin-hub/auto-reply-inbox"]);
+      await expect(as("manager").conversations({})).rejects.toMatchObject({
+        code: "FORBIDDEN",
+      });
+      const reception = as("reception");
+      expect((await reception.conversations({})).rows).toHaveLength(1);
+      expect((await reception.conversation(c.id)).conversation.id).toBe(c.id);
+      await expect(reception.inboxContext()).resolves.toMatchObject({
+        sendingEnabled: true,
+      });
+      await reception.setStatus({ id: c.id, status: "human" });
+      await reception.sendManual({
+        id: c.id,
+        text: "رد الاستقبال",
+        requestId: randomUUID(),
+      });
+      for (const call of [
+        () => reception.settings(),
+        () => reception.teaching(),
+        () => reception.activity({}),
+        () => reception.onboardingStatus(),
+        () => reception.clearAIHistory({}),
+      ])
+        await expect(call()).rejects.toMatchObject({ code: "FORBIDDEN" });
+      grant.mockResolvedValue(["/admin-hub/auto-reply-inbox:r"]);
+      await expect(
+        reception.setStatus({ id: c.id, status: "open" }),
+      ).rejects.toMatchObject({ code: "FORBIDDEN" });
+      expect((await reception.conversations({})).rows).toHaveLength(1);
+      grant.mockResolvedValue([]);
+      expect((await as("admin").conversations({})).rows).toHaveLength(1);
+    });
+    it("notifies staff once per handoff, without message text, and not for a takeover", async () => {
+      const notify = vi.mocked(pushAppNotification);
+      notify.mockClear();
+      await enable();
+      await ingestEvents([event("ask", "عايز موظف لو سمحت")]);
+      const [c] = await db.select().from(conversations);
+      await notifyHandoffs();
+      await notifyHandoffs();
+      expect(notify).toHaveBeenCalledTimes(1);
+      const [payload] = notify.mock.calls[0];
+      expect(payload).toMatchObject({
+        targetRoles: ["admin", "reception"],
+        entityId: c.id,
+        meta: { path: `/ai/inbox?conversation=${c.id}` },
+      });
+      expect(JSON.stringify(payload)).not.toContain("لو سمحت");
+      await setConversationStatus(c.id, "open");
+      await setConversationStatus(c.id, "human");
+      await notifyHandoffs();
+      expect(notify).toHaveBeenCalledTimes(1);
+      await setConversationStatus(c.id, "open");
+      await ingestEvents([event("ask-again", "عايز موظف")]);
+      await notifyHandoffs();
+      expect(notify).toHaveBeenCalledTimes(2);
+    });
+    it("keeps suggested replies as drafts until staff approve them once", async () => {
+      const config = await enable();
+      await saveSettings(
+        { ...config, targets: { whatsapp: { replyMode: "suggest" } } },
+        1,
+      );
+      await ingestEvents([event()]);
+      const network = mockNetwork();
+      await runAutoReplyTick();
+      await runAutoReplyTick();
+      const [draft] = await db.select().from(jobs);
+      expect(draft).toMatchObject({
+        state: "suggested",
+        body: "العنوان المعتمد للاختبار",
+      });
+      expect(
+        network.mock.calls.filter(([url]) => String(url).includes("/messages")),
+      ).toHaveLength(0);
+      const caller = autoReplyRouter.createCaller(makeCallerAs("admin"));
+      const requestId = randomUUID();
+      const approval = {
+        jobId: draft.id,
+        text: "العنوان المعتمد للاختبار.",
+        requestId,
+      };
+      const first = await caller.approveSuggestion(approval);
+      expect(await caller.approveSuggestion(approval)).toEqual(first);
+      await expect(
+        caller.approveSuggestion({ ...approval, requestId: randomUUID() }),
+      ).rejects.toMatchObject({ code: "PRECONDITION_FAILED" });
+      await db.update(connections).set({ lastSentAt: null });
+      await runAutoReplyTick();
+      const rows = await db.select().from(jobs).orderBy(jobs.id);
+      expect(rows.map((row) => [row.kind, row.state])).toEqual([
+        ["auto", "approved"],
+        ["manual", "sent"],
+      ]);
+      expect(rows[0].approvedBy).toBe(123);
+      expect(
+        (await db.select().from(messages))
+          .filter((m) => m.direction === "staff")
+          .map((m) => m.body),
+      ).toEqual(["العنوان المعتمد للاختبار."]);
+    });
+    it("supersedes a pending suggestion on a new customer message, and can discard one", async () => {
+      const config = await enable();
+      await saveSettings(
+        { ...config, targets: { whatsapp: { replyMode: "suggest" } } },
+        1,
+      );
+      await ingestEvents([event("q1")]);
+      mockNetwork();
+      await runAutoReplyTick();
+      await ingestEvents([event("q2")]);
+      const [old] = await db.select().from(jobs).orderBy(jobs.id);
+      expect(old).toMatchObject({ state: "cancelled", errorCode: "SUPERSEDED" });
+      await runAutoReplyTick();
+      const latest = (await db.select().from(jobs).orderBy(jobs.id))[1];
+      expect(latest.state).toBe("suggested");
+      await autoReplyRouter
+        .createCaller(makeCallerAs("admin"))
+        .discardSuggestion({ jobId: latest.id });
+      expect(
+        (await db.select().from(jobs).where(eq(jobs.id, latest.id)))[0].state,
+      ).toBe("discarded");
+    });
+    it("reports sent replies, handoffs, reply time and tokens for one scope", async () => {
+      await enable();
+      await ingestEvents([event("q1")]);
+      mockNetwork();
+      await runAutoReplyTick();
+      await ingestEvents([event("q2", "عايز موظف")]);
+      await db.update(connections).set({ lastSentAt: null });
+      await runAutoReplyTick();
+      const caller = autoReplyRouter.createCaller(makeCallerAs("admin"));
+      const metrics = await caller.metrics({ scope: "whatsapp", days: 7 });
+      expect(metrics).toMatchObject({
+        sentAuto: 2,
+        sentStaff: 0,
+        autoJobs: 2,
+        handoffs: 1,
+        handoffReasons: [{ reason: "human_requested", count: 1 }],
+        retentionDays: 30,
+      });
+      expect(metrics.medianReplySeconds).not.toBeNull();
+      expect(metrics.tokensByDay).toEqual([
+        expect.objectContaining({ channel: "whatsapp", tokens: 15 }),
+      ]);
+      expect(
+        (await caller.metrics({ scope: "456", days: 7 })).sentAuto,
+      ).toBe(0);
+      await expect(
+        autoReplyRouter
+          .createCaller(makeCallerAs("reception"))
+          .metrics({ scope: "whatsapp", days: 7 }),
+      ).rejects.toMatchObject({ code: "FORBIDDEN" });
+    });
+    it("transcribes a short WhatsApp voice note and answers it as text", async () => {
+      await enable();
+      await ingestEvents([voiceEvent()]);
+      expect((await db.select().from(conversations))[0].status).toBe("open");
+      const fetcher = mockVoiceNetwork(10);
+      await runAutoReplyTick();
+      const inbound = (await db.select().from(messages)).find(
+        (m) => m.direction === "inbound",
+      );
+      expect(inbound).toMatchObject({
+        body: "🎤 عنوان الفرع فين",
+        mediaId: null,
+      });
+      expect((await db.select().from(jobs))[0].state).toBe("sent");
+      const reply = fetcher.mock.calls.find(
+        ([url, init]) =>
+          String(url).includes("generativelanguage") &&
+          !String(init?.body).includes("inline_data"),
+      );
+      expect(String(reply?.[1]?.body)).toContain("عنوان الفرع فين");
+    });
+    it.each([
+      ["a voice note over two minutes", true, 180],
+      ["transcription turned off", false, 10],
+    ])(
+      "falls back to the non-text acknowledgement for %s",
+      async (_label, enabled, seconds) => {
+        const config = await enable();
+        await saveSettings({ ...config, voiceTranscription: enabled }, 1);
+        await ingestEvents([voiceEvent()]);
+        mockVoiceNetwork(seconds);
+        await runAutoReplyTick();
+        expect(
+          (await db.select().from(messages))
+            .filter((m) => m.direction === "bot")
+            .map((m) => m.body),
+        ).toEqual(["وصلتنا رسالتك، وهنحوّلها لموظف من المركز يرد عليك."]);
+        expect((await db.select().from(conversations))[0]).toMatchObject({
+          status: "human",
+          humanReason: "unsupported_message",
+        });
+      },
+    );
+    it("treats a staff-started conversation as having a closed reply window", async () => {
+      await enable();
+      await ingestEvents([{ ...event("staff-first", "أهلا"), humanEcho: true }]);
+      const [c] = await db.select().from(conversations);
+      expect(c.lastInboundAt.getTime()).toBe(0);
+      await expect(
+        autoReplyRouter
+          .createCaller(makeCallerAs("admin"))
+          .sendManual({ id: c.id, text: "مرحبا", requestId: randomUUID() }),
+      ).rejects.toMatchObject({ message: "انتهت نافذة الرد المسموح بها" });
     });
     it("hands off an interrupted send without ever sending it again", async () => {
       await enable();

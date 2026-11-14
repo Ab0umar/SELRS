@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import {
   autoReplyChannels,
   autoReplyErrorLabel,
+  handoffReasonLabel,
   channelLabels,
   autoReplySettingsSchema,
   supportsGeminiSampling,
@@ -35,7 +36,8 @@ type Tab =
   | "instructions"
   | "memory"
   | "test"
-  | "activity";
+  | "activity"
+  | "metrics";
 
 function ChannelTabs({
   value,
@@ -223,6 +225,9 @@ const statusLabels: Record<string, string> = {
   failed: "فشل",
   unknown: "إرسال غير محسوم",
   cancelled: "ملغاة",
+  suggested: "اقتراح ينتظر المراجعة",
+  approved: "اقتراح معتمد",
+  discarded: "اقتراح مرفوض",
 };
 const time = (date: Date | string | null | undefined) =>
   date
@@ -409,6 +414,7 @@ export default function AutoReply() {
             ["memory", "ذاكرة وحدود الرد"],
             ["test", "اختبار داخلي"],
             ["activity", "السجل"],
+            ["metrics", "الأرقام"],
           ] as [Tab, string][]
         )
           .filter(
@@ -490,6 +496,127 @@ export default function AutoReply() {
             {tab === "activity" && (
               <Activity key={scope} pages={settings.data.pages} scope={scope} />
             )}
+            {tab === "metrics" && <Metrics key={scope} scope={scope} />}
+          </>
+        )
+      )}
+    </main>
+  );
+}
+
+function SuggestedReply({
+  jobId,
+  draft,
+  handoff,
+  disabled,
+  onDone,
+}: {
+  jobId: number;
+  draft: string;
+  handoff: boolean;
+  disabled: boolean;
+  onDone: () => Promise<unknown>;
+}) {
+  const [text, setText] = useState(draft);
+  const [requestId] = useState(() => crypto.randomUUID());
+  const approve = trpc.autoReply.approveSuggestion.useMutation({
+    onSuccess: async () => {
+      await onDone();
+      toast.success("اعتُمد الرد وأُضيف للطابور");
+    },
+    onError: (e) => toast.error(e.message),
+  });
+  const discard = trpc.autoReply.discardSuggestion.useMutation({
+    onSuccess: onDone,
+    onError: (e) => toast.error(e.message),
+  });
+  const busy = approve.isPending || discard.isPending;
+  return (
+    <section className="ar-notice" aria-label="رد مقترح">
+      <strong>
+        رد مقترح لم يُرسل{handoff ? " · المقترح تحويل لموظف" : ""}
+      </strong>
+      <Field label="نص الرد">
+        <Textarea
+          dir="auto"
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+        />
+      </Field>
+      <div className="ar-toolbar">
+        <Button
+          type="button"
+          disabled={disabled || busy || !text.trim()}
+          onClick={() => approve.mutate({ jobId, text, requestId })}
+        >
+          {approve.isPending
+            ? "جارٍ الاعتماد…"
+            : text.trim() === draft.trim()
+              ? "اعتماد وإرسال"
+              : "إرسال بعد التعديل"}
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          disabled={busy}
+          onClick={() => discard.mutate({ jobId })}
+        >
+          تجاهل الاقتراح
+        </Button>
+      </div>
+    </section>
+  );
+}
+
+// Conversations only, for reception staff: no settings, teaching or connections.
+export function AutoReplyInbox() {
+  const context = trpc.autoReply.inboxContext.useQuery(undefined, {
+    refetchInterval: 30_000,
+  });
+  const [scope, setScope] = useState("whatsapp");
+  return (
+    <main className="auto-reply" dir="rtl">
+      <header className="ar-header">
+        <div>
+          <h1>محادثات الرد الآلي</h1>
+          <p>واتساب وماسنجر وتعليقات الصفحة</p>
+        </div>
+      </header>
+      {context.isLoading ? (
+        <p role="status">جارٍ تحميل المحادثات…</p>
+      ) : context.error ? (
+        <ErrorState
+          message={context.error.message}
+          retry={() => void context.refetch()}
+        />
+      ) : (
+        context.data && (
+          <>
+            <nav className="ar-scope-tabs" aria-label="جهة المحادثات">
+              {[
+                { id: "whatsapp", label: "واتساب" },
+                ...context.data.pages.slice(0, 2).map((page, index) => ({
+                  id: page.accountId,
+                  label: index === 0 ? "صفحة المركز" : "صفحة العيادة",
+                })),
+              ].map(({ id, label }) => (
+                <Button
+                  key={id}
+                  variant={scope === id ? "default" : "outline"}
+                  aria-pressed={scope === id}
+                  onClick={() => setScope(id)}
+                >
+                  {label}
+                </Button>
+              ))}
+            </nav>
+            <Inbox
+              key={scope}
+              scope={scope}
+              sendingEnabled={context.data.sendingEnabled}
+              pages={context.data.pages}
+              canSuggest={false}
+            />
           </>
         )
       )}
@@ -626,10 +753,12 @@ function Inbox({
   sendingEnabled,
   pages,
   scope,
+  canSuggest = true,
 }: {
   sendingEnabled: boolean;
   pages: FacebookPages;
   scope: string;
+  canSuggest?: boolean;
 }) {
   const [channel, setChannel] = useState(
     scope === "whatsapp" ? "whatsapp" : "messenger",
@@ -637,7 +766,13 @@ function Inbox({
   const accountId = scope === "whatsapp" ? "" : scope;
   const [status, setStatus] = useState("");
   const [page, setPage] = useState(1);
-  const [selected, setSelected] = useState<number | null>(null);
+  // A handoff notification links here with ?conversation=<id>.
+  const [selected, setSelected] = useState<number | null>(() => {
+    const linked = Number(
+      new URLSearchParams(window.location.search).get("conversation"),
+    );
+    return Number.isSafeInteger(linked) && linked > 0 ? linked : null;
+  });
   const query = trpc.autoReply.conversations.useQuery(
     {
       channel: channel ? (channel as AutoReplyChannel) : undefined,
@@ -771,6 +906,7 @@ function Inbox({
                   id={selected}
                   sendingEnabled={sendingEnabled}
                   pages={pages}
+                  canSuggest={canSuggest}
                 />
               </div>
             </DialogContent>
@@ -784,10 +920,12 @@ function Conversation({
   id,
   sendingEnabled,
   pages,
+  canSuggest,
 }: {
   id: number;
   sendingEnabled: boolean;
   pages: FacebookPages;
+  canSuggest: boolean;
 }) {
   const query = trpc.autoReply.conversation.useQuery(id, {
     refetchInterval: 5000,
@@ -946,24 +1084,38 @@ function Conversation({
           >
             {send.isPending ? "جارٍ إضافة الرد…" : "إرسال رد الموظف"}
           </Button>
-          <Button
-            type="button"
-            variant="outline"
-            disabled={!latest || test.isPending}
-            onClick={() =>
-              latest &&
-              test.mutate({
-                channel: c.channel,
-                conversationId: id,
-                text: latest.body,
-              })
-            }
-          >
-            {test.isPending ? "جارٍ اقتراح الرد…" : "اقتراح رد دون إرسال"}
-          </Button>
+          {canSuggest && (
+            <Button
+              type="button"
+              variant="outline"
+              disabled={!latest || test.isPending}
+              onClick={() =>
+                latest &&
+                test.mutate({
+                  channel: c.channel,
+                  conversationId: id,
+                  text: latest.body,
+                })
+              }
+            >
+              {test.isPending ? "جارٍ اقتراح الرد…" : "اقتراح رد دون إرسال"}
+            </Button>
+          )}
         </div>
         {!sendingEnabled && <p role="status">الإرسال متوقف بالمفتاح العام.</p>}
       </form>
+      {jobs
+        .filter((j) => j.state === "suggested" && j.body)
+        .map((j) => (
+          <SuggestedReply
+            key={j.id}
+            jobId={j.id}
+            draft={j.body!}
+            handoff={j.handoff}
+            disabled={!sendingEnabled || c.status === "closed"}
+            onDone={refresh}
+          />
+        ))}
       {proposal && (
         <div className="ar-notice" role="status">
           <strong>اختبار فقط، لم يُرسل</strong>
@@ -1371,6 +1523,7 @@ function Settings({
         hours,
         outsideMessage,
         outsideMessageEn,
+        replyMode,
       } = next;
       return {
         ...base,
@@ -1393,6 +1546,7 @@ function Settings({
             hours,
             outsideMessage,
             outsideMessageEn,
+            replyMode,
           },
         },
       };
@@ -1585,6 +1739,19 @@ function Settings({
               المفتاح العام يُضبط من «المشترك». الاختيارات التالية تخص هذه الجهة
               فقط.
             </p>
+          )}
+          {scope !== "all" && (
+            <Field label="طريقة الرد على هذه الجهة">
+              <select
+                value={config.replyMode}
+                onChange={(e) =>
+                  update("replyMode", e.target.value as "auto" | "suggest")
+                }
+              >
+                <option value="auto">يرسل الرد تلقائيًا</option>
+                <option value="suggest">يقترح الرد وموظف يعتمده</option>
+              </select>
+            </Field>
           )}
           {autoReplyChannels
             .filter((c) =>
@@ -1826,6 +1993,56 @@ function Settings({
                   }
                 />
               </Field>
+            )}
+            {scope === "all" && (
+              <>
+                <Field label="رجوع الرد الآلي بعد التحويل لموظف بالساعات (0 = لا يرجع)">
+                  <Input
+                    type="number"
+                    min={0}
+                    max={720}
+                    value={config.handoffReopenHours}
+                    onChange={(e) =>
+                      update("handoffReopenHours", Number(e.target.value))
+                    }
+                  />
+                </Field>
+                <Field label="إيقاف الرد الآلي بعد رد الموظف بالدقائق (0 = يرجع مع رسالة العميل التالية)">
+                  <Input
+                    type="number"
+                    min={0}
+                    max={1440}
+                    value={config.staffReplyPauseMinutes}
+                    onChange={(e) =>
+                      update("staffReplyPauseMinutes", Number(e.target.value))
+                    }
+                  />
+                </Field>
+                <Check
+                  label="تفريغ الرسائل الصوتية على واتساب نصيًا عبر Google Gemini (حتى دقيقتين و5 ميجا)"
+                  checked={config.voiceTranscription}
+                  onChange={(v) => update("voiceTranscription", v)}
+                />
+                <Field label="رابط الحجز الإلكتروني (https، اتركه فارغًا لإيقافه)">
+                  <Input
+                    type="url"
+                    dir="ltr"
+                    value={config.bookingUrl}
+                    onChange={(e) => update("bookingUrl", e.target.value.trim())}
+                  />
+                </Field>
+                <Field label="أقصى ردود آلية في الساعة لكل محادثة">
+                  <Input
+                    type="number"
+                    min={1}
+                    max={200}
+                    value={config.maxAutoRepliesPerHour}
+                    onChange={(e) =>
+                      update("maxAutoRepliesPerHour", Number(e.target.value))
+                    }
+                  />
+                </Field>
+              </>
             )}
           </div>
           {models.isLoading && (
@@ -2449,6 +2666,129 @@ function InternalTest({
             </p>
           )}
         </div>
+      )}
+    </section>
+  );
+}
+const count = (value: number) => value.toLocaleString("ar-EG");
+function duration(seconds: number | null) {
+  if (seconds === null) return "—";
+  if (seconds < 90) return `${count(Math.round(seconds))} ثانية`;
+  if (seconds < 5400) return `${count(Math.round(seconds / 60))} دقيقة`;
+  return `${count(Math.round(seconds / 3600))} ساعة`;
+}
+function Metrics({ scope }: { scope: string }) {
+  const [days, setDays] = useState(7);
+  const query = trpc.autoReply.metrics.useQuery({ scope, days });
+  const data = query.data;
+  return (
+    <section className="ar-panel" aria-label="أرقام الرد الآلي">
+      <div className="ar-section-heading">
+        <div>
+          <h2>أرقام الرد الآلي</h2>
+          <p className="ar-muted">
+            محسوبة من المهام والمحادثات المحفوظة فقط.
+            {data &&
+              ` الأقدم من ${count(data.retentionDays)} يومًا يُحذف حسب إعداد الاحتفاظ، فلا يظهر هنا.`}
+          </p>
+        </div>
+        <Field label="الفترة">
+          <select
+            value={days}
+            onChange={(e) => setDays(Number(e.target.value))}
+          >
+            <option value={1}>آخر يوم</option>
+            <option value={7}>آخر 7 أيام</option>
+            <option value={30}>آخر 30 يومًا</option>
+            <option value={90}>آخر 90 يومًا</option>
+          </select>
+        </Field>
+      </div>
+      {query.isLoading && <p role="status">جارٍ حساب الأرقام…</p>}
+      {query.error && (
+        <ErrorState
+          message={query.error.message}
+          retry={() => void query.refetch()}
+        />
+      )}
+      {data && (
+        <>
+          <dl className="ar-form-grid">
+            <div>
+              <dt>ردود آلية قبلتها Meta</dt>
+              <dd>{count(data.sentAuto)}</dd>
+            </div>
+            <div>
+              <dt>ردود موظفين من الشاشة</dt>
+              <dd>{count(data.sentStaff)}</dd>
+            </div>
+            <div>
+              <dt>نسبة التحويل لموظف</dt>
+              <dd>
+                {data.autoJobs
+                  ? `${count(Math.round((data.handoffs / data.autoJobs) * 100))}٪ (${count(data.handoffs)} من ${count(data.autoJobs)})`
+                  : "—"}
+              </dd>
+            </div>
+            <div>
+              <dt>متوسط زمن الرد الآلي (الوسيط)</dt>
+              <dd>{duration(data.medianReplySeconds)}</dd>
+            </div>
+          </dl>
+          <h3>أسباب المحادثات المحوّلة حاليًا</h3>
+          {data.handoffReasons.length === 0 ? (
+            <p>لا توجد محادثات مع موظف في هذه الفترة.</p>
+          ) : (
+            <div className="ar-table-wrap" role="region" aria-label="أسباب التحويل" tabIndex={0}>
+              <table>
+                <thead>
+                  <tr>
+                    <th>السبب</th>
+                    <th>المحادثات</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {data.handoffReasons.map((row) => (
+                    <tr key={row.reason}>
+                      <td>{handoffReasonLabel(row.reason)}</td>
+                      <td>{count(row.count)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+          <h3>التوكنز لكل قناة يوميًا</h3>
+          {data.tokensByDay.length === 0 ? (
+            <p>لا يوجد استهلاك مسجل في هذه الفترة.</p>
+          ) : (
+            <div className="ar-table-wrap" role="region" aria-label="التوكنز اليومية" tabIndex={0}>
+              <table>
+                <thead>
+                  <tr>
+                    <th>اليوم</th>
+                    <th>القناة</th>
+                    <th>التوكنز</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {data.tokensByDay.map((row) => (
+                    <tr key={`${row.day}:${row.channel}`}>
+                      <td>
+                        <bdi>{row.day}</bdi>
+                      </td>
+                      <td>
+                        {channelLabels[row.channel as AutoReplyChannel] ??
+                          row.channel}
+                      </td>
+                      <td>{count(row.tokens)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </>
       )}
     </section>
   );
