@@ -65,6 +65,15 @@ Tests: planner with large history; backoff sequence; one retry after `failed`, n
 
 Tests: reconcile match, both manual choices, delete rules, Cairo boundary, text-only Manus job.
 
+**Shipped** in PR #31 (`723c3659`). Behaviour is documented in `docs/operations.md` (Marketing publish integrity) and `docs/api-reference.md` (Marketing publish). Confirmed deviations from the list above:
+
+- Reconcile matches `buildMessage` (stored content or title, CTA, hashtags) as a prefix. The contact footer is appended at send time and is not stored.
+- Manual "published" leaves `fbPostId` null.
+- Draft delete fails Manus jobs only. `ai_marketing_jobs` has no `failed` state.
+- **تحقق من Facebook** is on the five newest posts of the selected page under **آخر المنشورات** on `/ai/marketing`, not on the drafts page.
+
+Do not re-implement this list. PR 4 should extend those two docs for the items that are still open.
+
 ## PR 3 — review gate and alerts (opt-in)
 
 1. **Content check after generation**, on both paths, before the draft is saved or auto-published. Deterministic rules on title, content and CTA: prices and currency, discounts and offers, guarantee wording, percentages and statistics, phone numbers and links inside the content. Keep the rule list in one small module with tests. A flagged draft is saved, never auto-published, and the reasons are written to `marketingLogs` and shown on the draft.
@@ -82,7 +91,7 @@ Tests: each content rule; flagged draft is not published; approval mode never pu
 1. **Topic reuse window**: system setting `marketing_topic_reuse_months`, default 0 (never, today's behaviour). When set, a topic published longer ago than the window no longer blocks, and the planner is told to pick a different angle. Check what date the topic history can rely on before implementing; if none is reliable, use the post's `publishedAt` and say so.
 2. **Image files**: when a draft is deleted, remove its generated and branded files if no other post references them. Never remove reference designs or equipment photos.
 3. Remove the unused imports in `scheduler.service.ts`. Build the booking link in `marketingDraft.ts` from the configured app origin instead of a hard-coded domain.
-4. Update `docs/api-reference.md` and any marketing operations doc for PRs 1–4.
+4. Update `docs/api-reference.md` and `docs/operations.md` for PRs 1, 3, and 4. PR 2 is already written in both files; extend those sections.
 
 ## PR 5 — content calendar and per-post scheduling
 
