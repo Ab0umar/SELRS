@@ -4,7 +4,7 @@ export const RECENT_KEY = (userId?: string | number | null) =>
 export const TRACKED_ROUTES: Array<{ pathPrefix: string; label: string }> = [
   { pathPrefix: "/ai/medical", label: "المساعد الطبي" },
   { pathPrefix: "/ai/replies", label: "الرد الآلي والتدريب" },
-  { pathPrefix: "/ai/marketing/whatsapp", label: "حملات واتساب" },
+  { pathPrefix: "/ai/marketing/whatsapp", label: "دعاية واتساب" },
   { pathPrefix: "/ai/marketing", label: "محتوى التسويق" },
   { pathPrefix: "/ai", label: "AI" },
   { pathPrefix: "/dashboard", label: "لوحة التحكم" },

@@ -23,7 +23,7 @@ export const aiPages = [
   },
   {
     path: "/ai/marketing/whatsapp",
-    label: "حملات واتساب",
+    label: "دعاية واتساب",
     description: "الحملات وصياغة الرسائل ونتائج التسليم",
   },
   {
