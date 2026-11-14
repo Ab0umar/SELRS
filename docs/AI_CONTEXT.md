@@ -1,8 +1,8 @@
 # SRV100 AI Context Document
 
 > Single "read this first" file for any AI model (Cursor, Codex, Claude, GPT, Gemini, GLM, Kimi).
-> Version: 2.3.0 — companion to `docs/PROJECT_PRINCIPLES.md`. Updated 2026-10-26: moved out of `specs/`, spec-driven workflow removed. Updated 2026-11-10: patient WhatsApp OTP login, public clinic landing at `/`, paid leave type, follow-up list includes sheet items stored on examination visits, medical assistant review restore and treatment-medicine repair.
-> Version: 2.3.0 — companion to `docs/PROJECT_PRINCIPLES.md`. Updated 2026-10-26: moved out of `specs/`, spec-driven workflow removed. Updated 2026-11-10: patient WhatsApp OTP login, public clinic landing at `/`, paid leave type, follow-up list membership, autoref/refraction completeness, medical assistant review restore and treatment-medicine repair.
+> Version: 2.3.0 — companion to `docs/PROJECT_PRINCIPLES.md`. Updated 2026-10-26: moved out of `specs/`, spec-driven workflow removed. Updated 2026-11-10: patient WhatsApp OTP login, public clinic landing at `/`, paid leave type, follow-up list includes sheet items stored on examination visits, medical assistant review restore and treatment-medicine repair. Updated 2026-11-14: six clinical reports share quiet-paper stationery (blank/preprinted stock, color/mono ink); see `docs/design-guides.md`.
+> Version: 2.3.0 — companion to `docs/PROJECT_PRINCIPLES.md`. Updated 2026-10-26: moved out of `specs/`, spec-driven workflow removed. Updated 2026-11-10: patient WhatsApp OTP login, public clinic landing at `/`, paid leave type, follow-up list membership, autoref/refraction completeness, medical assistant review restore and treatment-medicine repair. Updated 2026-11-14: six clinical reports share quiet-paper stationery (blank/preprinted stock, color/mono ink); see `docs/design-guides.md`.
 
 ---
 
