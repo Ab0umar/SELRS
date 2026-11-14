@@ -19,6 +19,7 @@ import {
   History,
   Hospital,
   MessageCircle,
+  MessagesSquare,
   MoreHorizontal,
   RefreshCw,
   Settings,
@@ -149,6 +150,13 @@ const HOME_CARDS: HomeCard[] = [
     href: "/admin/whatsapp-inbox",
     permissionPaths: ["/admin/whatsapp-inbox"],
     icon: MessageCircle,
+  },
+  {
+    label: "محادثات الاستقبال",
+    helper: "محادثات الرد الآلي المحوّلة لموظف",
+    href: "/ai/inbox",
+    permissionPaths: ["/admin-hub/auto-reply-inbox"],
+    icon: MessagesSquare,
   },
   {
     label: "مركز الإدارة",
@@ -298,6 +306,7 @@ const HOME_CARD_ORDER = [
   "مركز الخدمات",
   "القيم الطبيعية للفحوصات",
   "رسائل واتساب",
+  "محادثات الاستقبال",
   "التسويق",
   "AI",
   "مركز الإدارة",
@@ -491,7 +500,7 @@ export default function MainHome() {
       <>
         <span className="home-app-icon" data-tone={
           ["مسار اليوم", "الموظفين"].includes(card.label) ? "orange" :
-          ["الاستقبال", "كفرالشيخ", "رسائل واتساب"].includes(card.label) ? "green" :
+          ["الاستقبال", "كفرالشيخ", "رسائل واتساب", "محادثات الاستقبال"].includes(card.label) ? "green" :
           ["المخزن", "الأرشيف", "مركز الإدارة", "الحساب"].includes(card.label) ? "neutral" : "blue"
         }>
           <Icon strokeWidth={1.8} aria-hidden />

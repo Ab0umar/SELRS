@@ -578,8 +578,8 @@ export function AutoReplyInbox() {
     <main className="auto-reply" dir="rtl">
       <header className="ar-header">
         <div>
-          <h1>محادثات الرد الآلي</h1>
-          <p>واتساب وماسنجر وتعليقات الصفحة</p>
+          <h1>محادثات الاستقبال</h1>
+          <p>المحادثات المحوّلة لموظف من الرد الآلي على واتساب والصفحات</p>
         </div>
       </header>
       {context.isLoading ? (
@@ -616,6 +616,7 @@ export function AutoReplyInbox() {
               sendingEnabled={context.data.sendingEnabled}
               pages={context.data.pages}
               canSuggest={false}
+              initialStatus="human"
             />
           </>
         )
@@ -754,17 +755,19 @@ function Inbox({
   pages,
   scope,
   canSuggest = true,
+  initialStatus = "",
 }: {
   sendingEnabled: boolean;
   pages: FacebookPages;
   scope: string;
   canSuggest?: boolean;
+  initialStatus?: "" | "human";
 }) {
   const [channel, setChannel] = useState(
     scope === "whatsapp" ? "whatsapp" : "messenger",
   );
   const accountId = scope === "whatsapp" ? "" : scope;
-  const [status, setStatus] = useState("");
+  const [status, setStatus] = useState<string>(initialStatus);
   const [page, setPage] = useState(1);
   // A handoff notification links here with ?conversation=<id>.
   const [selected, setSelected] = useState<number | null>(() => {
