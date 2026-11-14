@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import ManusGenerationJobs from "./ManusGenerationJobs";
 import PublishingPostResolve from "./PublishingPostResolve";
+import ContentCalendar from "./ContentCalendar";
 import AssistantModelSelect from "@/features/ai/AssistantModelSelect";
 import { Input } from "@/components/ui/input";
 import {
@@ -584,6 +585,8 @@ export default function MarketingDashboard() {
           </div>
         )}
       </div>
+
+      <ContentCalendar />
 
       {/* Generated Content Preview */}
       <ManusGenerationJobs

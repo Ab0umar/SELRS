@@ -27,7 +27,7 @@ import {
   MARKETING_SCHEDULE,
   marketingSlotForWeekday,
 } from "../../../shared/marketingSchedule";
-import { eq, and, gte } from "drizzle-orm";
+import { eq, and, gte, lt } from "drizzle-orm";
 import { getDb } from "../../db";
 import {
   marketingPosts,
@@ -40,6 +40,7 @@ import {
   startManusGeneration,
 } from "./manusGeneration.service";
 import { finishScheduledDraft, notifyMarketingAdmins } from "./marketingReview";
+import { initScheduledPostWorker } from "./contentCalendar";
 import {
   clearMarketingStartFailures,
   marketingStartAllowed,
@@ -268,7 +269,23 @@ export async function runScheduledPost(
       ),
     );
 
-  const existing = todayPosts.filter((p: any) => p.status !== "failed");
+  const planned = await db
+    .select({ id: marketingPosts.id, status: marketingPosts.status })
+    .from(marketingPosts)
+    .where(
+      and(
+        eq(marketingPosts.pageRole, pageRole),
+        gte(marketingPosts.scheduledAt, todayStart),
+        lt(
+          marketingPosts.scheduledAt,
+          new Date(todayStart.getTime() + 24 * 60 * 60 * 1000),
+        ),
+      ),
+    );
+  // A post planned for today (calendar or "generate this week") fills the slot.
+  const existing = [...todayPosts, ...planned].filter(
+    (p: any) => p.status !== "failed",
+  );
   if (existing.length > 0) {
     await recordMarketingSchedulerSkip(
       pageRole,
@@ -440,6 +457,7 @@ export function initMarketingScheduler(): void {
     timezone: CAIRO_TIME_ZONE,
   });
   void checkDueMarketingPosts();
+  initScheduledPostWorker();
 
   console.log(
     "[marketing-scheduler] Initialized — startup and five-minute same-day catch-up",

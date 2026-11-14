@@ -46,6 +46,7 @@ import { marketingUsageId } from "../marketing/requestIds";
 export { marketingUsageId } from "../marketing/requestIds";
 import { assertDraftImageAvailable } from "../marketing/draftImageClaim";
 import { announceManualDraft } from "../marketing/marketingReview";
+import { plannedMarketingSlot } from "../marketing/contentCalendar";
 
 async function imageModelForJob(selected?: string) {
   if (selected) return selected;
@@ -537,6 +538,7 @@ export async function finishCentralMarketingDraft(
       imageParent,
       imageRequest,
     );
+    const plannedAt = await plannedMarketingSlot(input.requestId);
     let postId: number | undefined;
     await db.transaction(
       async (tx: Pick<MySql2Database, "select" | "insert" | "update">) => {
@@ -550,6 +552,7 @@ export async function finishCentralMarketingDraft(
         const [saved] = await tx.insert(marketingPosts).values({
           ...generated,
           imageUrl,
+          scheduledAt: plannedAt,
           topic: input.topic,
           postDay: input.postDay,
           pageRole: input.pageRole,

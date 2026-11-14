@@ -49,6 +49,7 @@ import { readMarketingJobContext } from "./jobContext";
 import type { AcceptAiOperation } from "../ai/operations";
 import { marketingSchedulerProviders } from "../ai/marketingScheduler";
 import { assertDraftImageAvailable } from "./draftImageClaim";
+import { plannedMarketingSlot } from "./contentCalendar";
 import {
   announceManualDraft,
   finishScheduledDraft,
@@ -359,6 +360,8 @@ async function saveFinishedJob(
   if (!sourceUrl)
     throw new DefiniteJobError("صورة الجهاز لم تعد متاحة ولم ترجع Manus صورة");
   const imageUrl = await brandMarketingImageUrl(sourceUrl, job.pageRole);
+  const plannedAt =
+    job.kind === "post" ? await plannedMarketingSlot(job.id) : null;
   let completedPostId: number | null = null;
   await db.transaction(
     async (tx: Pick<MySql2Database, "select" | "insert" | "update">) => {
@@ -373,6 +376,7 @@ async function saveFinishedJob(
         const [result] = await tx.insert(marketingPosts).values({
           ...generated,
           imageUrl,
+          scheduledAt: plannedAt,
           topic: job.topic,
           postDay: job.postDay,
           pageRole: job.pageRole,
