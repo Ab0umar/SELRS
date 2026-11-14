@@ -274,6 +274,16 @@ export default function MarketingSettings() {
     }));
   }, [selectedPage]);
 
+  const approvalQuery = trpc.marketing.approvalMode.useQuery({ pageRole });
+  const [requireApproval, setRequireApproval] = useState(true);
+  useEffect(() => {
+    if (approvalQuery.data) setRequireApproval(approvalQuery.data.required);
+  }, [approvalQuery.data]);
+  const approvalMutation = trpc.marketing.setApprovalMode.useMutation({
+    onSuccess: () => void utils.marketing.approvalMode.invalidate(),
+    onError: (err: { message: string }) => toast.error(err.message),
+  });
+
   const ToggleRow = ({
     label,
     description,
@@ -540,6 +550,12 @@ export default function MarketingSettings() {
               onChange={(v) => setForm((f) => ({ ...f, autoPublish: v }))}
             />
             <ToggleRow
+              label="انتظار موافقتي قبل النشر"
+              description="المنشورات المجدولة تُحفظ كمسودات ولا تُنشر إلا بعد ضغطك على نشر"
+              value={requireApproval}
+              onChange={setRequireApproval}
+            />
+            <ToggleRow
               label={pageRole === "center" ? "الأحد" : "السبت"}
               description="موضوع جديد من المجالات الاثني عشر"
               value={form.saturdayEnabled}
@@ -621,6 +637,14 @@ export default function MarketingSettings() {
               if (pageRole === "center") {
                 updateMutation.mutate({ clinicName: form.contentName });
               }
+              if (
+                approvalQuery.data &&
+                approvalQuery.data.required !== requireApproval
+              )
+                approvalMutation.mutate({
+                  pageRole,
+                  required: requireApproval,
+                });
               if (selectedPage) {
                 pageSettingsMutation.mutate({
                   pageRole,
@@ -635,7 +659,9 @@ export default function MarketingSettings() {
               }
             }}
             disabled={
-              updateMutation.isPending || pageSettingsMutation.isPending
+              updateMutation.isPending ||
+              pageSettingsMutation.isPending ||
+              approvalMutation.isPending
             }
           >
             {updateMutation.isPending ? (

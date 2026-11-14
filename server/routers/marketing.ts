@@ -20,6 +20,11 @@ import { marketingGenerationInput } from "../../shared/ai-request-context";
 import { trackedAiOperation, readAiOperation } from "../services/ai/operations";
 import { readMarketingGenerationRequest } from "../services/marketing/generationRequest";
 import { readMarketingSchedulerStatus } from "../services/marketing/schedulerStatus";
+import { checkMarketingContent } from "../services/marketing/contentCheck";
+import {
+  marketingApprovalRequired,
+  setMarketingApprovalRequired,
+} from "../services/marketing/marketingReview";
 import {
   generateWhatsAppCopy,
   readWhatsAppCopy,
@@ -281,7 +286,37 @@ export const marketingRouter = router({
         .orderBy(desc(marketingPosts.createdAt))
         .limit(input.limit)
         .offset(input.offset);
-      return rows;
+      // Recomputed on read so the flags follow the admin's edits.
+      return rows.map((row: typeof marketingPosts.$inferSelect) => ({
+        ...row,
+        contentFlags: row.status === "draft" ? checkMarketingContent(row) : [],
+      }));
+    }),
+
+  approvalMode: adminProcedure
+    .input(z.object({ pageRole: z.enum(["center", "doctor"]) }).strict())
+    .query(async ({ input }) => ({
+      required: await marketingApprovalRequired(input.pageRole),
+    })),
+
+  setApprovalMode: adminProcedure
+    .input(
+      z
+        .object({
+          pageRole: z.enum(["center", "doctor"]),
+          required: z.boolean(),
+        })
+        .strict(),
+    )
+    .mutation(async ({ input, ctx }) => {
+      await setMarketingApprovalRequired(input.pageRole, input.required);
+      await addLog(
+        null,
+        "approval_mode",
+        "info",
+        `Approval mode for ${input.pageRole} set to ${input.required ? "on" : "off"} by user ${ctx.user.id}`,
+      );
+      return { ok: true };
     }),
 
   getPost: adminProcedure

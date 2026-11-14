@@ -21,9 +21,28 @@ export class FacebookPublishError extends Error {
   constructor(
     message: string,
     readonly uncertain = false,
+    readonly tokenRejected = false,
   ) {
     super(message);
   }
+}
+
+// Graph error 190 means the page access token is invalid or expired.
+function graphFailure(
+  status: number,
+  error: { message?: string; code?: number } | undefined,
+  fallback: string,
+) {
+  if (error?.code === 190)
+    return new FacebookPublishError(
+      "رفض Facebook رمز الصفحة (انتهت صلاحيته أو أُلغي)؛ أعد ربط الصفحة",
+      false,
+      true,
+    );
+  return new FacebookPublishError(
+    error?.message ?? fallback,
+    status >= 500 || status === 408,
+  );
 }
 
 /**
@@ -63,14 +82,10 @@ export async function publishPostToFacebook(
     const data = (await res.json()) as {
       id?: string;
       post_id?: string;
-      error?: { message: string };
+      error?: { message?: string; code?: number };
     };
-    if (!res.ok || data.error) {
-      throw new FacebookPublishError(
-        data.error?.message ?? "Facebook photo post failed",
-        res.status >= 500 || res.status === 408,
-      );
-    }
+    if (!res.ok || data.error)
+      throw graphFailure(res.status, data.error, "Facebook photo post failed");
     const id = data.post_id ?? data.id;
     if (typeof id !== "string" || !id.trim())
       throw new FacebookPublishError(
@@ -97,14 +112,10 @@ export async function publishPostToFacebook(
   }
   const data = (await res.json()) as {
     id?: string;
-    error?: { message: string };
+    error?: { message?: string; code?: number };
   };
-  if (!res.ok || data.error) {
-    throw new FacebookPublishError(
-      data.error?.message ?? "Facebook feed post failed",
-      res.status >= 500 || res.status === 408,
-    );
-  }
+  if (!res.ok || data.error)
+    throw graphFailure(res.status, data.error, "Facebook feed post failed");
   if (typeof data.id !== "string" || !data.id.trim())
     throw new FacebookPublishError(
       "تعذر تأكيد معرف المنشور؛ راجع نتيجة النشر على Facebook",

@@ -4,16 +4,14 @@ vi.mock("../services/marketing/equipmentAssets", async (original) => ({
   readEquipmentPhoto: vi.fn().mockResolvedValue(null),
 }));
 vi.mock("../services/marketing/pageBranding", () => ({
-  readMarketingPageBranding: vi
-    .fn()
-    .mockResolvedValue({
-      pageRole: "center",
-      pageId: "1",
-      name: "Fixture",
-      address: "Fixture address",
-      phone: "000",
-      logo: Buffer.alloc(0),
-    }),
+  readMarketingPageBranding: vi.fn().mockResolvedValue({
+    pageRole: "center",
+    pageId: "1",
+    name: "Fixture",
+    address: "Fixture address",
+    phone: "000",
+    logo: Buffer.alloc(0),
+  }),
   brandMarketingImageUrl: vi.fn(async (url: string) => url),
   prepareMarketingPublication: vi.fn(
     async (message: string, imageUrl: string | null) => ({ message, imageUrl }),
@@ -24,7 +22,15 @@ import * as jobContext from "../services/marketing/jobContext";
 import * as publisher from "../services/marketing/publish.service";
 import * as scheduler from "../services/ai/marketingScheduler";
 import { marketingGenerationJobs } from "../../drizzle/schema";
-vi.mock("../db", () => ({ getDb: vi.fn() }));
+// Approval mode defaults to on; these tests cover pages where the owner turned it off.
+vi.mock("../db", () => ({
+  getDb: vi.fn(),
+  getSystemSetting: async () => ({ value: "false" }),
+  updateSystemSettings: async () => undefined,
+}));
+vi.mock("../_core/appNotifications", () => ({
+  pushAppNotification: vi.fn(async () => undefined),
+}));
 vi.mock("../_core/env", () => ({
   ENV: { manusApiKey: "test-key", marketingImageDir: "test-images" },
 }));
