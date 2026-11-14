@@ -275,7 +275,10 @@ export async function ingestEvents(batch: InboundEvent[]) {
             ? {
                 status: "human",
                 humanReason: event.humanEcho
-                  ? current.status === "human" && !staffReplyPause
+                  ? current.status === "human" &&
+                    !staffReplyPause &&
+                    // A staff reply to a parked chat starts the normal staff-reply pause.
+                    !awaitingContacts
                     ? current.humanReason
                     : "external_staff_reply"
                   : (requestedReason ?? "unsupported_message"),
