@@ -34,7 +34,20 @@ Every ingest, send and settings mutation serialises on `SELECT … FOR UPDATE` o
 
 ## PR 1 — stop silent outages
 
-Shipped on `main` (merge of the auto-reply silent-outage PR). Operator notes are in `docs/auto-reply-setup.md` under «السلوك والاعتمادية». The steps below are the record of what landed; later PRs in this file are still open.
+**Shipped** on `main` in [PR #28](https://github.com/Ab0umar/SELRS/pull/28) (merge `57c27eb5`). Skip this section. Operator detail is in `docs/auto-reply-setup.md` («انقطاع فحص Meta وإعادة الطابور»). The central-engine caveat below is closed by re-keying. The visible-cancel fallback (cancel the job and move the conversation to `human`) was not used.
+
+What the code does:
+
+- `isTransientCheckFailure` treats `META_NETWORK`, a `retryable` `ProviderError` (HTTP 429 and Meta codes 4, 17, 32, 613, 130429, 131056), HTTP status 500 or higher, and `META_1` / `META_2` (optional `_subcode`) as transient. `recheckConnection` then leaves the `auto_reply_connections` row unchanged.
+- The periodic scan runs about once an hour and checks a row when the fingerprint matches, `checkedAt` is set, and `checkedAt` is at least 6 hours old. Rows with `checkOk = false` are included.
+- An inline re-check throws `CONNECTION_CHECK_TRANSIENT` (`retryable`, 60 seconds). That code uses the normal three-attempt path. `CHECK_NOT_OK` skips the inline call when `checkedAt` is under 5 minutes. `CHECK_EXPIRED` does not.
+- `requeueJob` clears `claim` and `leaseUntil`. `retry` stays `retry`; every other requeued state becomes `pending`. An `auto` job also clears `body` and sets `requestKey` to `hash("requeue:" + previousKey)`. A staff job keeps its body and key. `requeueQueuedJobs` does this for every `auto` job and for any `generating` job in `pending` / `retry` / `generating`.
+- `saveSettings` requeues only when sending was on and stays on. Otherwise it cancels those states with `SETTINGS_CHANGED`.
+- `withKnowledgeUpdate` always requeues. It does not read `sendingEnabled`.
+- At send time, a changed settings revision requeues an `auto` job. A staff job still sends while sending is on. Sending off cancels first with `STOPPED_BEFORE_SEND`.
+- `LOCAL_RATE_LIMIT` waits 2 seconds and stores `attempts` as `max(0, attempts - 1)`, which puts back the attempt the claim just added.
+- `logInternalError` records `jobId`, error `name`, driver `code` (or `cause.code`), and up to 10 stack frames. It does not log `error.message`. `ProviderError` is left to the existing safe warnings. The worker loop still prints `[auto-reply] WORKER_STORAGE_UNAVAILABLE` at most once a minute.
+- `drizzle/0113_auto_reply_provider_indexes.sql` adds `ar_message_provider` and `ar_job_provider`. `server/_core/systemRouter.ts` ignores `ER_DUP_KEYNAME` per statement, then records the file in `schema_migrations`.
 
 1. **Transient check failure must not disable a channel** (`worker.ts`, periodic check in `startAutoReplyWorker`).
    - A network error, HTTP 429, HTTP 5xx, or Meta codes 1/2 during `checkMetaConnection` is transient: leave the `auto_reply_connections` row untouched.
@@ -42,7 +55,7 @@ Shipped on `main` (merge of the auto-reply silent-outage PR). Operator notes are
    - In `runAutoReplyTick`, when verification fails with `CHECK_NOT_OK` or `CHECK_EXPIRED`, the row exists, and its fingerprint is current: run one inline re-check (skip if `checkedAt` is under 5 minutes old and the failure is `CHECK_NOT_OK`), then re-evaluate. A transient outcome throws a retryable `ProviderError`.
 2. **Settings save must not cancel staff replies** (`store.ts` `saveSettings`). When sending was on before and stays on: leave manual jobs alone; requeue auto jobs instead of cancelling (clear `body` on pending/retry/generating auto jobs; move `generating` jobs of any kind back to `pending` with `claim` and `leaseUntil` cleared). When sending is off before or after the save, keep today's cancel-everything behaviour ("never release a backlog").
 3. **Knowledge save must not drop replies** (`store.ts` `withKnowledgeUpdate`): same requeue.
-   - Caveat to resolve: with `engine: "central"`, a second generation for the same `requestKey` hits the duplicate check in `server/services/ai/managementStore.ts` (around line 172) and the job ends `unknown`. Read that path and make a requeued job regenerate cleanly without breaking the Manus pending/resume flow, which depends on a stable request id across `CENTRAL_AI_PENDING` retries. If no safe option exists, keep cancel for central-engine jobs but move the conversation to `human` with the reason, so it is visible.
+   - Resolved in PR #28: a requeued `auto` job gets `requestKey = hash("requeue:" + oldKey)`. `managedReplyLive` derives the central id from that key, so the new generation reserves cleanly. Jobs that are not requeued keep their key, which is what `CENTRAL_AI_PENDING` resume and the no-rebill-after-ambiguous-outcome path still use. A Manus task still pending at save time is left for the existing Manus reconciliation.
 4. **`LOCAL_RATE_LIMIT` must not consume attempts** (`worker.ts` `jobFailure`): retry in 2 seconds and do not count the attempt.
 5. **Log internal errors** (`worker.ts`, both catch blocks): for anything that is not a `ProviderError`, log job id, error name, driver error code and stack frames only. Drizzle error messages can contain query parameters, so never log `error.message`.
 6. **Indexes**: add an index on `provider_id` to `auto_reply_messages` and `auto_reply_jobs` (`drizzle/autoReply.ts` plus one migration).
