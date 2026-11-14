@@ -186,6 +186,7 @@ export async function marketingSummary() {
 interface MarketingDeliveryResult extends RowDataPacket {
   id: number;
   campaignName: string;
+  campaignKind: "opt_in" | "promotion";
   recipientPhone: string;
   state: "accepted" | "sent" | "delivered" | "read" | "failed";
   errorCode: string | null;
@@ -197,7 +198,7 @@ export async function marketingDeliveryResults() {
   const connection = await getDbConnection();
   try {
     const [rows] = await connection.query<MarketingDeliveryResult[]>(`
-      SELECT d.id, c.name AS campaignName, d.recipient_phone AS recipientPhone,
+      SELECT d.id, c.name AS campaignName, c.kind AS campaignKind, d.recipient_phone AS recipientPhone,
         COALESCE(r.state, d.status) AS state, r.error_code AS errorCode,
         COALESCE(r.error_details, d.error_message) AS errorDetails, d.sent_at AS sentAt
       FROM whatsapp_marketing_deliveries d

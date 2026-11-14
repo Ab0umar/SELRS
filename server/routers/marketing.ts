@@ -49,6 +49,12 @@ import {
   whatsappCopyInput,
 } from "../services/ai/whatsappCopy";
 import {
+  listWhatsAppOffers,
+  saveWhatsAppOffer,
+  setWhatsAppOfferEnabled,
+  whatsappOfferFields,
+} from "../services/whatsappOffers";
+import {
   marketingRecoveryPlan,
   recoverCentralMarketing,
   recoveryInput,
@@ -854,6 +860,39 @@ export const marketingRouter = router({
   generateWhatsAppCopy: adminProcedure
     .input(whatsappCopyInput)
     .mutation(({ input, ctx }) => generateWhatsAppCopy(input, ctx.user.id)),
+  whatsappOffers: adminProcedure.query(() => listWhatsAppOffers()),
+  saveWhatsAppOffer: adminProcedure
+    .input(
+      whatsappOfferFields
+        .extend({ id: z.string().min(1).max(64).optional() })
+        .strict(),
+    )
+    .mutation(async ({ input, ctx }) => {
+      const offer = await saveWhatsAppOffer(input);
+      await addLog(
+        null,
+        "whatsapp_offer_saved",
+        "info",
+        `WhatsApp offer ${offer.id} saved by user ${ctx.user.id}`,
+      );
+      return offer;
+    }),
+  setWhatsAppOfferEnabled: adminProcedure
+    .input(
+      z
+        .object({ id: z.string().min(1).max(64), enabled: z.boolean() })
+        .strict(),
+    )
+    .mutation(async ({ input, ctx }) => {
+      const offer = await setWhatsAppOfferEnabled(input.id, input.enabled);
+      await addLog(
+        null,
+        "whatsapp_offer_enabled",
+        "info",
+        `WhatsApp offer ${offer.id} ${input.enabled ? "enabled" : "disabled"} by user ${ctx.user.id}`,
+      );
+      return offer;
+    }),
   readWhatsAppCopy: adminProcedure
     .input(z.object({ requestId: z.string().uuid() }).strict())
     .query(({ input, ctx }) => readWhatsAppCopy(input.requestId, ctx.user.id)),

@@ -7,6 +7,7 @@ import { AiManagementError, AiManagementStore } from "./managementStore";
 import { AiTaskPending, readManusJson, startManusJson } from "./manusJson";
 import { AiRequestNotSubmitted, settleAiFailure } from "./failure";
 import { whatsappRequestContext } from "../../../shared/ai-request-context";
+import { listWhatsAppOffers, offerIsActive } from "../whatsappOffers";
 
 export const whatsappCopyInput = whatsappRequestContext;
 type Input = z.infer<typeof whatsappCopyInput>;
@@ -46,8 +47,11 @@ function messagesSchema(_input: Input) {
     .strict();
 }
 const variants = z.array(z.string().min(1).max(1024)).length(3);
-const pendingCopy = z.object({ pending: whatsappCopyInput });
-function copyTask(input: Input) {
+const pendingCopy = z.object({
+  pending: whatsappCopyInput,
+  facts: z.string().min(1).max(400).optional(),
+});
+function copyTask(input: Input, facts = whatsappOfferFacts(input)) {
   return {
     workload: "whatsapp.marketing" as const,
     instruction: [
@@ -60,23 +64,43 @@ function copyTask(input: Input) {
     ].join("\n"),
     input: JSON.stringify({
       campaign: input.kind,
-      OFFER_FACTS: whatsappOfferFacts(input),
+      OFFER_FACTS: facts,
     }),
     schema: messagesSchema(input),
   };
 }
-function copyVariants(result: { messages: string[] }, input: Input) {
+function copyVariants(
+  result: { messages: string[] },
+  input: Input,
+  facts = whatsappOfferFacts(input),
+) {
+  const offerLine = input.kind === "reminder" ? "" : facts;
   return variants.parse(
     result.messages.map((message) =>
-      [message, offerLine(input), bookingLine].filter(Boolean).join("\n"),
+      [message, offerLine, bookingLine].filter(Boolean).join("\n"),
     ),
   );
 }
-function offerLine(input: Input) {
-  return input.kind === "reminder" ? "" : whatsappOfferFacts(input);
+const cairoToday = () =>
+  new Intl.DateTimeFormat("en-CA", { timeZone: "Africa/Cairo" }).format(
+    new Date(),
+  );
+/** The offer line for an editable offer; it must be enabled and not past its end date. */
+export async function resolveWhatsAppOfferFacts(input: Input) {
+  if (input.kind !== "offer") return whatsappOfferFacts(input);
+  const offer = (await listWhatsAppOffers()).find(
+    (entry) => entry.id === input.offerId,
+  );
+  if (!offer || !offerIsActive(offer, cairoToday()))
+    throw new AiManagementError("unavailable");
+  return offer.endsOn
+    ? `${offer.details} العرض سارٍ حتى ${offer.endsOn.split("-").reverse().join("/")}.`
+    : offer.details;
 }
 export function whatsappOfferFacts(input: Input) {
   switch (input.kind) {
+    case "offer":
+      throw new Error("Editable offers are resolved from saved settings");
     case "lasik":
       return "خصم يصل إلى 15% على عمليات تصحيح الإبصار.";
     case "cataract":
@@ -109,15 +133,17 @@ export async function readWhatsAppCopy(requestId: string, owner: number) {
   const payload = row.variants_json ? JSON.parse(row.variants_json) : null;
   if (payload && !Array.isArray(payload)) {
     if (state === "failed") return { requestId, state, variants: null };
-    const input = pendingCopy.parse(payload).pending;
+    const parsed = pendingCopy.parse(payload);
+    const input = parsed.pending;
     if (input.requestId !== requestId) throw new AiManagementError("duplicate");
+    const facts = parsed.facts ?? whatsappOfferFacts(input);
     try {
       const result = await readManusJson(
         requestId,
-        copyTask(input),
+        copyTask(input, facts),
         new AiManagementStore(getDbConnection),
       );
-      const texts = copyVariants(result.value, input);
+      const texts = copyVariants(result.value, input, facts);
       const saved = await getDbConnection();
       try {
         await saved.execute(
@@ -144,12 +170,14 @@ export async function generateWhatsAppCopy(raw: unknown, owner: number) {
   if (process.env.AI_CORE_MANAGEMENT_ENABLED !== "true")
     throw new AiManagementError("disabled");
   const input = whatsappCopyInput.parse(raw);
+  const facts = await resolveWhatsAppOfferFacts(input);
   const hash = createHash("sha256")
     .update(
-      JSON.stringify({
-        kind: input.kind,
-        days: [...new Set(input.days)].sort(),
-      }),
+      JSON.stringify(
+        input.kind === "offer"
+          ? { kind: input.kind, offerId: input.offerId, facts }
+          : { kind: input.kind, days: [...new Set(input.days)].sort() },
+      ),
     )
     .digest("hex");
   const connection = await getDbConnection();
@@ -186,7 +214,15 @@ export async function generateWhatsAppCopy(raw: unknown, owner: number) {
           import("mysql2/promise").ResultSetHeader
         >(
           "UPDATE ai_whatsapp_drafts SET variants_json=? WHERE request_id=? AND created_by=? AND variants_json IS NULL",
-          [JSON.stringify({ pending: input }), input.requestId, owner],
+          [
+            JSON.stringify(
+              input.kind === "offer"
+                ? { pending: input, facts }
+                : { pending: input },
+            ),
+            input.requestId,
+            owner,
+          ],
         );
         if (written.affectedRows !== 1)
           throw new Error("WhatsApp request context was not saved");
@@ -197,7 +233,7 @@ export async function generateWhatsAppCopy(raw: unknown, owner: number) {
       await startManusJson(
         input.requestId,
         profile.model,
-        copyTask(input),
+        copyTask(input, facts),
         store,
       );
     }
@@ -205,7 +241,7 @@ export async function generateWhatsAppCopy(raw: unknown, owner: number) {
       usage = event;
     }).generateJson({
       model: profile.model,
-      ...copyTask(input),
+      ...copyTask(input, facts),
       jsonSchema: {
         type: "object",
         additionalProperties: false,
@@ -220,7 +256,7 @@ export async function generateWhatsAppCopy(raw: unknown, owner: number) {
         required: ["messages"],
       },
     });
-    const texts = copyVariants(result, input);
+    const texts = copyVariants(result, input, facts);
     const saved = await getDbConnection();
     try {
       await saved.execute(
