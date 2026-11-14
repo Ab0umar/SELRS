@@ -7,6 +7,23 @@ export function autoReplyErrorLabel(code: string): string {
   return code;
 }
 
+const handoffReasonLabels: Record<string, string> = {
+  human_requested: "العميل طلب موظف",
+  clinical: "سؤال طبي",
+  untrusted_instruction: "محاولة تغيير تعليمات البوت",
+  unsupported_message: "رسالة غير نصية",
+  missing_information: "المعلومة غير متاحة",
+  needs_review: "الرد يحتاج مراجعة",
+  output_guard: "الرد يحتاج مراجعة",
+  personal_information: "بيانات شخصية في تعليق",
+  rate_limited: "تجاوز حد الردود الآلية",
+  outside_hours: "خارج مواعيد العمل",
+  comment_deleted: "تعليق محذوف",
+};
+export function handoffReasonLabel(code: string) {
+  return handoffReasonLabels[code] ?? autoReplyErrorLabel(code);
+}
+
 export const autoReplyChannels = [
   "whatsapp",
   "messenger",
@@ -90,6 +107,7 @@ export const autoReplySettingsSchema = z.object({
             .optional(),
           outsideMessage: z.string().trim().min(1).max(1000).optional(),
           outsideMessageEn: z.string().trim().min(1).max(1000).optional(),
+          replyMode: z.enum(["auto", "suggest"]).optional(),
         })
         .refine(
           (value) => !value.hoursEnabled || !!value.hours?.length,
@@ -98,6 +116,8 @@ export const autoReplySettingsSchema = z.object({
     )
     .default({}),
   engine: z.enum(["current", "central"]).default("current"),
+  // "suggest" stores the generated reply as a draft for staff approval.
+  replyMode: z.enum(["auto", "suggest"]).default("auto"),
   knowledgeMode: z.enum(["legacy", "teach_ai"]).default("legacy"),
   historyMessageLimit: z.number().int().min(0).max(50).default(12),
   temperature: z.number().min(0).max(2).default(0.2),
@@ -125,6 +145,25 @@ export const autoReplySettingsSchema = z.object({
     .default("gemini-3.8-flash"),
   maxReplyChars: z.number().int().min(100).max(2000).default(600),
   retentionDays: z.number().int().min(7).max(365).default(30),
+  // 0 keeps a staff handoff until staff reopen it.
+  handoffReopenHours: z.number().int().min(0).max(720).default(24),
+  // 0 resumes automation on the next customer message after a staff reply.
+  staffReplyPauseMinutes: z.number().int().min(0).max(1440).default(0),
+  maxAutoRepliesPerHour: z.number().int().min(1).max(200).default(20),
+  // WhatsApp voice notes are sent to Google Gemini for transcription (owner-approved).
+  voiceTranscription: z.boolean().default(true),
+  // Offered to the model as an approved fact; the bot never touches bookings itself.
+  bookingUrl: z
+    .union([
+      z.literal(""),
+      z
+        .string()
+        .trim()
+        .max(500)
+        .url()
+        .regex(/^https:\/\/\S+$/, "رابط الحجز لازم يبدأ بـ https://"),
+    ])
+    .default(""),
   style: z
     .string()
     .trim()
@@ -214,22 +253,6 @@ export function isAutoReplyRecipientAllowed(
 export function supportsGeminiSampling(model: string) {
   return /^gemini-(?:[12]\.|3\.[0-5](?:\D|$))/.test(model);
 }
-export const knowledgeKinds = [
-  "service",
-  "price",
-  "branch",
-  "doctor_schedule",
-  "faq",
-  "booking",
-] as const;
-export const knowledgeSchema = z.object({
-  targetPage: replyTargetSchema,
-  kind: z.enum(knowledgeKinds),
-  title: z.string().trim().min(1).max(255),
-  content: z.string().trim().min(1).max(4000),
-  keywords: z.string().trim().max(1000).default(""),
-  approved: z.boolean().default(false),
-});
 export const teachingSchema = z.object({
   title: z.string().trim().min(1).max(255),
   content: z.string().trim().min(1).max(30000),

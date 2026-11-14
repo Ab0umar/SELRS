@@ -12,6 +12,7 @@ export const ROUTES = {
   forcePasswordChange: "/force-password-change",
   ai: "/ai",
   aiReplies: "/ai/replies",
+  aiInbox: "/ai/inbox",
   aiMedical: "/ai/medical",
   aiMarketing: "/ai/marketing",
   aiWhatsApp: "/ai/whatsapp",

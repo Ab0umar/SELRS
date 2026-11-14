@@ -15,6 +15,10 @@ export type InboundEvent = {
   humanEcho: boolean;
   unsupported: boolean;
   deleted: boolean;
+  // Facebook comments only: the comment this one answers, when it is nested.
+  parentId?: string;
+  // WhatsApp voice notes only: the Graph media id to transcribe.
+  mediaId?: string;
 };
 const id = z.string().min(1).max(255);
 const message = z.object({
@@ -23,6 +27,12 @@ const message = z.object({
   is_echo: z.boolean().optional(),
   app_id: z.union([z.string(), z.number()]).optional(),
 });
+const messagingItem = z.object({
+  sender: z.object({ id }),
+  recipient: z.object({ id }),
+  timestamp: z.number(),
+  message: message.optional(),
+});
 const envelope = z.object({
   object: z.string().optional(),
   entry: z
@@ -30,17 +40,8 @@ const envelope = z.object({
       z.object({
         id: z.string().max(128),
         time: z.number().optional(),
-        messaging: z
-          .array(
-            z.object({
-              sender: z.object({ id }),
-              recipient: z.object({ id }),
-              timestamp: z.number(),
-              message: message.optional(),
-            }),
-          )
-          .max(1000)
-          .optional(),
+        // Items are validated one by one so a single odd event cannot drop the batch.
+        messaging: z.array(z.unknown()).max(1000).optional(),
         changes: z
           .array(z.object({ field: z.string(), value: z.unknown() }))
           .max(1000)
@@ -61,6 +62,7 @@ const whatsappValue = z.object({
         timestamp: z.string(),
         type: z.string(),
         text: z.object({ body: z.string().max(20_000) }).optional(),
+        audio: z.object({ id }).optional(),
       }),
     )
     .max(1000)
@@ -113,7 +115,10 @@ export function parseMetaEvents(
       parsed.object === "page" &&
       facebookPages().some((p) => p.accountId && p.accountId === entry.id)
     ) {
-      for (const e of entry.messaging ?? []) {
+      for (const item of entry.messaging ?? []) {
+        const parsedItem = messagingItem.safeParse(item);
+        if (!parsedItem.success) continue;
+        const e = parsedItem.data;
         if (!e.message?.mid) continue;
         const echo = Boolean(e.message.is_echo);
         if (
@@ -192,7 +197,8 @@ export function parseMetaEvents(
           const participantId = m.from || m.from_user_id;
           if (
             !participantId ||
-            participantId === value.data.metadata.phone_number_id
+            participantId === value.data.metadata.phone_number_id ||
+            m.type === "reaction"
           )
             continue;
           push({
@@ -206,6 +212,9 @@ export function parseMetaEvents(
             humanEcho: false,
             unsupported: m.type !== "text" || !m.from,
             deleted: false,
+            ...(m.type === "audio" && m.audio?.id && m.from
+              ? { mediaId: m.audio.id, text: "[رسالة صوتية]" }
+              : {}),
           });
         }
       }
@@ -238,6 +247,9 @@ export function parseMetaEvents(
           humanEcho: false,
           unsupported: !v.message,
           deleted: v.verb === "remove",
+          ...(v.parent_id && v.parent_id !== v.post_id
+            ? { parentId: v.parent_id }
+            : {}),
         });
       }
     }

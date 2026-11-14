@@ -17,6 +17,8 @@ import {
   withinReplyWindow,
   isPriceQuestion,
   replyTargetMatches,
+  replyInEnglish,
+  selectKnowledgeContext,
 } from "../services/auto-reply/policy";
 import {
   checkMetaConnection,
@@ -163,14 +165,16 @@ describe("auto-reply webhook boundary", () => {
       ).status,
     ).toBe(403);
   });
-  it.each(["missing", "tampered", "invalid_json", "valid"])(
+  it.each(["missing", "tampered", "invalid_json", "invalid_schema", "valid"])(
     "validates exact body bytes: %s",
     async (kind) => {
       const url = await open();
       const raw =
         kind === "invalid_json"
           ? "{"
-          : JSON.stringify({ object: "page", entry: [] });
+          : kind === "invalid_schema"
+            ? JSON.stringify({ object: "page", entry: [{ id: 456 }] })
+            : JSON.stringify({ object: "page", entry: [] });
       const signed = kind === "tampered" ? raw + " " : raw;
       const response = await fetch(url, {
         method: "POST",
@@ -184,8 +188,13 @@ describe("auto-reply webhook boundary", () => {
               }),
         },
       });
+      // A signed but unexpected envelope is acknowledged so Meta stops redelivering it.
       expect(response.status).toBe(
-        kind === "valid" ? 200 : kind === "invalid_json" ? 400 : 401,
+        kind === "valid" || kind === "invalid_schema"
+          ? 200
+          : kind === "invalid_json"
+            ? 400
+            : 401,
       );
     },
   );
@@ -408,6 +417,110 @@ describe("channel policy", () => {
       ),
     ).toBe(false);
   });
+  it("keeps the media id of a WhatsApp voice note", () => {
+    const [voice] = parseMetaEvents({
+      object: "whatsapp_business_account",
+      entry: [
+        {
+          id: "987",
+          changes: [
+            {
+              field: "messages",
+              value: {
+                metadata: { phone_number_id: "789" },
+                messages: [
+                  {
+                    id: "voice-1",
+                    from: "201000000000",
+                    timestamp: String(Math.floor(Date.now() / 1000)),
+                    type: "audio",
+                    audio: { id: "media-1" },
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      ],
+    });
+    expect(voice).toMatchObject({ mediaId: "media-1", unsupported: true });
+  });
+  it("ignores WhatsApp reactions entirely", () => {
+    expect(
+      parseMetaEvents({
+        object: "whatsapp_business_account",
+        entry: [
+          {
+            id: "987",
+            changes: [
+              {
+                field: "messages",
+                value: {
+                  metadata: { phone_number_id: "789" },
+                  messages: [
+                    {
+                      id: "reaction-1",
+                      from: "201000000000",
+                      timestamp: String(Math.floor(Date.now() / 1000)),
+                      type: "reaction",
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+        ],
+      }),
+    ).toEqual([]);
+  });
+  it("marks a nested comment with its parent and leaves top-level comments alone", () => {
+    const comment = (id: string, parent: string) =>
+      parseMetaEvents({
+        object: "page",
+        entry: [
+          {
+            id: "456",
+            changes: [
+              {
+                field: "feed",
+                value: {
+                  item: "comment",
+                  verb: "add",
+                  comment_id: id,
+                  post_id: "456_post",
+                  parent_id: parent,
+                  from: { id: "user" },
+                  message: "hello",
+                  created_time: Math.floor(Date.now() / 1000),
+                },
+              },
+            ],
+          },
+        ],
+      })[0];
+    expect(comment("top", "456_post").parentId).toBeUndefined();
+    expect(comment("reply", "other-comment").parentId).toBe("other-comment");
+  });
+  it("skips a malformed Messenger item and keeps the rest of the batch", () => {
+    const events = parseMetaEvents({
+      object: "page",
+      entry: [
+        {
+          id: "456",
+          messaging: [
+            { sender: { id: "user" }, timestamp: "not-a-number" },
+            {
+              sender: { id: "user" },
+              recipient: { id: "456" },
+              timestamp: Date.now(),
+              message: { mid: "good", text: "hello" },
+            },
+          ],
+        },
+      ],
+    });
+    expect(events.map((event) => event.providerId)).toEqual(["good"]);
+  });
   it("ignores page echoes from this app and other pages", () => {
     const event = {
       sender: { id: "456" },
@@ -458,6 +571,95 @@ describe("channel policy", () => {
       1,
     ]);
     expect(retrieveKnowledge("سعر الليزك", knowledge)).toEqual([]);
+  });
+  it("does not match entries on Arabic stop words alone", () => {
+    expect(
+      retrieveKnowledge("في من", [
+        { id: 9, kind: "faq", title: "معلومة", content: "في المركز من", keywords: "" },
+      ]),
+    ).toEqual([]);
+  });
+  it("ranks paragraphs of a long entry and keeps its id on each chunk", () => {
+    const filler = "معلومات عامة عن المركز. ".repeat(140);
+    const entry = {
+      id: 7,
+      kind: "teach_ai",
+      title: "كل المعلومات",
+      content: `${filler}\n\n${filler}\n\nمواعيد الليزك يوم الأحد`,
+      keywords: "",
+    };
+    const [first] = selectKnowledgeContext("مواعيد الليزك", [entry], 4000);
+    expect(first.id).toBe(7);
+    expect(first.content).toContain("مواعيد الليزك");
+    expect(first.content.length).toBeLessThanOrEqual(3000);
+  });
+  it("checks numbers after list markers, accepts title numbers and trims link punctuation", async () => {
+    const generate = (text: string) => async () => ({
+      reply: { text, handoff: false, sourceIds: [3] },
+      usage: { inputTokens: 1, outputTokens: 1, model: "fixture" },
+      finishReason: "STOP",
+    });
+    const args = {
+      channel: "messenger" as const,
+      text: "باقة 2026",
+      context: [],
+      knowledge: [
+        {
+          id: 3,
+          kind: "faq",
+          title: "باقة 2026",
+          content: "الباقة متاحة على https://selrs.cc/offer",
+          keywords: "باقة",
+        },
+      ],
+      settings: autoReplySettingsSchema.parse({}),
+    };
+    const reply = await proposeReply(
+      args,
+      generate("1. باقة 2026 متاحة.\n2. التفاصيل: https://selrs.cc/offer."),
+    );
+    expect(reply.handoff).toBe(false);
+    const guarded = await proposeReply(args, generate("الباقة بـ 999"));
+    expect(guarded.reason).toBe("output_guard");
+  });
+  it("lets the model send the configured booking link and nothing else", async () => {
+    const generate = vi.fn(async () => ({
+      reply: {
+        text: "تقدر تحجز من هنا: https://selrs.cc/book",
+        handoff: false,
+        sourceIds: [-1000],
+      },
+      usage: { inputTokens: 1, outputTokens: 1, model: "fixture" },
+      finishReason: "STOP",
+    }));
+    const args = {
+      channel: "messenger" as const,
+      text: "عايز احجز موعد",
+      context: [],
+      knowledge: [],
+    };
+    const booked = await proposeReply(
+      {
+        ...args,
+        settings: autoReplySettingsSchema.parse({
+          bookingUrl: "https://selrs.cc/book",
+        }),
+      },
+      generate,
+    );
+    expect(booked).toMatchObject({ handoff: false, sourceIds: [-1000] });
+    const without = await proposeReply(
+      { ...args, settings: autoReplySettingsSchema.parse({}) },
+      generate,
+    );
+    expect(without.handoff).toBe(true);
+    expect(() =>
+      autoReplySettingsSchema.parse({ bookingUrl: "http://selrs.cc/book" }),
+    ).toThrow();
+  });
+  it("falls back to the first message's language only when the current one has no letters", () => {
+    expect(replyInEnglish("???", "Hello")).toBe(true);
+    expect(replyInEnglish("عنوان", "Hello")).toBe(false);
   });
 });
 describe("Gemini and Meta failure isolation", () => {

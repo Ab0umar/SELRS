@@ -28,7 +28,7 @@ export default function MarketingJobRecovery({ jobId }: { jobId: string }) {
   const [confirm, setConfirm] = useState(false);
   const busy = useRef(false);
   const utils = trpc.useUtils();
-  const capability = trpc.aiManagement.status.useQuery(undefined, {
+  const capability = trpc.marketing.assistantStatus.useQuery(undefined, {
     retry: false,
   });
   const available = Boolean(

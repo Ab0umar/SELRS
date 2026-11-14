@@ -18,7 +18,7 @@ export default function CentralMarketingDraft() {
   );
   const busy = useRef(false);
   const utils = trpc.useUtils();
-  const capabilities = trpc.aiManagement.status.useQuery(undefined, {
+  const capabilities = trpc.marketing.assistantStatus.useQuery(undefined, {
     retry: false,
   });
   const available =

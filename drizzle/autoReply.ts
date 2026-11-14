@@ -110,6 +110,8 @@ export const autoReplyConversations = mysqlTable(
       .$defaultFn(() => new Date())
       .notNull(),
     revision: int("revision").default(0).notNull(),
+    // Set once staff are told about a handoff; cleared when the conversation leaves `human`.
+    handoffNotifiedAt: autoReplyTime("handoff_notified_at"),
   },
   (t) => [
     uniqueIndex("ar_conversation_identity").on(t.identityHash),
@@ -133,6 +135,8 @@ export const autoReplyMessages = mysqlTable(
     conversationId: int("conversation_id").notNull(),
     eventKey: varchar("event_key", { length: 64 }).notNull(),
     providerId: varchar("provider_id", { length: 255 }),
+    // WhatsApp audio waiting for transcription; cleared once handled. The audio itself is never stored.
+    mediaId: varchar("media_id", { length: 255 }),
     direction: varchar("direction", { length: 20 }).notNull(),
     body: text("body").notNull(),
     state: varchar("state", { length: 32 }).default("received").notNull(),
@@ -166,6 +170,8 @@ export const autoReplyJobs = mysqlTable(
     revision: int("revision").notNull(),
     providerId: varchar("provider_id", { length: 255 }),
     errorCode: varchar("error_code", { length: 64 }),
+    // Staff user who approved a suggested reply.
+    approvedBy: int("approved_by"),
     model: varchar("model", { length: 100 }),
     inputTokens: int("input_tokens").default(0).notNull(),
     outputTokens: int("output_tokens").default(0).notNull(),

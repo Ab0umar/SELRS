@@ -1,10 +1,12 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { trpc } from "@/lib/trpc";
+import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import ManusGenerationJobs from "./ManusGenerationJobs";
 import CentralDraftImage from "./CentralDraftImage";
+import SchedulePostButton from "./SchedulePostButton";
 import {
   Dialog,
   DialogContent,
@@ -28,6 +30,8 @@ import { marketingSlotLabel } from "@shared/marketingSchedule";
 type PageRole = "center" | "doctor";
 
 export default function DraftPosts() {
+  const { user } = useAuth();
+  const isAdmin = user?.role === "admin";
   const [editing, setEditing] = useState<{
     id: number;
     title: string;
@@ -47,6 +51,13 @@ export default function DraftPosts() {
 
   const utils = trpc.useUtils();
 
+  // Notifications link here as /marketing/drafts?post=<id>.
+  const [linkedPostId] = useState(() => {
+    const value = Number(
+      new URLSearchParams(window.location.search).get("post"),
+    );
+    return Number.isInteger(value) && value > 0 ? value : null;
+  });
   const listQuery = trpc.marketing.listPosts.useQuery({
     status: "draft",
     limit,
@@ -114,14 +125,23 @@ export default function DraftPosts() {
     )?.find((post) => post.id === pickerPostId)?.pageRole ?? "center";
   const designsQuery = trpc.marketing.listReferenceDesigns.useQuery(
     { pageRole: pickerPageRole },
-    { enabled: pickerPostId !== null },
+    { enabled: pickerPostId !== null && isAdmin },
   );
 
   const posts = listQuery.data ?? [];
+  const linkedFound = posts.some(
+    (post: { id: number }) => post.id === linkedPostId,
+  );
+  useEffect(() => {
+    if (!linkedFound || linkedPostId === null) return;
+    document
+      .getElementById(`marketing-post-${linkedPostId}`)
+      ?.scrollIntoView({ block: "center" });
+  }, [linkedFound, linkedPostId]);
   const jobsQuery = trpc.marketing.generationJobs.useQuery(undefined, {
     refetchInterval: 5000,
   });
-  const capability = trpc.aiManagement.status.useQuery(undefined, {
+  const capability = trpc.marketing.assistantStatus.useQuery(undefined, {
     retry: false,
   });
   const centralJobs = trpc.marketing.centralGenerationJobs.useQuery(undefined, {
@@ -188,7 +208,12 @@ export default function DraftPosts() {
             {posts.map((post: any) => (
               <div
                 key={post.id}
-                className="rounded-xl border border-border bg-card overflow-hidden"
+                id={`marketing-post-${post.id}`}
+                className={`rounded-xl border bg-card overflow-hidden ${
+                  post.id === linkedPostId
+                    ? "border-primary ring-2 ring-primary/30"
+                    : "border-border"
+                }`}
               >
                 {/* Image area */}
                 {post.imageUrl ? (
@@ -252,6 +277,18 @@ export default function DraftPosts() {
                     </Badge>
                   </div>
 
+                  {post.contentFlags?.length > 0 && (
+                    <div
+                      role="note"
+                      className="rounded-md border border-warning/40 bg-warning/10 px-3 py-2 text-xs text-warning-text"
+                    >
+                      <p className="font-medium">
+                        راجع قبل النشر، لن تُنشر تلقائيًا:
+                      </p>
+                      <p>{post.contentFlags.join("، ")}</p>
+                    </div>
+                  )}
+
                   {/* Content */}
                   {post.content && (
                     <p className="line-clamp-3 text-sm text-foreground/80 leading-relaxed">
@@ -299,16 +336,18 @@ export default function DraftPosts() {
                     >
                       مراجعة وتعديل النص
                     </Button>
-                    {/* Pick from brand library — always visible */}
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="gap-1.5 text-xs border-primary/30 text-primary hover:bg-primary/5"
-                      onClick={() => setPickerPostId(post.id)}
-                    >
-                      <BookImage className="h-3 w-3" />
-                      اختر من المكتبة
-                    </Button>
+                    {/* The brand library is admin-only */}
+                    {isAdmin && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="gap-1.5 text-xs border-primary/30 text-primary hover:bg-primary/5"
+                        onClick={() => setPickerPostId(post.id)}
+                      >
+                        <BookImage className="h-3 w-3" />
+                        اختر من المكتبة
+                      </Button>
+                    )}
 
                     <CentralDraftImage postId={post.id} />
                     {post.imagePrompt && (
@@ -387,6 +426,15 @@ export default function DraftPosts() {
                       )}
                       نشر الآن
                     </Button>
+
+                    <SchedulePostButton
+                      postId={post.id}
+                      pageRole={
+                        publishPageRoles[post.id] ?? post.pageRole ?? "center"
+                      }
+                      scheduledAt={post.scheduledAt}
+                      disabled={imagePending(post.id)}
+                    />
 
                     <Button
                       size="sm"

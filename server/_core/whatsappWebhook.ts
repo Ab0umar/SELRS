@@ -26,7 +26,11 @@ import { getDb } from "../db";
 import {ingestConfirmationReceipts} from "../services/whatsappConfirmations";
 import { whatsappInboundMessages } from "../../drizzle/schema";
 import { sendWhatsAppReply } from "../services/whatsappReply.service";
-import { buildWhatsAppInboundAutoReply } from "../services/whatsappInboundAutoReply.service";
+import {
+  buildWhatsAppInboundAutoReply,
+  claimWhatsAppFixedReply,
+  releaseWhatsAppFixedReply,
+} from "../services/whatsappInboundAutoReply.service";
 import {
   marketingPreferenceFromInbound,
   recordMarketingPreference,
@@ -140,6 +144,7 @@ export function registerWhatsAppWebhook(app: Express) {
       }
 
       let newMessages: WhatsAppMessage[];
+      let db: Awaited<ReturnType<typeof getDb>>;
       try {
         await ingestConfirmationReceipts(req.body);
         const messages = extractMessages(req.body);
@@ -161,7 +166,7 @@ export function registerWhatsAppWebhook(app: Express) {
           return;
         }
 
-        const db = await getDb();
+        db = await getDb();
         if (!db) {
           console.error(
             "[whatsapp-webhook] Database not available, retry required for",
@@ -251,11 +256,19 @@ export function registerWhatsAppWebhook(app: Express) {
               });
               continue;
             }
-            await sendWhatsAppReply({
-              recipientPhone: msg.from,
-              message: buildWhatsAppInboundAutoReply(),
-              replyToMessageId: msg.id,
-            });
+            // The fixed reply answers text only, once per number every 6 hours.
+            if (msg.type !== "text") continue;
+            if (!claimWhatsAppFixedReply(msg.from)) continue;
+            try {
+              await sendWhatsAppReply({
+                recipientPhone: msg.from,
+                message: buildWhatsAppInboundAutoReply(),
+                replyToMessageId: msg.id,
+              });
+            } catch (sendError) {
+              releaseWhatsAppFixedReply(msg.from);
+              throw sendError;
+            }
           } catch (replyError) {
             console.error(
               "[whatsapp-webhook] Failed to send automatic reply:",

@@ -274,6 +274,29 @@ export default function MarketingSettings() {
     }));
   }, [selectedPage]);
 
+  const approvalQuery = trpc.marketing.approvalMode.useQuery({ pageRole });
+  const [requireApproval, setRequireApproval] = useState(true);
+  useEffect(() => {
+    if (approvalQuery.data) setRequireApproval(approvalQuery.data.required);
+  }, [approvalQuery.data]);
+  const approvalMutation = trpc.marketing.setApprovalMode.useMutation({
+    onSuccess: () => void utils.marketing.approvalMode.invalidate(),
+    onError: (err: { message: string }) => toast.error(err.message),
+  });
+
+  const reuseQuery = trpc.marketing.topicReuseMonths.useQuery();
+  const [reuseMonths, setReuseMonths] = useState(0);
+  useEffect(() => {
+    if (reuseQuery.data) setReuseMonths(reuseQuery.data.months);
+  }, [reuseQuery.data]);
+  const reuseMutation = trpc.marketing.setTopicReuseMonths.useMutation({
+    onSuccess: () => {
+      toast.success("تم حفظ مدة إعادة استخدام المواضيع");
+      void utils.marketing.topicReuseMonths.invalidate();
+    },
+    onError: (err: { message: string }) => toast.error(err.message),
+  });
+
   const ToggleRow = ({
     label,
     description,
@@ -540,6 +563,12 @@ export default function MarketingSettings() {
               onChange={(v) => setForm((f) => ({ ...f, autoPublish: v }))}
             />
             <ToggleRow
+              label="انتظار موافقتي قبل النشر"
+              description="المنشورات المجدولة تُحفظ كمسودات ولا تُنشر إلا بعد ضغطك على نشر"
+              value={requireApproval}
+              onChange={setRequireApproval}
+            />
+            <ToggleRow
               label={pageRole === "center" ? "الأحد" : "السبت"}
               description="موضوع جديد من المجالات الاثني عشر"
               value={form.saturdayEnabled}
@@ -582,6 +611,33 @@ export default function MarketingSettings() {
               </select>
             </div>
             <div className="flex items-center justify-between gap-4 py-3">
+              <div>
+                <div className="text-sm font-medium text-foreground">
+                  إعادة استخدام المواضيع القديمة
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  للصفحتين معًا. بعد هذه المدة يمكن تناول موضوع منشور سابقًا
+                  بزاوية جديدة
+                </div>
+              </div>
+              <select
+                aria-label="مدة إعادة استخدام المواضيع"
+                value={reuseMonths}
+                disabled={reuseQuery.isLoading || reuseMutation.isPending}
+                onChange={(e) => {
+                  const months = Number(e.target.value);
+                  setReuseMonths(months);
+                  reuseMutation.mutate({ months });
+                }}
+                className="rounded-md border border-input bg-background px-2 py-1.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+              >
+                <option value={0}>أبدًا</option>
+                <option value={6}>بعد 6 أشهر</option>
+                <option value={12}>بعد سنة</option>
+                <option value={24}>بعد سنتين</option>
+              </select>
+            </div>
+            <div className="flex items-center justify-between gap-4 py-3">
               <div className="flex items-center gap-2">
                 <Clock className="h-4 w-4 text-muted-foreground" />
                 <div>
@@ -621,6 +677,14 @@ export default function MarketingSettings() {
               if (pageRole === "center") {
                 updateMutation.mutate({ clinicName: form.contentName });
               }
+              if (
+                approvalQuery.data &&
+                approvalQuery.data.required !== requireApproval
+              )
+                approvalMutation.mutate({
+                  pageRole,
+                  required: requireApproval,
+                });
               if (selectedPage) {
                 pageSettingsMutation.mutate({
                   pageRole,
@@ -635,7 +699,9 @@ export default function MarketingSettings() {
               }
             }}
             disabled={
-              updateMutation.isPending || pageSettingsMutation.isPending
+              updateMutation.isPending ||
+              pageSettingsMutation.isPending ||
+              approvalMutation.isPending
             }
           >
             {updateMutation.isPending ? (

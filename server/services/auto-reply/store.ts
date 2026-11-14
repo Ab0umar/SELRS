@@ -6,6 +6,7 @@ import {
   inArray,
   isNull,
   lt,
+  notInArray,
   notLike,
   or,
   sql,
@@ -28,10 +29,18 @@ import {
   autoReplyEvents as events,
   autoReplyConnections as connections,
 } from "../../../drizzle/autoReply";
-import { hash, safetyDecision } from "./policy";
+import {
+  englishFirst,
+  hash,
+  safetyDecision,
+  unsupportedAcknowledgement,
+} from "./policy";
 import { isRecipientAllowed } from "./recipients";
 import type { InboundEvent, DeliveryReceipt } from "./events";
 
+type AutoReplyTransaction = Parameters<
+  Parameters<MySql2Database["transaction"]>[0]
+>[0];
 export async function getAutoReplyDb(): Promise<MySql2Database> {
   const db = await getDb();
   if (!db)
@@ -177,7 +186,8 @@ export async function ingestEvents(batch: InboundEvent[]) {
           accountId: event.accountId,
           participantId: event.participantId,
           threadId: event.threadId,
-          lastInboundAt: event.at,
+          // A conversation started by staff has no customer message, so no reply window.
+          lastInboundAt: event.humanEcho ? new Date(0) : event.at,
           lastActivityAt: new Date(),
         });
         conversationId = insert.insertId;
@@ -186,6 +196,12 @@ export async function ingestEvents(batch: InboundEvent[]) {
         .select()
         .from(conversations)
         .where(eq(conversations.id, conversationId));
+      // A voice note is treated as text once the worker transcribes it.
+      const voice =
+        event.channel === "whatsapp" &&
+        Boolean(event.mediaId) &&
+        config.voiceTranscription;
+      const unsupported = event.unsupported && !voice;
       // Out-of-order deliveries are stored but cannot invalidate a newer response.
       const stale = event.at.getTime() < current.lastInboundAt.getTime();
       const [insert] = await tx.insert(messages).values({
@@ -194,18 +210,53 @@ export async function ingestEvents(batch: InboundEvent[]) {
         providerId: event.providerId,
         direction: event.humanEcho ? "staff" : "inbound",
         body: event.text,
+        ...(voice ? { mediaId: event.mediaId } : {}),
         createdAt: event.at,
       });
       const requestedReason = event.humanEcho
         ? null
         : safetyDecision(event.text);
       const pause =
-        event.humanEcho || event.unsupported || Boolean(requestedReason);
+        event.humanEcho || unsupported || Boolean(requestedReason);
       const staffReplyPause =
         current.status === "human" &&
         (current.humanReason === "external_staff_reply" ||
           current.humanReason === "staff_reply");
-      const resumeAutomation = !pause && staffReplyPause && !stale;
+      const now = Date.now();
+      let staffPauseOver = true;
+      if (staffReplyPause && config.staffReplyPauseMinutes > 0) {
+        const [lastStaff] = await tx
+          .select({ at: messages.createdAt })
+          .from(messages)
+          .where(
+            and(
+              eq(messages.conversationId, conversationId),
+              eq(messages.direction, "staff"),
+            ),
+          )
+          .orderBy(desc(messages.createdAt))
+          .limit(1);
+        staffPauseOver =
+          !lastStaff ||
+          now - lastStaff.at.getTime() >=
+            config.staffReplyPauseMinutes * 60_000;
+      }
+      // An idle handoff reopens on a new customer message; an explicit takeover never does.
+      const idleHandoff =
+        current.status === "human" &&
+        !staffReplyPause &&
+        current.humanReason !== "staff_takeover" &&
+        config.handoffReopenHours > 0 &&
+        now - current.lastActivityAt.getTime() >
+          config.handoffReopenHours * 3600_000;
+      const reopenable =
+        !event.humanEcho &&
+        ((staffReplyPause && staffPauseOver) || idleHandoff);
+      const resumeAutomation = !pause && reopenable && !stale;
+      const acknowledge =
+        unsupported &&
+        !event.humanEcho &&
+        event.channel !== "facebook_comment";
       if (stale && !pause) continue;
       const nextRevision = current.revision + 1;
       await tx
@@ -214,7 +265,9 @@ export async function ingestEvents(batch: InboundEvent[]) {
           lastActivityAt: new Date(),
           ...(!event.humanEcho && !stale ? { lastInboundAt: event.at } : {}),
           revision: nextRevision,
-          ...(resumeAutomation ? { status: "open", humanReason: null } : {}),
+          ...(resumeAutomation
+            ? { status: "open", humanReason: null, handoffNotifiedAt: null }
+            : {}),
           ...(pause
             ? {
                 status: "human",
@@ -234,30 +287,84 @@ export async function ingestEvents(batch: InboundEvent[]) {
           and(
             eq(jobs.conversationId, conversationId),
             eq(jobs.kind, "auto"),
-            inArray(jobs.state, ["pending", "retry", "generating"]),
+            inArray(jobs.state, ["pending", "retry", "generating", "suggested"]),
           ),
         );
       if (
         !stale &&
         !event.humanEcho &&
-        (!pause || Boolean(requestedReason)) &&
-        (current.status === "open" || resumeAutomation) &&
+        (!pause || Boolean(requestedReason) || acknowledge) &&
+        (current.status === "open" || reopenable) &&
         config.sendingEnabled &&
         isAutoReplyEnabled(config, event.channel, event.accountId) &&
-        (await isRecipientAllowed(tx, config, event))
+        (await isRecipientAllowed(tx, config, event)) &&
+        !(await nestedCommentOutsideBotThread(tx, event))
       ) {
+        const [recent] = await tx
+          .select({ count: sql<number>`count(*)` })
+          .from(messages)
+          .where(
+            and(
+              eq(messages.conversationId, conversationId),
+              eq(messages.direction, "bot"),
+              gte(messages.createdAt, new Date(now - 3600_000)),
+            ),
+          );
+        if (Number(recent?.count ?? 0) >= config.maxAutoRepliesPerHour) {
+          await tx
+            .update(conversations)
+            .set({ status: "human", humanReason: "rate_limited" })
+            .where(eq(conversations.id, conversationId));
+          continue;
+        }
+        let body: string | null = null;
+        if (acknowledge && !requestedReason) {
+          const [first] = await tx
+            .select({ body: messages.body })
+            .from(messages)
+            .where(
+              and(
+                eq(messages.conversationId, conversationId),
+                eq(messages.direction, "inbound"),
+              ),
+            )
+            .orderBy(messages.id)
+            .limit(1);
+          body = unsupportedAcknowledgement(englishFirst(first?.body ?? ""));
+        }
         await tx.insert(jobs).values({
           conversationId,
           inboundId: insert.insertId,
           requestKey: event.key,
           kind: "auto",
           revision: nextRevision,
-          handoff: Boolean(requestedReason),
-          body: null,
+          handoff: Boolean(requestedReason) || acknowledge,
+          body,
         });
       }
     }
   });
+}
+// A nested comment is answered only when it replies to one of the bot's own comments.
+async function nestedCommentOutsideBotThread(
+  tx: AutoReplyTransaction,
+  event: InboundEvent,
+) {
+  if (event.channel !== "facebook_comment" || !event.parentId) return false;
+  const [parent] = await tx
+    .select({ id: messages.id })
+    .from(messages)
+    .innerJoin(conversations, eq(conversations.id, messages.conversationId))
+    .where(
+      and(
+        eq(messages.providerId, event.parentId),
+        eq(messages.direction, "bot"),
+        eq(conversations.channel, "facebook_comment"),
+        eq(conversations.accountId, event.accountId),
+      ),
+    )
+    .limit(1);
+  return !parent;
 }
 export async function recordDeliveryReceipts(receipts: DeliveryReceipt[]) {
   if (!receipts.length) return;
@@ -303,9 +410,6 @@ export async function recordDeliveryReceipts(receipts: DeliveryReceipt[]) {
     }
   });
 }
-type AutoReplyTransaction = Parameters<
-  Parameters<MySql2Database["transaction"]>[0]
->[0];
 // The central engine treats a repeated request id as a duplicate, so a regenerated
 // auto reply gets a new key. Staff replies keep their body and key.
 export async function requeueJob(
@@ -385,6 +489,31 @@ export async function withKnowledgeUpdate<T>(
     return result;
   });
 }
+export async function recordTranscript(messageId: number, body: string) {
+  const db = await getAutoReplyDb();
+  await db.transaction(async (tx) => {
+    await tx
+      .select()
+      .from(settingsTable)
+      .where(eq(settingsTable.id, 1))
+      .for("update");
+    await tx
+      .update(messages)
+      .set({ body, mediaId: null })
+      .where(eq(messages.id, messageId));
+  });
+}
+export async function recordSentMessage(row: typeof messages.$inferInsert) {
+  const db = await getAutoReplyDb();
+  await db.transaction(async (tx) => {
+    await tx
+      .select()
+      .from(settingsTable)
+      .where(eq(settingsTable.id, 1))
+      .for("update");
+    await tx.insert(messages).values(row);
+  });
+}
 export async function setConversationStatus(
   conversationId: number,
   status: "open" | "human" | "closed",
@@ -412,6 +541,7 @@ export async function setConversationStatus(
       .set({
         status,
         humanReason: status === "human" ? "staff_takeover" : null,
+        ...(status === "human" ? {} : { handoffNotifiedAt: null }),
         revision: c.revision + 1,
       })
       .where(eq(conversations.id, conversationId));
@@ -433,7 +563,77 @@ export async function queueManualReply(
 ) {
   await ensureSettings();
   const db = await getAutoReplyDb();
+  return db.transaction((tx) =>
+    queueManualInTransaction(tx, conversationId, body, requestId),
+  );
+}
+// Approving sends through the staff-reply path once; a repeated request id returns the same job.
+export async function approveSuggestion(
+  jobId: number,
+  body: string,
+  requestId: string,
+  userId: number,
+) {
+  await ensureSettings();
+  const db = await getAutoReplyDb();
   return db.transaction(async (tx) => {
+    await tx
+      .select()
+      .from(settingsTable)
+      .where(eq(settingsTable.id, 1))
+      .for("update");
+    const [suggestion] = await tx
+      .select()
+      .from(jobs)
+      .where(eq(jobs.id, jobId))
+      .for("update");
+    if (!suggestion)
+      throw new TRPCError({ code: "NOT_FOUND", message: "الاقتراح غير موجود" });
+    const key = hash(`manual:${suggestion.conversationId}:${requestId}`);
+    const [previous] = await tx
+      .select({ id: jobs.id })
+      .from(jobs)
+      .where(eq(jobs.requestKey, key));
+    if (previous) return { id: previous.id };
+    if (suggestion.state !== "suggested")
+      throw new TRPCError({
+        code: "PRECONDITION_FAILED",
+        message: "الاقتراح لم يعد متاحًا؛ وصلت رسالة أحدث أو تمت مراجعته",
+      });
+    await tx
+      .update(jobs)
+      .set({ state: "approved", approvedBy: userId })
+      .where(eq(jobs.id, jobId));
+    return queueManualInTransaction(
+      tx,
+      suggestion.conversationId,
+      body,
+      requestId,
+    );
+  });
+}
+export async function discardSuggestion(jobId: number, userId: number) {
+  await ensureSettings();
+  const db = await getAutoReplyDb();
+  await db.transaction(async (tx) => {
+    await tx
+      .select()
+      .from(settingsTable)
+      .where(eq(settingsTable.id, 1))
+      .for("update");
+    await tx
+      .update(jobs)
+      .set({ state: "discarded", approvedBy: userId })
+      .where(and(eq(jobs.id, jobId), eq(jobs.state, "suggested")));
+  });
+}
+async function queueManualInTransaction(
+  tx: AutoReplyTransaction,
+  conversationId: number,
+  body: string,
+  requestId: string,
+) {
+  {
     const [row] = await tx
       .select()
       .from(settingsTable)
@@ -502,7 +702,7 @@ export async function queueManualReply(
       revision: c.revision + 1,
     });
     return { id: insert.insertId };
-  });
+  }
 }
 export async function purgeExpiredConversations() {
   const config = await readSettings();
@@ -535,9 +735,63 @@ export async function purgeExpiredConversations() {
       .where(
         and(
           lt(jobs.createdAt, cutoff),
-          inArray(jobs.state, ["sent", "failed", "unknown", "cancelled"]),
+          inArray(jobs.state, [
+            "sent",
+            "failed",
+            "unknown",
+            "cancelled",
+            "approved",
+            "discarded",
+            "suggested",
+          ]),
         ),
       );
+  });
+}
+const silentHandoffReasons = [
+  "staff_takeover",
+  "staff_reply",
+  "external_staff_reply",
+];
+// Claims conversations that moved to staff and were not announced yet; each is returned once.
+export async function claimHandoffNotifications(limit = 20) {
+  const db = await getAutoReplyDb();
+  return db.transaction(async (tx) => {
+    await tx
+      .select()
+      .from(settingsTable)
+      .where(eq(settingsTable.id, 1))
+      .for("update");
+    const pending = await tx
+      .select({
+        id: conversations.id,
+        channel: conversations.channel,
+        humanReason: conversations.humanReason,
+      })
+      .from(conversations)
+      .where(
+        and(
+          eq(conversations.status, "human"),
+          isNull(conversations.handoffNotifiedAt),
+          or(
+            isNull(conversations.humanReason),
+            notInArray(conversations.humanReason, silentHandoffReasons),
+          ),
+        ),
+      )
+      .limit(limit)
+      .for("update");
+    if (pending.length)
+      await tx
+        .update(conversations)
+        .set({ handoffNotifiedAt: new Date() })
+        .where(
+          inArray(
+            conversations.id,
+            pending.map((row) => row.id),
+          ),
+        );
+    return pending;
   });
 }
 export async function conversationContext(conversationId: number) {

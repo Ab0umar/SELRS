@@ -12,7 +12,10 @@
 
 import cron from "node-cron";
 import { planMarketingTopic } from "./topicPlanner";
-import { setMarketingSchedulerStatus } from "./schedulerStatus";
+import {
+  recordMarketingSchedulerSkip,
+  setMarketingSchedulerStatus,
+} from "./schedulerStatus";
 import {
   claimMarketingSchedule,
   releaseUnusedMarketingSchedule,
@@ -24,21 +27,21 @@ import {
   MARKETING_SCHEDULE,
   marketingSlotForWeekday,
 } from "../../../shared/marketingSchedule";
-import { eq, and, gte } from "drizzle-orm";
-import { count as drizzleCount } from "drizzle-orm";
+import { eq, and, gte, lt } from "drizzle-orm";
 import { getDb } from "../../db";
 import {
   marketingPosts,
-  marketingSettings,
   marketingLogs,
   marketingGenerationJobs,
 } from "../../../drizzle/schema";
-import { pickUnpublishedTopic, type PostDay } from "./topicRotation";
-import { publishedMarketingTopics } from "./topicHistory";
+import type { PostDay } from "./topicRotation";
 import {
   ORPHANED_START_ERROR,
   startManusGeneration,
 } from "./manusGeneration.service";
+import { finishScheduledDraft, notifyMarketingAdmins } from "./marketingReview";
+import { initScheduledPostWorker } from "./contentCalendar";
+import { initMarketingPostStatsWorker } from "./postInsights";
 import {
   clearMarketingStartFailures,
   marketingStartAllowed,
@@ -59,6 +62,37 @@ const CAIRO_WEEKDAY_TO_JS_DAY: Record<string, number> = {
   Fri: 5,
   Sat: 6,
 };
+
+/** UTC instant of 00:00 today in Cairo. */
+export function cairoDayStart(date = new Date()): Date {
+  const parts = Object.fromEntries(
+    new Intl.DateTimeFormat("en-US", {
+      timeZone: CAIRO_TIME_ZONE,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hourCycle: "h23",
+    })
+      .formatToParts(date)
+      .map((part) => [part.type, part.value]),
+  );
+  const wall = Date.UTC(
+    Number(parts.year),
+    Number(parts.month) - 1,
+    Number(parts.day),
+    Number(parts.hour),
+    Number(parts.minute),
+    Number(parts.second),
+  );
+  const offset = wall - Math.floor(date.getTime() / 1000) * 1000;
+  return new Date(
+    Date.UTC(Number(parts.year), Number(parts.month) - 1, Number(parts.day)) -
+      offset,
+  );
+}
 
 function getCairoScheduleParts(date = new Date()): {
   jsDay: number;
@@ -223,8 +257,7 @@ export async function runScheduledPost(
   }
 
   // Duplicate guard: non-failed post already exists today for this day?
-  const todayStart = new Date();
-  todayStart.setHours(0, 0, 0, 0);
+  const todayStart = cairoDayStart();
 
   const todayPosts = await db
     .select({ id: marketingPosts.id, status: marketingPosts.status })
@@ -237,8 +270,28 @@ export async function runScheduledPost(
       ),
     );
 
-  const existing = todayPosts.filter((p: any) => p.status !== "failed");
+  const planned = await db
+    .select({ id: marketingPosts.id, status: marketingPosts.status })
+    .from(marketingPosts)
+    .where(
+      and(
+        eq(marketingPosts.pageRole, pageRole),
+        gte(marketingPosts.scheduledAt, todayStart),
+        lt(
+          marketingPosts.scheduledAt,
+          new Date(todayStart.getTime() + 24 * 60 * 60 * 1000),
+        ),
+      ),
+    );
+  // A post planned for today (calendar or "generate this week") fills the slot.
+  const existing = [...todayPosts, ...planned].filter(
+    (p: any) => p.status !== "failed",
+  );
   if (existing.length > 0) {
+    await recordMarketingSchedulerSkip(
+      pageRole,
+      `يوجد منشور لهذا اليوم بالفعل (رقم ${existing[0]!.id})، لذلك لم يبدأ التوليد المجدول`,
+    );
     return {
       ok: true,
       skipped: `Post already exists for ${day} today (id: ${existing[0]!.id})`,
@@ -304,19 +357,22 @@ export async function runScheduledPost(
       const currentProvider = (await marketingSchedulerProviders()).find(
         (setting) => setting.pageRole === pageRole,
       )?.provider;
-      let published = false;
-      if (
-        currentTarget?.autoPublish &&
-        currentTarget.pageId === pageTarget.pageId &&
-        currentProvider === "central"
-      ) {
-        await publishMarketingPost(result.postId, pageRole, {
-          pageId: pageTarget.pageId,
-          requireAutoPublish: true,
-          schedulerProvider: "central",
-        });
-        published = true;
-      }
+      const postId = result.postId;
+      const published = await finishScheduledDraft(
+        postId,
+        pageRole,
+        Boolean(
+          currentTarget?.autoPublish &&
+          currentTarget.pageId === pageTarget.pageId &&
+          currentProvider === "central",
+        ),
+        () =>
+          publishMarketingPost(postId, pageRole, {
+            pageId: pageTarget.pageId,
+            requireAutoPublish: true,
+            schedulerProvider: "central",
+          }),
+      );
       await setMarketingSchedulerStatus(pageRole, "idle");
       return {
         ok: true,
@@ -369,6 +425,12 @@ async function checkDueMarketingPosts() {
         if (result.ok) clearMarketingStartFailures(pageRole);
         else recordMarketingStartFailure(pageRole);
         if (!result.ok)
+          await notifyMarketingAdmins({
+            title: "تعذر التوليد المجدول",
+            message: (result.error ?? "فشل التوليد المجدول").slice(0, 300),
+            kind: "error",
+          });
+        if (!result.ok)
           await log(
             null,
             "scheduler_run",
@@ -396,6 +458,8 @@ export function initMarketingScheduler(): void {
     timezone: CAIRO_TIME_ZONE,
   });
   void checkDueMarketingPosts();
+  initScheduledPostWorker();
+  initMarketingPostStatsWorker();
 
   console.log(
     "[marketing-scheduler] Initialized — startup and five-minute same-day catch-up",

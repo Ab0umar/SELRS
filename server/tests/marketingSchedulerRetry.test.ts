@@ -24,6 +24,7 @@ vi.mock("../services/marketing/topicPlanner", () => ({
 }));
 vi.mock("../services/marketing/schedulerStatus", () => ({
   setMarketingSchedulerStatus: vi.fn(),
+  recordMarketingSchedulerSkip: vi.fn(),
 }));
 vi.mock("../services/ai/marketingDraft", () => ({
   generateCentralMarketingDraft: vi.fn(),
@@ -57,8 +58,8 @@ beforeEach(() => {
   mocks.jobRows = [];
   let call = 0;
   mocks.db.mockResolvedValue({
-    // First select is the duplicate guard; later ones read the day's job.
-    select: () => chain(() => (call++ === 0 ? [] : mocks.jobRows)),
+    // The first two selects are the duplicate guards; later ones read the job.
+    select: () => chain(() => (call++ < 2 ? [] : mocks.jobRows)),
     insert: () => ({ values: async () => undefined }),
   });
   mocks.target.mockResolvedValue({
@@ -112,6 +113,20 @@ describe("scheduled generation retry", () => {
     expect(mocks.claim).toHaveBeenCalledTimes(2);
     expect(result.skipped).toContain("already reserved");
     expect(mocks.start).not.toHaveBeenCalled();
+  });
+});
+
+describe("pre-planned posts", () => {
+  it("skips the slot when a post is already planned for today", async () => {
+    let call = 0;
+    mocks.db.mockResolvedValue({
+      select: () =>
+        chain(() => (call++ === 1 ? [{ id: 12, status: "draft" }] : [])),
+      insert: () => ({ values: async () => undefined }),
+    });
+    const result = await runScheduledPost("saturday", "center");
+    expect(result.skipped).toContain("id: 12");
+    expect(mocks.claim).not.toHaveBeenCalled();
   });
 });
 
