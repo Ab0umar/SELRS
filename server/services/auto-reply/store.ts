@@ -303,15 +303,49 @@ export async function recordDeliveryReceipts(receipts: DeliveryReceipt[]) {
     }
   });
 }
+type AutoReplyTransaction = Parameters<
+  Parameters<MySql2Database["transaction"]>[0]
+>[0];
+// The central engine treats a repeated request id as a duplicate, so a regenerated
+// auto reply gets a new key. Staff replies keep their body and key.
+export async function requeueJob(
+  tx: AutoReplyTransaction,
+  job: Pick<typeof jobs.$inferSelect, "id" | "kind" | "state" | "requestKey">,
+) {
+  await tx
+    .update(jobs)
+    .set({
+      claim: null,
+      leaseUntil: null,
+      ...(job.state === "retry" ? {} : { state: "pending" }),
+      ...(job.kind === "auto"
+        ? { body: null, requestKey: hash(`requeue:${job.requestKey}`) }
+        : {}),
+    })
+    .where(eq(jobs.id, job.id));
+}
+async function requeueQueuedJobs(tx: AutoReplyTransaction) {
+  const queued = await tx
+    .select()
+    .from(jobs)
+    .where(inArray(jobs.state, ["pending", "retry", "generating"]))
+    .for("update");
+  for (const job of queued)
+    if (job.kind === "auto" || job.state === "generating")
+      await requeueJob(tx, job);
+}
 export async function saveSettings(config: AutoReplySettings, userId: number) {
   await ensureSettings();
   const db = await getAutoReplyDb();
   await db.transaction(async (tx) => {
-    await tx
+    const [previous] = await tx
       .select()
       .from(settingsTable)
       .where(eq(settingsTable.id, 1))
       .for("update");
+    const wasSending =
+      autoReplySettingsSchema.safeParse(previous?.config).data
+        ?.sendingEnabled === true;
     await tx
       .update(settingsTable)
       .set({
@@ -320,16 +354,17 @@ export async function saveSettings(config: AutoReplySettings, userId: number) {
         revision: sql`${settingsTable.revision} + 1`,
       })
       .where(eq(settingsTable.id, 1));
-    // Never release a backlog when sending is re-enabled or instructions change.
+    if (wasSending && config.sendingEnabled) {
+      await requeueQueuedJobs(tx);
+      return;
+    }
+    // Never release a backlog when sending is re-enabled or stopped.
     await tx
       .update(jobs)
       .set({ state: "cancelled", errorCode: "SETTINGS_CHANGED" })
       .where(inArray(jobs.state, ["pending", "retry", "generating"]));
   });
 }
-type AutoReplyTransaction = Parameters<
-  Parameters<MySql2Database["transaction"]>[0]
->[0];
 export async function withKnowledgeUpdate<T>(
   work: (tx: AutoReplyTransaction) => Promise<T>,
 ) {
@@ -346,15 +381,7 @@ export async function withKnowledgeUpdate<T>(
       .update(settingsTable)
       .set({ revision: sql`${settingsTable.revision} + 1` })
       .where(eq(settingsTable.id, 1));
-    await tx
-      .update(jobs)
-      .set({ state: "cancelled", errorCode: "KNOWLEDGE_CHANGED" })
-      .where(
-        and(
-          eq(jobs.kind, "auto"),
-          inArray(jobs.state, ["pending", "retry", "generating"]),
-        ),
-      );
+    await requeueQueuedJobs(tx);
     return result;
   });
 }

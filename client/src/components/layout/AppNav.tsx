@@ -211,10 +211,10 @@ export const adminNavGroups: NavGroup[] = [
     items: [{ icon: FileText, label: "محتوى التسويق", path: "/ai/marketing", roles: ["admin"] }],
   },
   {
-    label: "حملات واتساب",
+    label: "دعاية واتساب",
     groupPath: "/ai/marketing/whatsapp",
     navKey: "ai-whatsapp",
-    items: [{ icon: Send, label: "حملات واتساب", path: "/ai/marketing/whatsapp", roles: ["admin"] }],
+    items: [{ icon: Send, label: "دعاية واتساب", path: "/ai/marketing/whatsapp", roles: ["admin"] }],
   },
 
   accountingNavGroup,
