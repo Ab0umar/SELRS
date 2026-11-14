@@ -69,14 +69,21 @@ export default function CentralDraftImage({ postId }: { postId: number }) {
         {pending ? "جارٍ متابعة الصورة..." : "صورة Gemini"}
       </Button>
       {requestId && (
-        <span className="text-xs break-all" role="status">
+        <div className="text-xs" role="status">
           {tracking.data?.state === "completed"
             ? "تم تحديث الصورة فقط"
             : tracking.data?.state === "uncertain"
               ? "لم يُؤكد التحديث؛ راجع سجل AI"
-              : "متابعة الطلب"}{" "}
-          · <bdi>{requestId}</bdi>
-        </span>
+              : "متابعة الطلب"}
+          <details className="text-muted-foreground">
+            <summary className="inline-flex min-h-11 cursor-pointer items-center">
+              تفاصيل للدعم الفني
+            </summary>
+            <p className="break-all">
+              رقم الطلب: <bdi>{requestId}</bdi>
+            </p>
+          </details>
+        </div>
       )}
       {generate.error && (
         <span role="alert" className="text-xs">

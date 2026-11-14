@@ -63,7 +63,7 @@ export const legacyAiRoutes: Record<string, string> = {
 };
 
 export const aiMarketingPages = [
-  { path: ROUTES.aiMarketing, label: "توليد المحتوى" },
+  { path: ROUTES.aiMarketing, label: "التقويم" },
   { path: "/ai/marketing/drafts", label: "المسودات" },
   { path: "/ai/marketing/history", label: "سجل المنشورات" },
   { path: "/ai/marketing/brand", label: "المراجع البصرية" },

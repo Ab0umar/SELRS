@@ -1,8 +1,12 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 
-export default function CentralSchedulerSettings() {
+export default function CentralSchedulerSettings({
+  pageRole,
+}: {
+  pageRole: "center" | "doctor";
+}) {
   const capability = trpc.aiManagement.status.useQuery(undefined, {
     retry: false,
   });
@@ -11,7 +15,6 @@ export default function CentralSchedulerSettings() {
     enabled: ready,
     retry: false,
   });
-  const [pageRole, setPageRole] = useState<"center" | "doctor">("center");
   const [draft, setDraft] = useState<"manus" | "central" | undefined>();
   const [message, setMessage] = useState("");
   const utils = trpc.useUtils();
@@ -22,13 +25,17 @@ export default function CentralSchedulerSettings() {
     (setting) => setting.pageRole === pageRole,
   )?.provider;
   const selected = draft ?? provider ?? "manus";
+  useEffect(() => {
+    setDraft(undefined);
+    setMessage("");
+  }, [pageRole]);
   return (
     <section
-      className="min-w-0 rounded-xl border border-border bg-card p-4 space-y-3"
+      className="min-w-0 space-y-3 border-t border-border pt-3"
       dir="rtl"
       aria-label="مزوّد جدولة التسويق"
     >
-      <h2 className="font-semibold">مزوّد جدولة التسويق</h2>
+      <h3 className="text-sm font-semibold">مزوّد جدولة التسويق</h3>
       <p>
         الاختيار مستقل لكل صفحة. Gemini يستخدم الموديول المركزي للنص والصورة.
         إعدادات الأيام والساعة والنشر التلقائي لهذه الصفحة تظل سارية؛ الحفظ هنا
@@ -37,23 +44,6 @@ export default function CentralSchedulerSettings() {
       {query.error && (
         <p role="alert">تعذرت قراءة المزوّد. أعد تحميل الإعدادات قبل الحفظ.</p>
       )}
-      <label className="grid gap-2">
-        صفحة الجدولة
-        <select
-          aria-label="صفحة مزوّد الجدولة"
-          className="min-h-11 rounded-md border border-input bg-background px-3"
-          value={pageRole}
-          disabled={save.isPending}
-          onChange={(event) => {
-            setPageRole(event.target.value as "center" | "doctor");
-            setDraft(undefined);
-            setMessage("");
-          }}
-        >
-          <option value="center">المركز</option>
-          <option value="doctor">العيادة</option>
-        </select>
-      </label>
       <label className="grid gap-2">
         المزوّد
         <select

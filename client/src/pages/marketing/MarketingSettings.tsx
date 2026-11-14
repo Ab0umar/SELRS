@@ -1,6 +1,13 @@
 import { useEffect, useState } from "react";
 import CentralSchedulerSettings from "./CentralSchedulerSettings";
-import { useSearch } from "wouter";
+import { Link, useSearch } from "wouter";
+import {
+  MARKETING_PUBLISH_MODES,
+  marketingPublishModeOf,
+  marketingPublishSettingsFor,
+  type MarketingPublishMode,
+} from "@shared/marketingPublishMode";
+import { configuredMarketingAssistant } from "@shared/marketing-assistant";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -275,10 +282,22 @@ export default function MarketingSettings() {
   }, [selectedPage]);
 
   const approvalQuery = trpc.marketing.approvalMode.useQuery({ pageRole });
-  const [requireApproval, setRequireApproval] = useState(true);
+  const [publishMode, setPublishMode] = useState<MarketingPublishMode>("off");
   useEffect(() => {
-    if (approvalQuery.data) setRequireApproval(approvalQuery.data.required);
-  }, [approvalQuery.data]);
+    setPublishMode(
+      marketingPublishModeOf({
+        autoPublish: form.autoPublish,
+        requireApproval: approvalQuery.data?.required ?? true,
+      }),
+    );
+  }, [form.autoPublish, approvalQuery.data]);
+  const assistantProfiles = trpc.marketing.assistantProfiles.useQuery(
+    undefined,
+    { retry: false },
+  );
+  const currentAssistant = configuredMarketingAssistant(
+    assistantProfiles.data ?? [],
+  );
   const approvalMutation = trpc.marketing.setApprovalMode.useMutation({
     onSuccess: () => void utils.marketing.approvalMode.invalidate(),
     onError: (err: { message: string }) => toast.error(err.message),
@@ -337,10 +356,13 @@ export default function MarketingSettings() {
 
   return (
     <div className="space-y-6">
-      <CentralSchedulerSettings />
       <h1 className="text-2xl font-bold text-foreground">إعدادات التسويق</h1>
 
-      <div className="inline-flex rounded-lg border border-border bg-muted/20 p-1">
+      <div
+        role="group"
+        aria-label="الصفحة"
+        className="inline-flex rounded-lg border border-border bg-muted/20 p-1"
+      >
         {(
           [
             ["center", "صفحة المركز"],
@@ -351,7 +373,7 @@ export default function MarketingSettings() {
             variant="bare"
             key={role}
             type="button"
-            className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${pageRole === role ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
+            className={`min-h-11 rounded-md px-4 text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring ${pageRole === role ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
             onClick={() => setPageRole(role)}
             aria-pressed={pageRole === role}
           >
@@ -556,18 +578,36 @@ export default function MarketingSettings() {
           </div>
         ) : (
           <div className="divide-y divide-border">
-            <ToggleRow
-              label="النشر التلقائي"
-              description="توليد النص والصورة ونشرهما حسب الجدول"
-              value={form.autoPublish}
-              onChange={(v) => setForm((f) => ({ ...f, autoPublish: v }))}
-            />
-            <ToggleRow
-              label="انتظار موافقتي قبل النشر"
-              description="المنشورات المجدولة تُحفظ كمسودات ولا تُنشر إلا بعد ضغطك على نشر"
-              value={requireApproval}
-              onChange={setRequireApproval}
-            />
+            <fieldset className="space-y-1 py-3">
+              <legend className="text-sm font-medium text-foreground">
+                طريقة النشر
+              </legend>
+              <p className="text-xs text-muted-foreground">
+                اختيار واحد للصفحة دي بدل مفتاح النشر التلقائي ومفتاح الموافقة.
+              </p>
+              {MARKETING_PUBLISH_MODES.map((option) => (
+                <label
+                  key={option.value}
+                  className="flex min-h-11 cursor-pointer items-center gap-2 text-sm"
+                >
+                  <input
+                    type="radio"
+                    name={`publish-mode-${pageRole}`}
+                    value={option.value}
+                    checked={publishMode === option.value}
+                    disabled={approvalQuery.isLoading}
+                    onChange={() => setPublishMode(option.value)}
+                    className="size-4 accent-primary"
+                  />
+                  {option.label}
+                </label>
+              ))}
+              {publishMode !== "off" && !pageConnected && (
+                <p className="text-xs text-warning-text">
+                  الصفحة مش مربوطة بفيسبوك، فالجدول مش هيشتغل لحد ما تربطها.
+                </p>
+              )}
+            </fieldset>
             <ToggleRow
               label={pageRole === "center" ? "الأحد" : "السبت"}
               description="موضوع جديد من المجالات الاثني عشر"
@@ -674,22 +714,21 @@ export default function MarketingSettings() {
           <Button
             size="sm"
             onClick={() => {
+              const stored = approvalQuery.data?.required ?? true;
+              const next = marketingPublishSettingsFor(publishMode, stored);
               if (pageRole === "center") {
                 updateMutation.mutate({ clinicName: form.contentName });
               }
-              if (
-                approvalQuery.data &&
-                approvalQuery.data.required !== requireApproval
-              )
+              if (approvalQuery.data && stored !== next.requireApproval)
                 approvalMutation.mutate({
                   pageRole,
-                  required: requireApproval,
+                  required: next.requireApproval,
                 });
               if (selectedPage) {
                 pageSettingsMutation.mutate({
                   pageRole,
                   contentName: form.contentName,
-                  autoPublish: form.autoPublish,
+                  autoPublish: next.autoPublish,
                   saturdayEnabled: form.saturdayEnabled,
                   tuesdayEnabled: form.tuesdayEnabled,
                   thursdayEnabled: form.thursdayEnabled,
@@ -712,6 +751,31 @@ export default function MarketingSettings() {
             حفظ الإعدادات
           </Button>
         </div>
+      </div>
+
+      {/* Generation assistant: chosen on the core AI page */}
+      <div className="space-y-3 rounded-xl border border-border bg-card p-4">
+        <h2 className="text-sm font-semibold text-foreground">
+          المساعد اللي بيكتب ويرسم
+        </h2>
+        <p className="text-sm text-foreground">
+          {assistantProfiles.isLoading
+            ? "جارٍ قراءة الاختيار الحالي…"
+            : assistantProfiles.isError
+              ? "تعذّر قراءة الاختيار الحالي."
+              : currentAssistant
+                ? currentAssistant.provider === "manus"
+                  ? `Manus · ${currentAssistant.model}`
+                  : `${currentAssistant.provider === "gemini" ? "Gemini" : "Grok"} · نص: ${currentAssistant.model} / صورة: ${currentAssistant.imageModel}`
+                : "مفيش مساعد موحّد للنص والصورة مفعّل؛ التوليد بيستخدم Manus · standard."}
+        </p>
+        <Link
+          href="/ai/settings"
+          className="inline-flex min-h-11 items-center text-sm text-primary underline underline-offset-4"
+        >
+          غيّر المساعد والموديل من صفحة الذكاء الاصطناعي
+        </Link>
+        <CentralSchedulerSettings pageRole={pageRole} />
       </div>
 
       {/* Activity Logs */}

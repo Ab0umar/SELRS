@@ -47,6 +47,7 @@ vi.mock("../services/marketing/marketingReview", () => ({
 import {
   cairoSlotTime,
   generateWeekDrafts,
+  marketingCalendar,
   plannedMarketingSlot,
   publishDueScheduledPosts,
   upcomingMarketingSlots,
@@ -118,6 +119,23 @@ describe("content calendar", () => {
       failed: 0,
     });
     expect(generate).toHaveBeenCalledOnce();
+  });
+  it("starts only the named slot and marks it as generating", async () => {
+    const generate = vi.fn(async () => ({ topic: "موضوع" }));
+    const result = await generateWeekDrafts(generate, now, {
+      pageRole: "center",
+      date: "2026-11-15",
+    });
+    expect(result).toEqual({ started: 1, failed: 0 });
+    const [{ slot }] = generate.mock.calls[0] as unknown as [{ slot: string }];
+    expect(slot).toBe("saturday");
+    const calendar = await marketingCalendar(7, now);
+    expect(
+      calendar.slots.map((entry) => [entry.date, entry.generating]),
+    ).toEqual([
+      ["2026-11-15", true],
+      ["2026-11-17", true],
+    ]);
   });
 });
 

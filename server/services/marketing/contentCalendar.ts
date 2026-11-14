@@ -131,11 +131,15 @@ export async function marketingCalendar(days = 14, now = new Date()) {
     );
   const slots = await upcomingMarketingSlots(days, now);
   return {
-    slots: slots.map((slot) => ({
-      ...slot,
-      at: slot.at.toISOString(),
-      date: cairoDate(slot.at),
-    })),
+    slots: slots.map((slot) => {
+      const date = cairoDate(slot.at);
+      return {
+        ...slot,
+        at: slot.at.toISOString(),
+        date,
+        generating: slotHeld(`${slot.pageRole}:${date}`),
+      };
+    }),
     posts: (posts as CalendarPostRow[]).map((post) => ({
       ...post,
       pageRole: post.pageRole ?? "center",
@@ -169,11 +173,16 @@ export type WeekGenerator = (input: {
 // Slots whose generation has started but whose draft is not saved yet. In memory: a restart clears it.
 const SLOT_HOLD_MS = 3 * 60 * 60 * 1000;
 const heldSlots = new Map<string, number>();
+const slotHeld = (key: string) => (heldSlots.get(key) ?? 0) > Date.now();
 
-/** Starts one draft per empty enabled slot in the next 7 days. Returns how many started. */
+/**
+ * Starts one draft per empty enabled slot in the next 7 days, or only the
+ * slot named by `only`. Returns how many started.
+ */
 export async function generateWeekDrafts(
   generate: WeekGenerator,
   now = new Date(),
+  only?: { pageRole: MarketingPageRole; date: string },
 ) {
   const calendar = await marketingCalendar(7, now);
   const taken = new Set(
@@ -187,8 +196,10 @@ export async function generateWeekDrafts(
   const failed: string[] = [];
   for (const slot of calendar.slots) {
     const key = `${slot.pageRole}:${slot.date}`;
+    if (only && (only.pageRole !== slot.pageRole || only.date !== slot.date))
+      continue;
     if (taken.has(key)) continue;
-    if ((heldSlots.get(key) ?? 0) > Date.now()) continue;
+    if (slotHeld(key)) continue;
     heldSlots.set(key, Date.now() + SLOT_HOLD_MS);
     const requestId = randomUUID();
     try {

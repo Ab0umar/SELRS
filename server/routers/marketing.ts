@@ -631,7 +631,22 @@ export const marketingRouter = router({
       return { ok: true };
     }),
 
-  generateWeekDrafts: contentWrite(DASHBOARD).mutation(async ({ ctx }) => {
+  generateWeekDrafts: contentWrite(DASHBOARD)
+    .input(
+      z
+        .object({
+          slot: z
+            .object({
+              pageRole: z.enum(["center", "doctor"]),
+              date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+            })
+            .strict()
+            .optional(),
+        })
+        .strict()
+        .optional(),
+    )
+    .mutation(async ({ ctx, input }) => {
     const providers = await marketingSchedulerProviders();
     const run = generateWeekDrafts(
       async ({ requestId, pageRole, slot, avoid }) => {
@@ -656,6 +671,8 @@ export const marketingRouter = router({
           createdBy: ctx.user.id,
         });
       },
+      undefined,
+      input?.slot,
     );
     // Each slot plans a topic with a model call; the calendar shows progress.
     void run.catch((error) =>
