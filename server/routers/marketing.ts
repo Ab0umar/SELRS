@@ -11,11 +11,16 @@ import { assertDraftImageAvailable } from "../services/marketing/draftImageClaim
 import type { RowDataPacket } from "mysql2/promise";
 import type { MySql2Database } from "drizzle-orm/mysql2";
 import { configuredMarketingAssistant } from "../../shared/marketing-assistant";
+import { availableGeminiModels } from "../services/auto-reply/ai-configuration";
 import {
   AiManagementStore,
   AiManagementError,
 } from "../services/ai/managementStore";
-import { getDbConnection, updateSystemSettings } from "../db";
+import {
+  getDbConnection,
+  getEffectiveUserPermissions,
+  updateSystemSettings,
+} from "../db";
 import { marketingGenerationInput } from "../../shared/ai-request-context";
 import { trackedAiOperation, readAiOperation } from "../services/ai/operations";
 import { readMarketingGenerationRequest } from "../services/marketing/generationRequest";
@@ -64,7 +69,13 @@ import path from "node:path";
 import fs from "node:fs/promises";
 import { nanoid } from "nanoid";
 import { randomBytes, randomUUID } from "node:crypto";
-import { router, adminProcedure } from "../_core/procedures";
+import {
+  router,
+  adminProcedure,
+  protectedProcedure,
+  permMatchesPath,
+  writePermissionPath,
+} from "../_core/procedures";
 import { getDb } from "../db";
 import {
   marketingPosts,
@@ -112,6 +123,45 @@ import {
   marketingSummary,
   sendMarketingBatch,
 } from "../services/whatsappMarketing.service";
+
+// Marketing content screens (dashboard, drafts, history) open to staff with a page
+// permission. Settings, Facebook connection, scheduler provider and the brand
+// library stay adminProcedure.
+const MARKETING_CONTENT_PATHS = [
+  "/marketing",
+  "/marketing/drafts",
+  "/marketing/history",
+];
+function marketingContentAccess(write: boolean) {
+  return protectedProcedure.use(async ({ ctx, next }) => {
+    if (ctx.user.role === "admin") return next();
+    const permissions = await getEffectiveUserPermissions(
+      ctx.user.id,
+      ctx.user.role ?? undefined,
+    );
+    const allowed = permissions.some((permission: unknown) => {
+      const clean = write
+        ? writePermissionPath(permission)
+        : String(permission ?? "")
+            .replace(/:r[w]?$/, "")
+            .trim();
+      return (
+        clean !== null &&
+        MARKETING_CONTENT_PATHS.some((path) => permMatchesPath(clean, path))
+      );
+    });
+    if (!allowed)
+      throw new TRPCError({
+        code: "FORBIDDEN",
+        message: write
+          ? "تحتاج صلاحية تعديل محتوى التسويق"
+          : "تحتاج صلاحية محتوى التسويق",
+      });
+    return next();
+  });
+}
+const marketingContentProcedure = marketingContentAccess(false);
+const marketingContentWriteProcedure = marketingContentAccess(true);
 
 const MAX_REFERENCE_IMAGE_BYTES = 10 * 1024 * 1024;
 const MAX_PROFILE_ANALYSES = 12;
@@ -265,7 +315,7 @@ export const marketingRouter = router({
 
   // ─── Posts ────────────────────────────────────────────────
 
-  listPosts: adminProcedure
+  listPosts: marketingContentProcedure
     .input(
       z.object({
         status: z
@@ -350,7 +400,7 @@ export const marketingRouter = router({
       return { ok: true };
     }),
 
-  getPost: adminProcedure
+  getPost: marketingContentProcedure
     .input(z.object({ id: z.number().int().positive() }))
     .query(async ({ input }) => {
       const db = await getDb();
@@ -363,7 +413,7 @@ export const marketingRouter = router({
       return row ?? null;
     }),
 
-  createPost: adminProcedure
+  createPost: marketingContentWriteProcedure
     .input(
       z.object({
         title: z.string().min(1).max(255),
@@ -406,7 +456,7 @@ export const marketingRouter = router({
       return { id };
     }),
 
-  updatePost: adminProcedure
+  updatePost: marketingContentWriteProcedure
     .input(
       z.object({
         id: z.number().int().positive(),
@@ -447,7 +497,7 @@ export const marketingRouter = router({
       return { ok: true };
     }),
 
-  deletePost: adminProcedure
+  deletePost: marketingContentWriteProcedure
     .input(z.object({ id: z.number().int().positive() }))
     .mutation(async ({ input, ctx }) => {
       const db = await getDb();
@@ -504,13 +554,15 @@ export const marketingRouter = router({
       return { ok: true };
     }),
 
-  postStats: adminProcedure.query(() => readMarketingPostStats()),
+  postStats: marketingContentProcedure.query(() => readMarketingPostStats()),
 
-  refreshPostStats: adminProcedure.mutation(() => refreshMarketingPostStats()),
+  refreshPostStats: marketingContentWriteProcedure.mutation(() =>
+    refreshMarketingPostStats(),
+  ),
 
-  contentCalendar: adminProcedure.query(() => marketingCalendar(14)),
+  contentCalendar: marketingContentProcedure.query(() => marketingCalendar(14)),
 
-  schedulePost: adminProcedure
+  schedulePost: marketingContentWriteProcedure
     .input(
       z
         .object({
@@ -547,7 +599,7 @@ export const marketingRouter = router({
       return { ok: true, scheduledAt: at.toISOString() };
     }),
 
-  unschedulePost: adminProcedure
+  unschedulePost: marketingContentWriteProcedure
     .input(z.object({ id: z.number().int().positive() }).strict())
     .mutation(async ({ input, ctx }) => {
       const db = await getDb();
@@ -572,52 +624,54 @@ export const marketingRouter = router({
       return { ok: true };
     }),
 
-  generateWeekDrafts: adminProcedure.mutation(async ({ ctx }) => {
-    const providers = await marketingSchedulerProviders();
-    const run = generateWeekDrafts(
-      async ({ requestId, pageRole, slot, avoid }) => {
-        const topic = await planMarketingTopic(undefined, avoid);
-        const provider =
-          providers.find((setting) => setting.pageRole === pageRole)
-            ?.provider ?? "manus";
-        if (provider === "central") {
-          const result = await generateCentralMarketingDraft(
-            { requestId, topic, postDay: slot, pageRole },
-            ctx.user.id,
-            undefined,
-            { detach: true },
-          );
-          return { topic: result.topic };
-        }
-        return startManusGeneration({
-          requestId,
-          topic,
-          postDay: slot,
-          pageRole,
-          createdBy: ctx.user.id,
-        });
-      },
-    );
-    // Each slot plans a topic with a model call; the calendar shows progress.
-    void run.catch((error) =>
-      console.error("[marketing] generateWeekDrafts failed", error),
-    );
-    await addLog(
-      null,
-      "generate_week",
-      "info",
-      `Week draft generation started by user ${ctx.user.id}`,
-    );
-    return { ok: true };
-  }),
+  generateWeekDrafts: marketingContentWriteProcedure.mutation(
+    async ({ ctx }) => {
+      const providers = await marketingSchedulerProviders();
+      const run = generateWeekDrafts(
+        async ({ requestId, pageRole, slot, avoid }) => {
+          const topic = await planMarketingTopic(undefined, avoid);
+          const provider =
+            providers.find((setting) => setting.pageRole === pageRole)
+              ?.provider ?? "manus";
+          if (provider === "central") {
+            const result = await generateCentralMarketingDraft(
+              { requestId, topic, postDay: slot, pageRole },
+              ctx.user.id,
+              undefined,
+              { detach: true },
+            );
+            return { topic: result.topic };
+          }
+          return startManusGeneration({
+            requestId,
+            topic,
+            postDay: slot,
+            pageRole,
+            createdBy: ctx.user.id,
+          });
+        },
+      );
+      // Each slot plans a topic with a model call; the calendar shows progress.
+      void run.catch((error) =>
+        console.error("[marketing] generateWeekDrafts failed", error),
+      );
+      await addLog(
+        null,
+        "generate_week",
+        "info",
+        `Week draft generation started by user ${ctx.user.id}`,
+      );
+      return { ok: true };
+    },
+  ),
 
-  reconcilePublishingPost: adminProcedure
+  reconcilePublishingPost: marketingContentWriteProcedure
     .input(z.object({ id: z.number().int().positive() }).strict())
     .mutation(({ input, ctx }) =>
       reconcilePublishingPost(input.id, ctx.user.id),
     ),
 
-  resolvePublishingPost: adminProcedure
+  resolvePublishingPost: marketingContentWriteProcedure
     .input(
       z
         .object({
@@ -630,7 +684,7 @@ export const marketingRouter = router({
       resolvePublishingPost(input.id, input.outcome, ctx.user.id),
     ),
 
-  publishPost: adminProcedure
+  publishPost: marketingContentWriteProcedure
     .input(
       z.object({
         id: z.number().int().positive(),
@@ -642,7 +696,7 @@ export const marketingRouter = router({
       return { ok: true, fbPostId: result.fbPostId };
     }),
 
-  generatePost: adminProcedure
+  generatePost: marketingContentWriteProcedure
     .input(marketingGenerationInput)
     .mutation(async ({ input, ctx }) => {
       const operation = trackedAiOperation(
@@ -722,14 +776,45 @@ export const marketingRouter = router({
       return { jobId: input.requestId, topic: "" };
     }),
 
-  generationRequest: adminProcedure
+  generationRequest: marketingContentProcedure
     .input(z.object({ requestId: z.string().uuid() }).strict())
     .query(({ input, ctx }) =>
       readMarketingGenerationRequest(input.requestId, ctx.user.id),
     ),
 
-  generationJobs: adminProcedure.query(() => listManusGenerationJobs()),
-  resolveGenerationJob: adminProcedure
+  // Staff-readable subset of aiManagement.status/profiles/models (admin-only there).
+  assistantStatus: marketingContentProcedure.query(() => ({
+    enabled: process.env.AI_CORE_MANAGEMENT_ENABLED === "true",
+    marketingDraftAvailable: true,
+    marketingWorkflowAvailable: true,
+    marketingRecoveryAvailable: true,
+    credentials: {
+      grok: Boolean(process.env.XAI_API_KEY),
+      gemini: Boolean(process.env.GEMINI_API_KEY),
+      manus: Boolean(process.env.MANUS_API_KEY),
+    },
+  })),
+  assistantProfiles: marketingContentProcedure.query(async () => {
+    if (process.env.AI_CORE_MANAGEMENT_ENABLED !== "true") return [];
+    return (await new AiManagementStore(getDbConnection).listProfiles()).filter(
+      (profile) => profile.workload.startsWith("marketing."),
+    );
+  }),
+  assistantModels: marketingContentProcedure.query(async () =>
+    (await availableGeminiModels(process.env.GEMINI_API_KEY ?? "", true)).map(
+      (model) => ({
+        id: model.name.replace(/^models\//, ""),
+        label: model.displayName ?? model.name,
+        kind: /image|nano-banana/i.test(model.name)
+          ? ("image" as const)
+          : ("text" as const),
+      }),
+    ),
+  ),
+  generationJobs: marketingContentProcedure.query(() =>
+    listManusGenerationJobs(),
+  ),
+  resolveGenerationJob: marketingContentWriteProcedure
     .input(
       z
         .object({
@@ -741,17 +826,19 @@ export const marketingRouter = router({
     .mutation(({ input, ctx }) =>
       resolveManusGenerationJob(input.jobId, input.action, ctx.user.id),
     ),
-  centralGenerationJobs: adminProcedure.query(() => centralMarketingJobs()),
+  centralGenerationJobs: marketingContentProcedure.query(() =>
+    centralMarketingJobs(),
+  ),
   generateWhatsAppCopy: adminProcedure
     .input(whatsappCopyInput)
     .mutation(({ input, ctx }) => generateWhatsAppCopy(input, ctx.user.id)),
   readWhatsAppCopy: adminProcedure
     .input(z.object({ requestId: z.string().uuid() }).strict())
     .query(({ input, ctx }) => readWhatsAppCopy(input.requestId, ctx.user.id)),
-  centralRecoveryPlan: adminProcedure
+  centralRecoveryPlan: marketingContentProcedure
     .input(z.object({ jobId: z.string().uuid() }).strict())
     .query(({ input }) => marketingRecoveryPlan(input.jobId)),
-  recoverCentralJob: adminProcedure
+  recoverCentralJob: marketingContentWriteProcedure
     .input(recoveryInput)
     .mutation(({ input, ctx }) => recoverCentralMarketing(input, ctx.user.id)),
   centralSchedulerProviders: adminProcedure.query(() =>
@@ -767,7 +854,7 @@ export const marketingRouter = router({
         .strict(),
     )
     .mutation(({ input }) => saveMarketingSchedulerProvider(input)),
-  regenerateCentralImage: adminProcedure
+  regenerateCentralImage: marketingContentWriteProcedure
     .input(
       z
         .object({
@@ -779,13 +866,13 @@ export const marketingRouter = router({
     .mutation(({ input, ctx }) =>
       regenerateCentralMarketingImage(input, ctx.user.id),
     ),
-  centralGenerationJob: adminProcedure
+  centralGenerationJob: marketingContentProcedure
     .input(z.object({ requestId: z.string().uuid() }).strict())
     .query(
       async ({ input }) =>
         (await centralMarketingJobs(input.requestId))[0] ?? null,
     ),
-  generateCentralPost: adminProcedure
+  generateCentralPost: marketingContentWriteProcedure
     .input(centralMarketingInput)
     .mutation(async ({ input, ctx }) => {
       try {
@@ -807,7 +894,7 @@ export const marketingRouter = router({
 
   // ─── Image Generation ─────────────────────────────────────
 
-  generateImageForPost: adminProcedure
+  generateImageForPost: marketingContentWriteProcedure
     .input(
       z.object({
         postId: z.number().int().positive(),
@@ -1037,7 +1124,7 @@ export const marketingRouter = router({
 
   // ─── Dashboard summary ─────────────────────────────────────
 
-  dashboardSummary: adminProcedure
+  dashboardSummary: marketingContentProcedure
     .input(z.object({ pageRole: z.enum(["center", "doctor"]) }).optional())
     .query(async ({ input }) => {
       const db = await getDb();
@@ -1745,7 +1832,7 @@ export const marketingRouter = router({
       return { ok: true };
     }),
 
-  getSchedulerStatus: adminProcedure
+  getSchedulerStatus: marketingContentProcedure
     .input(
       z
         .object({ pageRole: z.enum(["center", "doctor"]).default("center") })

@@ -1422,7 +1422,7 @@ Router file: `server/routers/doctorPortal.ts`
 
 ## 📣 Marketing Router (`marketing`): content scheduling and publishing
 
-Router file: `server/routers/marketing.ts`. Every procedure is `adminProcedure`. This section covers the AI Facebook post workflow changed by `docs/marketing-content-fix-plan.md` (PRs 1–6); WhatsApp campaigns and brand analysis are not described here.
+Router file: `server/routers/marketing.ts`. Access: the content procedures (posts, drafts, generation, publishing, scheduling, calendar, post performance, job recovery, and the `assistantStatus` / `assistantProfiles` / `assistantModels` subset of `aiManagement`) accept admins and staff holding a page permission on `/marketing`, `/marketing/drafts` or `/marketing/history`; writes need that permission with `:rw`. Settings, Facebook connection, scheduler provider, approval mode, topic reuse, brand library, equipment photos and WhatsApp stay `adminProcedure`. This section covers the AI Facebook post workflow changed by `docs/marketing-content-fix-plan.md` (PRs 1–7); WhatsApp campaigns and brand analysis are not described here.
 
 > **Default changed:** approval mode is **on** for both pages unless the owner turns it off. Scheduled drafts are generated and wait for an admin to publish them.
 
