@@ -36,6 +36,7 @@ import {
   LayoutDashboard,
   LogOut,
   MessageCircle,
+  MessagesSquare,
   Moon,
   Network,
   RefreshCw,
@@ -341,6 +342,16 @@ export function AppTopNav({
         paths: ["/admin-hub/whatsapp-inbox"],
         checkPath: "/admin-hub/whatsapp-inbox",
       },
+      {
+        icon: MessagesSquare,
+        label: "محادثات الاستقبال",
+        path: "/ai/inbox",
+        key: "reply-inbox",
+        paths: ["/ai/inbox"],
+        checkPath: "/admin-hub/auto-reply-inbox",
+        // The page and its procedures accept reception only, besides admins.
+        roles: ["reception"],
+      },
     ],
     [],
   );
@@ -470,9 +481,9 @@ export function AppTopNav({
       },
       {
         type: "link",
-        icon: MessageCircle,
-        label: "واتساب",
-        path: "/admin-hub/whatsapp-inbox",
+        icon: MessagesSquare,
+        label: "محادثات الاستقبال",
+        path: "/ai/inbox",
       },
       {
         type: "link",
