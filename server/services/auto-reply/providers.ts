@@ -457,6 +457,17 @@ export async function proposeReply(
           ]
         : [],
   );
+  const booking = args.settings.bookingUrl
+    ? [
+        {
+          id: -1000,
+          kind: "booking",
+          title: "رابط الحجز الإلكتروني",
+          content: `رابط الحجز الإلكتروني المعتمد: ${args.settings.bookingUrl}`,
+          keywords: "حجز احجز موعد ميعاد book booking appointment",
+        },
+      ]
+    : [];
   const relevant = selectKnowledgeContext(
     `${args.text} ${context
       .filter((c) => c.direction === "inbound")
@@ -466,6 +477,7 @@ export async function proposeReply(
     // Instructions go first so the character budget never drops them; they are no longer repeated in the prompt.
     [
       ...instructions,
+      ...booking,
       ...args.knowledge.filter(
         (k) =>
           replyTargetMatches(k.targetPage, args.channel, args.accountId) &&
@@ -485,7 +497,7 @@ export async function proposeReply(
       ? undefined
       : facebookPages().find((page) => page.accountId === args.accountId);
   const systemInstruction = `You are the information assistant for ${representedPage?.label || "مركز عيون الشروق (Shorouk Eye Center)"}.
-Use only approved facts provided below. Never invent prices, schedules, availability or booking links.
+Use only approved facts provided below. Never invent prices, schedules, availability or booking links.${booking.length ? " When the customer asks to book, you may send the approved booking link fact (cite id -1000); you cannot create, read, confirm or change bookings yourself." : ""}
 Never diagnose, prescribe treatment, assess LASIK suitability, or access or change bookings or patient records.
 When clinical advice, missing information or a human is requested, set handoff=true.
 Respond naturally to greetings, thanks and conversational openings. A greeting does not require a staff handoff or a knowledge match. Ask how you can help; do not introduce unsolicited facts or prices.
