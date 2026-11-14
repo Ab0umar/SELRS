@@ -27,7 +27,7 @@ Scope: scheduled and manual Facebook post generation and publishing. Out of scop
 | Publish claim and result | `server/services/marketing/publish.service.ts` |
 | Graph call | `server/services/marketing/facebookPublisher.service.ts` |
 | Logo and footer | `server/services/marketing/pageBranding.ts` |
-| Router (admin only) | `server/routers/marketing.ts` |
+| Router | `server/routers/marketing.ts` — content procedures use per-screen page permissions (PR 7, shipped). Settings, Facebook, scheduler provider, brand library, and WhatsApp stay `adminProcedure`. |
 | Pages | `client/src/pages/marketing/` |
 
 ---
@@ -98,8 +98,11 @@ Tests: each content rule; flagged draft is not published; approval mode never pu
 
 ## PR 7 — marketing staff permission
 
-- A page permission for the marketing content screens following `.claude/rules/permissions.md`: drafts, history, generation, and publishing. Settings, Facebook connection, scheduler provider, and brand library stay admin-only.
-- Gate both the frontend routes and every backend procedure.
+Shipped in GitHub PR #43 (merged 2026-11-14). The contract is the Marketing Router section of `docs/api-reference.md`. `.claude/rules/permissions.md` is not in the repo; the implementation follows `ProtectedRoute` page ids and a local exact-path check in `server/routers/marketing.ts`.
+
+- Page permissions `/marketing`, `/marketing/drafts`, and `/marketing/history`. Each screen matches that path only. Mutations need `:rw`.
+- Settings, Facebook connection, scheduler provider, and brand library stay `adminProcedure`.
+- The running UI is `client/src/routes/ai-routes.tsx` (`/ai/marketing` and its children). `/marketing/*` redirects there. `client/src/routes/marketing-routes.tsx` is not mounted from `App.tsx`.
 
 ## Instagram — dropped
 

@@ -1422,7 +1422,67 @@ Router file: `server/routers/doctorPortal.ts`
 
 ## 📣 Marketing Router (`marketing`): content scheduling and publishing
 
-Router file: `server/routers/marketing.ts`. Access: admins pass everything. Staff need the page permission of a screen that uses the procedure, matched exactly (no parent inheritance); mutations need `:rw`. Dashboard `/marketing`: `dashboardSummary`, `getSchedulerStatus`, `contentCalendar`, `generationRequest`; with `:rw` `generatePost`, `generateCentralPost`, `reconcilePublishingPost`, `resolvePublishingPost`, `unschedulePost`, `generateWeekDrafts`. Drafts `/marketing/drafts`: `listPosts`; with `:rw` `createPost`, `updatePost`, `schedulePost`, `generateImageForPost`, `regenerateCentralImage`. History `/marketing/history`: `listPosts`, `postStats`; with `:rw` `refreshPostStats`. Dashboard or drafts: `getPost`, `generationJobs`, `centralGenerationJobs`, `centralGenerationJob`, `centralRecoveryPlan`, `assistantStatus` / `assistantProfiles` / `assistantModels`; with `:rw` `publishPost`, `resolveGenerationJob`, `recoverCentralJob`. Drafts or history with `:rw`: `deletePost`. Settings, Facebook connection, scheduler provider, approval mode, topic reuse, run-now, page auto-publish, brand library, equipment photos, logs and WhatsApp stay `adminProcedure`. This section covers the AI Facebook post workflow changed by `docs/marketing-content-fix-plan.md` (PRs 1–7); WhatsApp campaigns and brand analysis are not described here.
+Router file: `server/routers/marketing.ts`. This section covers the Facebook post workflow from `docs/marketing-content-fix-plan.md` (PRs 1–7). WhatsApp campaign procedures and brand-library analysis stay `adminProcedure` and are not specified below.
+
+### Staff page permissions
+
+Content procedures use `contentRead` / `contentWrite` in `server/routers/marketing.ts`. Both wrap `protectedProcedure` and call `getEffectiveUserPermissions` (the same direct-override, role-default, inherit-extras, and explicit-empty rules as the rest of the app).
+
+- Role `admin` passes every content check. Other roles, including `manager`, do not.
+- The permission token must equal one screen path after normalization (trim, lowercase, drop a trailing slash). `marketingScreenAllowed` compares with `===`. It does not use `permMatchesPath`, so a parent path does not cover a child screen.
+- A read check strips a trailing `:r` or `:rw`, so a write grant can also read that screen.
+- A write check keeps the path only when the token ends in `:rw` (`writePermissionPath`). A read-only grant cannot mutate.
+- Refusal messages: `تحتاج صلاحية محتوى التسويق` (read) and `تحتاج صلاحية تعديل محتوى التسويق` (write).
+- `adminProcedure` resources answer `Only administrators can access this resource` even when the caller holds every marketing page permission, including `/marketing/settings:rw` and `/marketing/brand:rw`.
+
+Permission editor entries (`client/src/lib/page-permissions.ts`, group التسويق):
+
+| Label | Permission id | Opens these procedures |
+|---|---|---|
+| التسويق (الرئيسية) | `/marketing` | Read: `dashboardSummary`, `getSchedulerStatus`, `contentCalendar`, `generationRequest`. Write: `generatePost`, `generateCentralPost`, `reconcilePublishingPost`, `resolvePublishingPost`, `unschedulePost`, `generateWeekDrafts`. |
+| المسودات | `/marketing/drafts` | Read: `listPosts`. Write: `createPost`, `updatePost`, `schedulePost`, `generateImageForPost`, `regenerateCentralImage`. |
+| سجل الحملات | `/marketing/history` | Read: `listPosts`, `postStats`. Write: `refreshPostStats`. |
+| الهوية البصرية | `/marketing/brand` | None of the content procedures. Brand-library procedures stay `adminProcedure`. |
+| إعدادات التسويق | `/marketing/settings` | None of the content procedures. Settings, Facebook connection, scheduler provider, approval mode, topic reuse, run-now, and page auto-publish stay `adminProcedure`. |
+| حملات واتساب | `/marketing/whatsapp` | None of the content procedures. WhatsApp campaign procedures stay `adminProcedure`. |
+
+Shared by more than one screen:
+
+| Screens | Read | Write (`:rw` on either screen) |
+|---|---|---|
+| Dashboard or drafts | `getPost`, `generationJobs`, `centralGenerationJobs`, `centralGenerationJob`, `centralRecoveryPlan`, `assistantStatus`, `assistantProfiles`, `assistantModels` | `publishPost`, `resolveGenerationJob`, `recoverCentralJob` |
+| Drafts or history | — | `deletePost` |
+
+`assistantStatus`, `assistantProfiles`, and `assistantModels` are the staff-readable copies of `aiManagement.status`, `profiles`, and `models`. `aiManagement` stays admin-only. `assistantProfiles` returns workloads whose name starts with `marketing.`; it returns `[]` when `AI_CORE_MANAGEMENT_ENABLED` is not `true`. `assistantStatus` reports whether Grok, Gemini, and Manus credentials are present as booleans.
+
+New posts store `createdBy`. Delete, schedule, unschedule, and week-draft generation write the user id into `marketingLogs`. The create and update log lines record the action and the post, and leave the user id off that line. These procedures do not call a shared `auditWrites` helper.
+
+Regression: `server/tests/marketingStaffPermission.test.ts`.
+
+### Where staff open the screens
+
+`App.tsx` mounts marketing inside `AiRoutes` (`client/src/routes/ai-routes.tsx`), wrapped by `AiLayout`:
+
+| Screen | URL | Legacy URL (redirects here) |
+|---|---|---|
+| Dashboard | `/ai/marketing` | `/marketing` |
+| Drafts | `/ai/marketing/drafts` | `/marketing/drafts` |
+| History | `/ai/marketing/history` | `/marketing/history` |
+| Brand library | `/ai/marketing/brand` | `/marketing/brand` |
+| Settings | `/ai/marketing/settings` | `/marketing/settings` |
+| WhatsApp | `/ai/marketing/whatsapp` | `/marketing/whatsapp` |
+
+`legacyAiRoutes` in `client/src/features/ai/navigation.ts` performs those redirects and keeps the query string and hash. `client/src/routes/marketing-routes.tsx` and `MarketingLayout` are not imported by `App.tsx`, so edits there do not change the running app. The staff tab filter in `MarketingLayout` is on that unmounted tree.
+
+`AiPage` sets `requiredRoles={["admin"]}`. `ProtectedRoute` still renders the page for another role when the normalized path is allowed. `aiPermissionPath` maps `/ai/marketing` to `/marketing` and `/ai/marketing/<rest>` to `/marketing/<rest>` before that check. `/marketing/drafts` and `/marketing/history` each have their own permission id, so a dashboard grant does not open them.
+
+Navigation that staff actually see:
+
+- The home card التسويق (`MainHome`) appears when `/marketing` is granted. Its link is `/marketing`, which redirects to `/ai/marketing`. A drafts-only or history-only grant does not show the card; those URLs still work when opened directly.
+- The sidebar leaf محتوى التسويق and the admin bottom-nav tab set `roles: ["admin"]`. The role check runs before the page-permission check, so other roles do not see those entries. The staff bottom nav has no marketing tab.
+- On a marketing screen, `AiLayout` lists every `aiMarketingPages` entry, including brand and settings. Each link still needs its own page permission. WhatsApp is a separate submodule and is not in that list.
+
+Controls that stay on `user.role === "admin"` inside the shared page components: the dashboard auto-publish toggle and run-now action (`MarketingDashboard`), and اختر من المكتبة on drafts (`DraftPosts`). The procedures behind them (`setPageAutoPublish`, `runSchedulerNow`, `listReferenceDesigns`) are `adminProcedure`.
 
 > **Default changed:** approval mode is **on** for both pages unless the owner turns it off. Scheduled drafts are generated and wait for an admin to publish them.
 
@@ -1466,5 +1526,5 @@ Environment: `MARKETING_GRAPH_VERSION` (format `v<major>.<minor>`, default `v21.
 
 ---
 
-**Last Updated:** 2026-11-10
+**Last Updated:** 2026-11-14
 **API Version:** 2.1.0

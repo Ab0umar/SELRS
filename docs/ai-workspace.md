@@ -14,7 +14,9 @@ The AI module opens at `/ai` from the home page, top navigation, sidebar and adm
 | `/ai/experiments` | Explicitly confirmed synthetic connection requests |
 | `/ai/usage` | Request outcomes, Gemini tokens and Manus credits |
 
-Old administration and marketing links redirect into these pages, preserving query parameters and fragments. Existing permission IDs are retained and normalized by both the route guard and navigation filtering. Management permission alone does not grant access to clinical, reply or marketing pages. The permission editor groups the existing AI IDs under the AI section. No permission migration is required.
+Old administration and marketing links redirect into these pages, preserving query parameters and fragments. Existing permission IDs are retained and normalized by both the route guard and navigation filtering. `aiPermissionPath` maps `/ai/marketing` to `/marketing` and `/ai/marketing/<rest>` to `/marketing/<rest>`. Management permission alone does not grant access to clinical, reply or marketing pages. The permission editor groups the existing AI IDs under the AI section. No permission migration is required.
+
+Marketing content screens are the exception to the admin-only AI shell. `AiPage` still sets `requiredRoles={["admin"]}`, and `ProtectedRoute` renders the page for another role when that mapped permission is granted. `/marketing` opens the dashboard only. `/marketing/drafts` and `/marketing/history` are separate ids, so a dashboard grant does not open drafts or history. A `:rw` suffix is required before a content mutation; the page itself opens with either the read or the write token. Brand, settings, and WhatsApp page ids can open those URLs, and their procedures remain `adminProcedure`. The sidebar leaf and the admin bottom-nav tab for محتوى التسويق list `roles: ["admin"]`, so other roles reach the screens from the home card (dashboard grant only) or by URL. The full procedure map is in `docs/api-reference.md`.
 
 ## Design read and verification
 
