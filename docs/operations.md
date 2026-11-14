@@ -179,6 +179,33 @@ sends per IP in 15 minutes.
 Paid leave for attendance is a separate change. See `docs/ATTENDANCE_SYNC.md` (Paid leave).
 It needs `drizzle/0110_attendance_paid_leave.sql` so `attendance_leaves.type` accepts `paid`.
 
+## Auto-reply channel check
+
+Page: `/ai/replies`. Worker: `AUTO_REPLY_WORKER_ENABLED=true`, loop in
+`startAutoReplyWorker` (`server/services/auto-reply/worker.ts`). Full behavior:
+`docs/auto-reply-setup.md`.
+
+- Apply `drizzle/0113_auto_reply_provider_indexes.sql` with `pnpm db:migrate` before
+  relying on `provider_id` lookups. The runner ignores `ER_DUP_KEYNAME` on a statement
+  that already exists, then records the file name so it does not run again.
+- A network error, HTTP 429, HTTP 5xx, Meta codes 1 and 2, and the retryable Meta rate
+  codes leave `auto_reply_connections.checkOk` and `checkedAt` unchanged. A credential
+  failure such as `META_190` sets `checkOk` false.
+- The hourly pass rechecks a row only when its fingerprint matches the current env and
+  `checkedAt` is at least 6 hours old. A job on an open conversation can recheck sooner:
+  `CHECK_NOT_OK` waits 5 minutes between inline checks; `CHECK_EXPIRED` (older than 24
+  hours) does not. A transient inline result retries the job as
+  `CONNECTION_CHECK_TRANSIENT` (three attempts, then the conversation moves to staff).
+- Saving settings while sending stays on requeues auto jobs and keeps a staff reply's
+  text. Turning sending off cancels `pending`, `retry`, and `generating` jobs with
+  `SETTINGS_CHANGED`. A knowledge save requeues even when sending is off; turning
+  sending back on then cancels that queue.
+- A conversation moved to staff because a job ended `failed` or `unknown` stays there
+  until someone turns the bot back on for that conversation. The next customer message
+  reopens only `staff_reply` and `external_staff_reply`.
+- Internal failures log `[auto-reply] INTERNAL_ERROR` with job id, error name, driver
+  code, and stack frames. The log line does not include `error.message`.
+
 ## Incident response
 
 An incident is any outage or severe degradation: application down, a critical feature
