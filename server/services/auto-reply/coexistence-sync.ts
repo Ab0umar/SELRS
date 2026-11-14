@@ -93,6 +93,8 @@ const ROUTINE_LIFECYCLE_EVENTS = [
   "PARTNER_ADDED",
   "PARTNER_APP_INSTALLED",
   "ACCOUNT_RECONNECTED",
+  // Sent when the link subscribes this app to the account's webhooks.
+  "WEBHOOK_CONFIG_UPDATED",
 ];
 /** The `event` name of an account_update value, or "UNKNOWN" when it is not a plain name. */
 export function lifecycleEventName(value: unknown) {
@@ -104,7 +106,11 @@ export function lifecycleEventName(value: unknown) {
 export function isRoutineLifecycleEvent(name: string) {
   return ROUTINE_LIFECYCLE_EVENTS.includes(name);
 }
-/** After a successful connection check, lifts the recheck flag from the current link. */
+/**
+ * After a successful connection check, lifts the recheck flag from the current link.
+ * Meta syncs contacts once per link, so a relink whose request it refused keeps
+ * using the contacts already stored for the same phone.
+ */
 export async function clearLifecycleRecheck(accountId: string) {
   const credentials = readCoexistenceCredentials();
   if (!credentials || credentials.phoneId !== accountId) return;
@@ -115,9 +121,20 @@ export async function clearLifecycleRecheck(accountId: string) {
       .from(attempts)
       .where(eq(attempts.id, credentials.attemptId))
       .for("update");
-    if (attempt?.details.errorCode !== "ACCOUNT_LIFECYCLE_RECHECK_REQUIRED")
-      return;
-    const { errorCode: _cleared, ...details } = attempt.details;
+    if (!attempt) return;
+    const { errorCode, ...rest } = attempt.details;
+    const details =
+      errorCode === "ACCOUNT_LIFECYCLE_RECHECK_REQUIRED"
+        ? rest
+        : { ...attempt.details };
+    if (details.contacts === "unknown") {
+      const [stored] = await tx
+        .select({ id: contacts.id })
+        .from(contacts)
+        .where(eq(contacts.accountId, accountId))
+        .limit(1);
+      if (stored) details.contacts = "receiving";
+    }
     await tx
       .update(attempts)
       .set({ details, updatedAt: new Date() })
