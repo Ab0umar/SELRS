@@ -61,6 +61,7 @@ import {
 import {
   startManusGeneration,
   listManusGenerationJobs,
+  resolveManusGenerationJob,
 } from "../services/marketing/manusGeneration.service";
 import {
   pickUnpublishedTopic,
@@ -476,6 +477,18 @@ export const marketingRouter = router({
     ),
 
   generationJobs: adminProcedure.query(() => listManusGenerationJobs()),
+  resolveGenerationJob: adminProcedure
+    .input(
+      z
+        .object({
+          jobId: z.string().min(1).max(36),
+          action: z.enum(["recheck", "abandon"]),
+        })
+        .strict(),
+    )
+    .mutation(({ input, ctx }) =>
+      resolveManusGenerationJob(input.jobId, input.action, ctx.user.id),
+    ),
   centralGenerationJobs: adminProcedure.query(() => centralMarketingJobs()),
   generateWhatsAppCopy: adminProcedure
     .input(whatsappCopyInput)

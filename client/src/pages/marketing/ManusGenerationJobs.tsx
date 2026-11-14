@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef } from "react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import MarketingJobRecovery from "./MarketingJobRecovery";
+import ManusJobResolve from "./ManusJobResolve";
 
 export default function ManusGenerationJobs({
   onCompleted,
@@ -111,6 +112,13 @@ export default function ManusGenerationJobs({
               {job.error || "راجع المهمة الأصلية في Manus قبل بدء توليد بديل."}
             </p>
           )}
+          {!job.central &&
+            (job.state === "uncertain" || job.state === "starting") && (
+              <ManusJobResolve
+                jobId={job.id}
+                hasTask={"taskId" in job && Boolean(job.taskId)}
+              />
+            )}
           {job.central && job.state === "uncertain" && (
             <MarketingJobRecovery jobId={job.id} />
           )}

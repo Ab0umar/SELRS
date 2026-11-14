@@ -9,7 +9,10 @@ import {
   brandMarketingImageUrl,
 } from "../marketing/pageBranding";
 import { marketingImagePrompt } from "../marketing/imagePolicy";
-import { assertMarketingTopicAvailable } from "../marketing/topicHistory";
+import {
+  assertMarketingTopicAvailable,
+  PublishedMarketingTopicError,
+} from "../marketing/topicHistory";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { and, desc, eq, inArray, isNotNull, lt } from "drizzle-orm";
@@ -35,7 +38,7 @@ import {
   marketingImageData,
 } from "../marketing/prompts";
 import { manusPostSchema } from "../marketing/manusClient";
-import { AiGateway, type AiUsage } from "./gateway";
+import { AiGateway, AiGatewayError, type AiUsage } from "./gateway";
 import { AiManagementError, AiManagementStore } from "./managementStore";
 import { readMarketingJobContext } from "../marketing/jobContext";
 import type { AcceptAiOperation } from "./operations";
@@ -167,6 +170,18 @@ export async function withMarketingBudget<T>(
   }
 }
 class StaleMarketingExecutionError extends Error {}
+
+/** Safe, specific code for a failed central draft; never includes provider text. */
+export function centralDraftErrorCode(error: unknown) {
+  if (error instanceof StaleMarketingExecutionError) return "stale_execution";
+  if (error instanceof AiManagementError) return `ai_${error.code}`;
+  if (error instanceof AiGatewayError)
+    return `gateway_${error.code}${error.status ? `_${error.status}` : ""}`;
+  if (error instanceof z.ZodError || error instanceof SyntaxError)
+    return "invalid_output";
+  if (error instanceof PublishedMarketingTopicError) return "topic_unavailable";
+  return "generation_or_persistence_failed";
+}
 
 export async function persistMarketingImage(
   jobId: string,
@@ -393,13 +408,11 @@ export async function generateCentralMarketingDraft(
           createdBy,
           executionId: input.requestId,
         });
-        await tx
-          .insert(aiMarketingJobContext)
-          .values({
-            jobId: input.requestId,
-            provider: marketingModelProvider(imageModel),
-            imageModel,
-          });
+        await tx.insert(aiMarketingJobContext).values({
+          jobId: input.requestId,
+          provider: marketingModelProvider(imageModel),
+          imageModel,
+        });
         await onAccepted?.(tx);
       },
     );
@@ -562,12 +575,20 @@ export async function finishCentralMarketingDraft(
       state: "completed" as const,
       postId,
     };
-  } catch {
+  } catch (error) {
+    // ai_marketing_jobs has no failed state; the specific code drives review.
+    const errorCode = centralDraftErrorCode(error);
+    console.error(
+      "[marketing] central draft ended uncertain",
+      input.requestId,
+      error instanceof Error ? error.name : typeof error,
+      errorCode,
+    );
     await db
       .update(aiMarketingJobs)
       .set({
         state: "uncertain",
-        errorCode: "generation_or_persistence_failed",
+        errorCode,
       })
       .where(
         and(
@@ -695,13 +716,11 @@ export async function regenerateCentralMarketingImage(
         createdBy,
         executionId: input.requestId,
       });
-      await tx
-        .insert(aiMarketingJobContext)
-        .values({
-          jobId: input.requestId,
-          provider: marketingModelProvider(imageModel),
-          imageModel,
-        });
+      await tx.insert(aiMarketingJobContext).values({
+        jobId: input.requestId,
+        provider: marketingModelProvider(imageModel),
+        imageModel,
+      });
       return { post, existing: false };
     },
   );

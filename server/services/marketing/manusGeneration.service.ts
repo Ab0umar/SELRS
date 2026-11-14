@@ -14,6 +14,8 @@ import {
   or,
   ne,
   gte,
+  isNull,
+  lt,
 } from "drizzle-orm";
 import type { MySql2Database } from "drizzle-orm/mysql2";
 import { getDb } from "../../db";
@@ -51,6 +53,17 @@ import { assertDraftImageAvailable } from "./draftImageClaim";
 type Job = typeof marketingGenerationJobs.$inferSelect;
 const pendingStates = ["starting", "running", "uncertain"] as const;
 const MAX_AGE_MS = 30 * 60 * 1000;
+// A Manus result can arrive long after the 30-minute running window.
+const UNCERTAIN_POLL_MS = 6 * 60 * 60 * 1000;
+const ORPHAN_START_MS = 10 * 60 * 1000;
+const MAX_LOCAL_RETRIES = 3;
+export const ORPHANED_START_ERROR = "انقطع بدء مهمة Manus قبل استلام رقمها";
+const localFailures = new Map<string, number>();
+
+/** Thrown when Manus finished but saving its result here failed. */
+class LocalFinishError extends Error {}
+/** Thrown for a definite outcome that a retry cannot change. */
+class DefiniteJobError extends Error {}
 
 export async function startManusGeneration(input: {
   requestId?: string;
@@ -289,6 +302,23 @@ async function finishJob(job: Job): Promise<number | null> {
         : null;
   if (!extension)
     throw new Error("ملف الصورة المولد ليس PNG أو JPEG أو WebP صالحًا");
+  try {
+    return await saveFinishedJob(job, db, generated, bytes, extension);
+  } catch (error) {
+    if (error instanceof DefiniteJobError) throw error;
+    throw new LocalFinishError(
+      error instanceof Error ? error.message : "تعذر حفظ نتيجة Manus",
+    );
+  }
+}
+
+async function saveFinishedJob(
+  job: Job,
+  db: NonNullable<Awaited<ReturnType<typeof getDb>>>,
+  generated: ReturnType<typeof manusPostSchema.parse> | null,
+  bytes: Buffer,
+  extension: string,
+): Promise<number | null> {
   const dir = path.resolve(
     ENV.marketingImageDir || path.join(process.cwd(), "uploads", "marketing"),
   );
@@ -334,8 +364,10 @@ async function finishJob(job: Job): Promise<number | null> {
             ),
           );
         if (!result.affectedRows)
-          throw new Error("المسودة تغيرت أثناء التوليد؛ لم يتم استبدال الصورة");
-      } else throw new Error("المسودة المطلوبة غير موجودة");
+          throw new DefiniteJobError(
+            "المسودة تغيرت أثناء التوليد؛ لم يتم استبدال الصورة",
+          );
+      } else throw new DefiniteJobError("المسودة المطلوبة غير موجودة");
       completedPostId = postId;
       await tx
         .update(marketingGenerationJobs)
@@ -352,6 +384,65 @@ async function finishJob(job: Job): Promise<number | null> {
   return completedPostId;
 }
 
+/** Admin resolution for a job that blocks its draft: re-check Manus now, or abandon it. */
+export async function resolveManusGenerationJob(
+  jobId: string,
+  action: "recheck" | "abandon",
+  userId: number,
+): Promise<{ state: Job["state"]; error: string | null }> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const [job] = await db
+    .select()
+    .from(marketingGenerationJobs)
+    .where(eq(marketingGenerationJobs.id, jobId));
+  if (!job) throw new Error("مهمة التوليد غير موجودة");
+  if (!(pendingStates as readonly string[]).includes(job.state))
+    return { state: job.state, error: job.error };
+  if (action === "recheck") {
+    if (!job.taskId)
+      return {
+        state: job.state,
+        error: "لا يوجد رقم مهمة في Manus لإعادة الفحص؛ يمكنك إيقاف المهمة",
+      };
+    try {
+      await finishJob(job);
+    } catch (error) {
+      return {
+        state: job.state,
+        error:
+          error instanceof Error && !(error instanceof SyntaxError)
+            ? error.message
+            : "ملف النص المولد غير صالح",
+      };
+    }
+    const [current] = await db
+      .select()
+      .from(marketingGenerationJobs)
+      .where(eq(marketingGenerationJobs.id, jobId));
+    return {
+      state: current?.state ?? job.state,
+      error: current?.error ?? null,
+    };
+  }
+  await db
+    .update(marketingGenerationJobs)
+    .set({ state: "failed", error: "أوقفها المسؤول يدويًا" })
+    .where(
+      and(
+        eq(marketingGenerationJobs.id, jobId),
+        inArray(marketingGenerationJobs.state, [...pendingStates]),
+      ),
+    );
+  await db.insert(marketingLogs).values({
+    postId: job.postId,
+    action: "manus_job_abandoned",
+    status: "info",
+    message: `Manus job ${job.id} abandoned by user ${userId}`,
+  });
+  return { state: "failed", error: "أوقفها المسؤول يدويًا" };
+}
+
 let processing = false;
 export async function processManusGenerationJobs() {
   if (processing || !ENV.manusApiKey) return;
@@ -359,6 +450,22 @@ export async function processManusGenerationJobs() {
   try {
     const db = await getDb();
     if (!db) return;
+    await db
+      .update(marketingGenerationJobs)
+      .set({
+        state: "failed",
+        error: `${ORPHANED_START_ERROR}؛ قد تكون المهمة موجودة في Manus، راجعها قبل إعادة المحاولة`,
+      })
+      .where(
+        and(
+          eq(marketingGenerationJobs.state, "starting"),
+          isNull(marketingGenerationJobs.taskId),
+          lt(
+            marketingGenerationJobs.createdAt,
+            new Date(Date.now() - ORPHAN_START_MS),
+          ),
+        ),
+      );
     const jobs = await db
       .select()
       .from(marketingGenerationJobs)
@@ -370,7 +477,7 @@ export async function processManusGenerationJobs() {
             ne(marketingGenerationJobs.state, "uncertain"),
             gte(
               marketingGenerationJobs.createdAt,
-              new Date(Date.now() - MAX_AGE_MS),
+              new Date(Date.now() - UNCERTAIN_POLL_MS),
             ),
           ),
         ),
@@ -380,7 +487,10 @@ export async function processManusGenerationJobs() {
     for (const job of jobs) {
       let completedPostId: number | null = null;
       try {
-        if (Date.now() - job.createdAt.getTime() > MAX_AGE_MS) {
+        if (
+          job.state !== "uncertain" &&
+          Date.now() - job.createdAt.getTime() > MAX_AGE_MS
+        ) {
           await db
             .update(marketingGenerationJobs)
             .set({
@@ -397,8 +507,15 @@ export async function processManusGenerationJobs() {
           continue;
         }
         completedPostId = await finishJob(job);
+        localFailures.delete(job.id);
       } catch (error) {
         if (error instanceof ManusRequestError && error.retryable) continue;
+        if (error instanceof LocalFinishError) {
+          const failures = (localFailures.get(job.id) ?? 0) + 1;
+          localFailures.set(job.id, failures);
+          if (failures <= MAX_LOCAL_RETRIES) continue;
+          localFailures.delete(job.id);
+        }
         const message =
           error instanceof Error && !(error instanceof SyntaxError)
             ? error.message
