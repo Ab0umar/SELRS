@@ -19,14 +19,18 @@ import type { Express, Request, Response } from "express";
 import express from "express";
 import { rateLimit } from "express-rate-limit";
 import crypto from "crypto";
-import { and, eq, ne, sql } from "drizzle-orm";
+import { sql } from "drizzle-orm";
 import type { MySql2Database } from "drizzle-orm/mysql2";
 import { ENV } from "./env";
 import { getDb } from "../db";
 import {ingestConfirmationReceipts} from "../services/whatsappConfirmations";
 import { whatsappInboundMessages } from "../../drizzle/schema";
 import { sendWhatsAppReply } from "../services/whatsappReply.service";
-import { buildWhatsAppInboundAutoReply } from "../services/whatsappInboundAutoReply.service";
+import {
+  buildWhatsAppInboundAutoReply,
+  claimWhatsAppFixedReply,
+  releaseWhatsAppFixedReply,
+} from "../services/whatsappInboundAutoReply.service";
 import {
   marketingPreferenceFromInbound,
   recordMarketingPreference,
@@ -254,24 +258,17 @@ export function registerWhatsAppWebhook(app: Express) {
             }
             // The fixed reply answers text only, once per number every 6 hours.
             if (msg.type !== "text") continue;
-            const [recent] = await db!
-              .select({ id: whatsappInboundMessages.id })
-              .from(whatsappInboundMessages)
-              .where(
-                and(
-                  eq(whatsappInboundMessages.fromPhone, msg.from),
-                  eq(whatsappInboundMessages.messageType, "text"),
-                  ne(whatsappInboundMessages.waMessageId, msg.id),
-                  sql`${whatsappInboundMessages.receivedAt} >= NOW() - INTERVAL 6 HOUR`,
-                ),
-              )
-              .limit(1);
-            if (recent) continue;
-            await sendWhatsAppReply({
-              recipientPhone: msg.from,
-              message: buildWhatsAppInboundAutoReply(),
-              replyToMessageId: msg.id,
-            });
+            if (!claimWhatsAppFixedReply(msg.from)) continue;
+            try {
+              await sendWhatsAppReply({
+                recipientPhone: msg.from,
+                message: buildWhatsAppInboundAutoReply(),
+                replyToMessageId: msg.id,
+              });
+            } catch (sendError) {
+              releaseWhatsAppFixedReply(msg.from);
+              throw sendError;
+            }
           } catch (replyError) {
             console.error(
               "[whatsapp-webhook] Failed to send automatic reply:",

@@ -19,12 +19,15 @@ vi.mock("../services/whatsappReply.service", () => ({
 }));
 vi.mock("../services/whatsappInboundAutoReply.service", () => ({
   buildWhatsAppInboundAutoReply: vi.fn(),
+  claimWhatsAppFixedReply: vi.fn(() => true),
+  releaseWhatsAppFixedReply: vi.fn(),
 }));
 
 import { ENV } from "../_core/env";
 import { getDb } from "../db";
 import { registerWhatsAppWebhook } from "../_core/whatsappWebhook";
 import { sendWhatsAppReply } from "../services/whatsappReply.service";
+import { claimWhatsAppFixedReply } from "../services/whatsappInboundAutoReply.service";
 import { ingestConfirmationReceipts } from "../services/whatsappConfirmations";
 
 describe("WhatsApp webhook authentication", () => {
@@ -216,20 +219,32 @@ describe("WhatsApp webhook authentication", () => {
     const transaction = vi.fn(
       async (work: (connection: typeof tx) => Promise<unknown>) => work(tx),
     );
-    // Earlier text messages from the same number within 6 hours.
-    const recent: unknown[] = [];
-    const select = vi.fn(() => ({
-      from: () => ({ where: () => ({ limit: async () => recent }) }),
-    }));
-    vi.mocked(getDb).mockResolvedValue({ transaction, select });
-    return { upsert, values, tx, transaction, recent };
+    vi.mocked(getDb).mockResolvedValue({ transaction });
+    return { upsert, values, tx, transaction };
   }
   it("sends the fixed reply at most once per number every 6 hours", async () => {
-    const { recent } = mockStorage();
-    recent.push({ id: 1 });
+    mockStorage();
+    vi.mocked(claimWhatsAppFixedReply).mockReturnValueOnce(false);
     expect((await deliver(["wamid.repeat"])).status).toBe(200);
     await new Promise((resolve) => setTimeout(resolve, 50));
     expect(sendWhatsAppReply).not.toHaveBeenCalled();
+  });
+  it("counts sent replies, not inbound messages, toward the cooldown", async () => {
+    const actual = await vi.importActual<
+      typeof import("../services/whatsappInboundAutoReply.service")
+    >("../services/whatsappInboundAutoReply.service");
+    const start = 1_000_000;
+    expect(actual.claimWhatsAppFixedReply("201000000001", start)).toBe(true);
+    // A second message in the same batch does not cancel the first reply.
+    expect(actual.claimWhatsAppFixedReply("201000000001", start)).toBe(false);
+    const sixHours = 6 * 60 * 60 * 1000;
+    expect(
+      actual.claimWhatsAppFixedReply("201000000001", start + sixHours),
+    ).toBe(true);
+    actual.releaseWhatsAppFixedReply("201000000001");
+    expect(
+      actual.claimWhatsAppFixedReply("201000000001", start + sixHours),
+    ).toBe(true);
   });
   it("sends the fixed reply only for text messages", async () => {
     mockStorage();

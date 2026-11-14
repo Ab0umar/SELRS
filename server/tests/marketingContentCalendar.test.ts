@@ -112,6 +112,12 @@ describe("content calendar", () => {
     expect((await plannedMarketingSlot(requestId))?.toISOString()).toBe(
       "2026-11-17T07:00:00.000Z",
     );
+    // A repeated request while those drafts are still generating starts nothing.
+    expect(await generateWeekDrafts(generate, now)).toEqual({
+      started: 0,
+      failed: 0,
+    });
+    expect(generate).toHaveBeenCalledOnce();
   });
 });
 
@@ -129,6 +135,15 @@ describe("scheduled post worker", () => {
     mocks.affected = 0;
     await publishDueScheduledPosts(now);
     expect(mocks.publish).not.toHaveBeenCalled();
+  });
+  it("publishes to the page the claimed row has now", async () => {
+    mocks.rows = [{ id: 4, pageRole: "center", topic: "t", title: "t" }];
+    mocks.publish.mockImplementation(async () => {
+      mocks.rows = [];
+      return { fbPostId: "1" };
+    });
+    await publishDueScheduledPosts(now);
+    expect(mocks.publish).toHaveBeenCalledExactlyOnceWith(4, "center");
   });
   it("notifies when a pre-Facebook check refuses the post", async () => {
     mocks.rows = [{ id: 4, pageRole: "center", topic: "t", title: "t" }];

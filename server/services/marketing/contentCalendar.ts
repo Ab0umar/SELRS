@@ -166,6 +166,10 @@ export type WeekGenerator = (input: {
   avoid: string[];
 }) => Promise<{ topic: string }>;
 
+// Slots whose generation has started but whose draft is not saved yet. In memory: a restart clears it.
+const SLOT_HOLD_MS = 3 * 60 * 60 * 1000;
+const heldSlots = new Map<string, number>();
+
 /** Starts one draft per empty enabled slot in the next 7 days. Returns how many started. */
 export async function generateWeekDrafts(
   generate: WeekGenerator,
@@ -182,7 +186,10 @@ export async function generateWeekDrafts(
   const started: Array<{ pageRole: MarketingPageRole; date: string }> = [];
   const failed: string[] = [];
   for (const slot of calendar.slots) {
-    if (taken.has(`${slot.pageRole}:${slot.date}`)) continue;
+    const key = `${slot.pageRole}:${slot.date}`;
+    if (taken.has(key)) continue;
+    if ((heldSlots.get(key) ?? 0) > Date.now()) continue;
+    heldSlots.set(key, Date.now() + SLOT_HOLD_MS);
     const requestId = randomUUID();
     try {
       await updateSystemSettings(plannedKey(requestId), slot.at);
@@ -195,6 +202,7 @@ export async function generateWeekDrafts(
       avoid.push(topic);
       started.push({ pageRole: slot.pageRole, date: slot.date });
     } catch (error) {
+      heldSlots.delete(key);
       failed.push(
         `${slot.date}: ${error instanceof Error ? error.message : "تعذر البدء"}`,
       );
@@ -241,11 +249,21 @@ export async function publishDueScheduledPosts(now = new Date()) {
           and(
             eq(marketingPosts.id, post.id),
             eq(marketingPosts.status, "scheduled"),
+            // A post rescheduled since the query above is no longer due.
+            lte(marketingPosts.scheduledAt, now),
           ),
         );
       if (!flip?.affectedRows) continue;
+      const [claimed] = await db
+        .select({ pageRole: marketingPosts.pageRole })
+        .from(marketingPosts)
+        .where(eq(marketingPosts.id, post.id))
+        .limit(1);
       try {
-        await publishMarketingPost(post.id, post.pageRole ?? "center");
+        await publishMarketingPost(
+          post.id,
+          claimed?.pageRole ?? post.pageRole ?? "center",
+        );
         await notifyMarketingAdmins({
           title: "نُشر منشور مجدول",
           message: `نُشر في موعده: ${post.topic || post.title}`.slice(0, 300),

@@ -12,3 +12,21 @@ export function buildWhatsAppInboundAutoReply(): string {
   const supportLink = `https://wa.me/${internationalSupportPhone(supportNumber)}`;
   return `هذه رسالة آلية، برجاء عدم الرد على هذه الرسالة. للاستفسارات تواصل معنا عبر واتساب: ${supportNumber} | ${supportLink}`;
 }
+
+const FIXED_REPLY_COOLDOWN_MS = 6 * 60 * 60 * 1000;
+const fixedReplyAt = new Map<string, number>();
+
+/** Claims the fixed reply for a number; false when one went out in the last 6 hours. In memory: a restart allows one extra reply. */
+export function claimWhatsAppFixedReply(phone: string, now = Date.now()) {
+  fixedReplyAt.forEach((at, key) => {
+    if (now - at >= FIXED_REPLY_COOLDOWN_MS) fixedReplyAt.delete(key);
+  });
+  if (fixedReplyAt.has(phone)) return false;
+  fixedReplyAt.set(phone, now);
+  return true;
+}
+
+/** Gives the claim back when the reply was not sent. */
+export function releaseWhatsAppFixedReply(phone: string) {
+  fixedReplyAt.delete(phone);
+}
