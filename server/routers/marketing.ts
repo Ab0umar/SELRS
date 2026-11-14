@@ -22,6 +22,11 @@ import { readMarketingGenerationRequest } from "../services/marketing/generation
 import { readMarketingSchedulerStatus } from "../services/marketing/schedulerStatus";
 import { checkMarketingContent } from "../services/marketing/contentCheck";
 import {
+  cairoSlotTime,
+  generateWeekDrafts,
+  marketingCalendar,
+} from "../services/marketing/contentCalendar";
+import {
   marketingDraftFiles,
   removeMarketingDraftFiles,
 } from "../services/marketing/imageCleanup";
@@ -427,7 +432,10 @@ export const marketingRouter = router({
         .update(marketingPosts)
         .set(updates)
         .where(
-          and(eq(marketingPosts.id, id), eq(marketingPosts.status, "draft")),
+          and(
+            eq(marketingPosts.id, id),
+            inArray(marketingPosts.status, ["draft", "scheduled"]),
+          ),
         );
       if (!updated.affectedRows)
         throw new Error("المسودة غير موجودة أو تغيرت حالتها");
@@ -491,6 +499,109 @@ export const marketingRouter = router({
       );
       return { ok: true };
     }),
+
+  contentCalendar: adminProcedure.query(() => marketingCalendar(14)),
+
+  schedulePost: adminProcedure
+    .input(
+      z
+        .object({
+          id: z.number().int().positive(),
+          pageRole: z.enum(["center", "doctor"]),
+          date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+          hour: z.number().int().min(0).max(23),
+        })
+        .strict(),
+    )
+    .mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) throw new Error("Database not available");
+      const at = cairoSlotTime(input.date, input.hour);
+      if (Number.isNaN(at.getTime()) || at.getTime() <= Date.now() + 60_000)
+        throw new Error("اختر موعدًا في المستقبل");
+      const [updated] = await db
+        .update(marketingPosts)
+        .set({ status: "scheduled", scheduledAt: at, pageRole: input.pageRole })
+        .where(
+          and(
+            eq(marketingPosts.id, input.id),
+            inArray(marketingPosts.status, ["draft", "scheduled"]),
+          ),
+        );
+      if (!updated.affectedRows)
+        throw new Error("المسودة غير موجودة أو تغيرت حالتها");
+      await addLog(
+        input.id,
+        "schedule_post",
+        "info",
+        `Scheduled for ${at.toISOString()} on ${input.pageRole} by user ${ctx.user.id}`,
+      );
+      return { ok: true, scheduledAt: at.toISOString() };
+    }),
+
+  unschedulePost: adminProcedure
+    .input(z.object({ id: z.number().int().positive() }).strict())
+    .mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) throw new Error("Database not available");
+      const [updated] = await db
+        .update(marketingPosts)
+        .set({ status: "draft" })
+        .where(
+          and(
+            eq(marketingPosts.id, input.id),
+            eq(marketingPosts.status, "scheduled"),
+          ),
+        );
+      if (!updated.affectedRows)
+        throw new Error("المنشور لم يعد مجدولًا؛ حدّث الصفحة");
+      await addLog(
+        input.id,
+        "unschedule_post",
+        "info",
+        `Returned to draft by user ${ctx.user.id}`,
+      );
+      return { ok: true };
+    }),
+
+  generateWeekDrafts: adminProcedure.mutation(async ({ ctx }) => {
+    const providers = await marketingSchedulerProviders();
+    const run = generateWeekDrafts(
+      async ({ requestId, pageRole, slot, avoid }) => {
+        const topic = await planMarketingTopic(undefined, avoid);
+        const provider =
+          providers.find((setting) => setting.pageRole === pageRole)
+            ?.provider ?? "manus";
+        if (provider === "central") {
+          const result = await generateCentralMarketingDraft(
+            { requestId, topic, postDay: slot, pageRole },
+            ctx.user.id,
+            undefined,
+            { detach: true },
+          );
+          return { topic: result.topic };
+        }
+        return startManusGeneration({
+          requestId,
+          topic,
+          postDay: slot,
+          pageRole,
+          createdBy: ctx.user.id,
+        });
+      },
+    );
+    // Each slot plans a topic with a model call; the calendar shows progress.
+    void run.catch((error) =>
+      console.error("[marketing] generateWeekDrafts failed", error),
+    );
+    await addLog(
+      null,
+      "generate_week",
+      "info",
+      `Week draft generation started by user ${ctx.user.id}`,
+    );
+    return { ok: true };
+  }),
 
   reconcilePublishingPost: adminProcedure
     .input(z.object({ id: z.number().int().positive() }).strict())

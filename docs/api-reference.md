@@ -1422,7 +1422,7 @@ Router file: `server/routers/doctorPortal.ts`
 
 ## 📣 Marketing Router (`marketing`): content scheduling and publishing
 
-Router file: `server/routers/marketing.ts`. Every procedure is `adminProcedure`. This section covers the AI Facebook post workflow changed by `docs/marketing-content-fix-plan.md` (PRs 1–4); WhatsApp campaigns and brand analysis are not described here.
+Router file: `server/routers/marketing.ts`. Every procedure is `adminProcedure`. This section covers the AI Facebook post workflow changed by `docs/marketing-content-fix-plan.md` (PRs 1–5); WhatsApp campaigns and brand analysis are not described here.
 
 > **Default changed:** approval mode is **on** for both pages unless the owner turns it off. Scheduled drafts are generated and wait for an admin to publish them.
 
@@ -1434,10 +1434,13 @@ Router file: `server/routers/marketing.ts`. Every procedure is `adminProcedure`.
 | `reconcilePublishingPost` | mutation | `{ id }` | For a post stuck in `publishing`: reads the page's posts since the `publish_claim` log and marks it `published` on a match. Returns `{ state: "published", fbPostId }` or `{ state: "unmatched", reason }`. |
 | `resolvePublishingPost` | mutation | `{ id, outcome: "published" \| "not_published" }` | Manual decision after an unmatched reconcile. `not_published` returns the post to draft and releases its topic. Logged with the user id. |
 | `deletePost` | mutation | `{ id }` | Refuses posts in `publishing`. For drafts: releases a pending topic reservation, fails pending Manus jobs and removes generated/branded image files no other post uses. |
-| `createPost` / `updatePost` | mutation | — | `platform` accepts only `"facebook"` (Instagram was dropped). `status` accepts only `"draft"` until per-post scheduling lands. |
+| `createPost` / `updatePost` | mutation | — | `platform` accepts only `"facebook"` (Instagram was dropped). `status` accepts only `"draft"`; use `schedulePost` to schedule. |
 | `listPosts` | query | — | Each row carries `contentFlags: string[]`, recomputed on read for drafts. |
 | `approvalMode` / `setApprovalMode` | query / mutation | `{ pageRole }` / `{ pageRole, required }` | Reads or sets approval mode for one page. |
 | `topicReuseMonths` / `setTopicReuseMonths` | query / mutation | — / `{ months }` (0–120) | Reads or sets `marketing_topic_reuse_months`. Set in the settings page; the change is logged with the user id. |
+| `contentCalendar` | query | — | Next 14 days: enabled slots of connected pages, and posts with a `scheduledAt` (scheduled posts and drafts generated for a slot). |
+| `schedulePost` / `unschedulePost` | mutation | `{ id, pageRole, date (yyyy-MM-dd), hour }` (Cairo) / `{ id }` | Draft → `scheduled` at that time, or back to draft. A minute worker publishes due posts through the normal publish claim and notifies admins. `updatePost` also edits scheduled posts. |
+| `generateWeekDrafts` | mutation | — | Starts one draft per empty enabled slot in the next 7 days with each page's scheduler provider. The drafts carry the slot time in `scheduledAt` and are not published until an admin schedules them; the daily scheduler skips a slot that already has a planned post. |
 | `getSchedulerStatus` | query | `{ pageRole }` | Now also returns `lastSkip: { reason, at } \| null`. |
 
 ### System settings (no new columns)

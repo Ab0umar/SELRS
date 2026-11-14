@@ -58,7 +58,8 @@ const proposal = z
   })
   .strict();
 
-export async function planMarketingTopic(model?: string) {
+/** `avoid` lists topics already chosen for drafts that do not exist yet. */
+export async function planMarketingTopic(model?: string, avoid: string[] = []) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   const { blocking: published, reusable } = await marketingTopicHistory();
@@ -80,7 +81,8 @@ export async function planMarketingTopic(model?: string) {
     ].map(marketingTopicIdentity),
   );
   const { withMarketingBudget } = await import("../ai/marketingDraft");
-  const rejected: string[] = [];
+  const rejected: string[] = [...avoid];
+  for (const topic of avoid) excluded.add(marketingTopicIdentity(topic));
   for (let attempt = 0; attempt < 3; attempt++) {
     const request = {
       model,

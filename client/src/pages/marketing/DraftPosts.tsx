@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import ManusGenerationJobs from "./ManusGenerationJobs";
 import CentralDraftImage from "./CentralDraftImage";
+import SchedulePostButton from "./SchedulePostButton";
 import {
   Dialog,
   DialogContent,
@@ -420,6 +421,15 @@ export default function DraftPosts() {
                       )}
                       نشر الآن
                     </Button>
+
+                    <SchedulePostButton
+                      postId={post.id}
+                      pageRole={
+                        publishPageRoles[post.id] ?? post.pageRole ?? "center"
+                      }
+                      scheduledAt={post.scheduledAt}
+                      disabled={imagePending(post.id)}
+                    />
 
                     <Button
                       size="sm"
