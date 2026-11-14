@@ -15,6 +15,8 @@ export type InboundEvent = {
   humanEcho: boolean;
   unsupported: boolean;
   deleted: boolean;
+  // Facebook comments only: the comment this one answers, when it is nested.
+  parentId?: string;
 };
 const id = z.string().min(1).max(255);
 const message = z.object({
@@ -192,7 +194,8 @@ export function parseMetaEvents(
           const participantId = m.from || m.from_user_id;
           if (
             !participantId ||
-            participantId === value.data.metadata.phone_number_id
+            participantId === value.data.metadata.phone_number_id ||
+            m.type === "reaction"
           )
             continue;
           push({
@@ -238,6 +241,9 @@ export function parseMetaEvents(
           humanEcho: false,
           unsupported: !v.message,
           deleted: v.verb === "remove",
+          ...(v.parent_id && v.parent_id !== v.post_id
+            ? { parentId: v.parent_id }
+            : {}),
         });
       }
     }

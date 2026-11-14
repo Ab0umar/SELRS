@@ -28,10 +28,18 @@ import {
   autoReplyEvents as events,
   autoReplyConnections as connections,
 } from "../../../drizzle/autoReply";
-import { hash, safetyDecision } from "./policy";
+import {
+  englishFirst,
+  hash,
+  safetyDecision,
+  unsupportedAcknowledgement,
+} from "./policy";
 import { isRecipientAllowed } from "./recipients";
 import type { InboundEvent, DeliveryReceipt } from "./events";
 
+type AutoReplyTransaction = Parameters<
+  Parameters<MySql2Database["transaction"]>[0]
+>[0];
 export async function getAutoReplyDb(): Promise<MySql2Database> {
   const db = await getDb();
   if (!db)
@@ -206,7 +214,41 @@ export async function ingestEvents(batch: InboundEvent[]) {
         current.status === "human" &&
         (current.humanReason === "external_staff_reply" ||
           current.humanReason === "staff_reply");
-      const resumeAutomation = !pause && staffReplyPause && !stale;
+      const now = Date.now();
+      let staffPauseOver = true;
+      if (staffReplyPause && config.staffReplyPauseMinutes > 0) {
+        const [lastStaff] = await tx
+          .select({ at: messages.createdAt })
+          .from(messages)
+          .where(
+            and(
+              eq(messages.conversationId, conversationId),
+              eq(messages.direction, "staff"),
+            ),
+          )
+          .orderBy(desc(messages.createdAt))
+          .limit(1);
+        staffPauseOver =
+          !lastStaff ||
+          now - lastStaff.at.getTime() >=
+            config.staffReplyPauseMinutes * 60_000;
+      }
+      // An idle handoff reopens on a new customer message; an explicit takeover never does.
+      const idleHandoff =
+        current.status === "human" &&
+        !staffReplyPause &&
+        current.humanReason !== "staff_takeover" &&
+        config.handoffReopenHours > 0 &&
+        now - current.lastActivityAt.getTime() >
+          config.handoffReopenHours * 3600_000;
+      const reopenable =
+        !event.humanEcho &&
+        ((staffReplyPause && staffPauseOver) || idleHandoff);
+      const resumeAutomation = !pause && reopenable && !stale;
+      const acknowledge =
+        event.unsupported &&
+        !event.humanEcho &&
+        event.channel !== "facebook_comment";
       if (stale && !pause) continue;
       const nextRevision = current.revision + 1;
       await tx
@@ -241,24 +283,78 @@ export async function ingestEvents(batch: InboundEvent[]) {
       if (
         !stale &&
         !event.humanEcho &&
-        (!pause || Boolean(requestedReason)) &&
-        (current.status === "open" || resumeAutomation) &&
+        (!pause || Boolean(requestedReason) || acknowledge) &&
+        (current.status === "open" || reopenable) &&
         config.sendingEnabled &&
         isAutoReplyEnabled(config, event.channel, event.accountId) &&
-        (await isRecipientAllowed(tx, config, event))
+        (await isRecipientAllowed(tx, config, event)) &&
+        !(await nestedCommentOutsideBotThread(tx, event))
       ) {
+        const [recent] = await tx
+          .select({ count: sql<number>`count(*)` })
+          .from(messages)
+          .where(
+            and(
+              eq(messages.conversationId, conversationId),
+              eq(messages.direction, "bot"),
+              gte(messages.createdAt, new Date(now - 3600_000)),
+            ),
+          );
+        if (Number(recent?.count ?? 0) >= config.maxAutoRepliesPerHour) {
+          await tx
+            .update(conversations)
+            .set({ status: "human", humanReason: "rate_limited" })
+            .where(eq(conversations.id, conversationId));
+          continue;
+        }
+        let body: string | null = null;
+        if (acknowledge && !requestedReason) {
+          const [first] = await tx
+            .select({ body: messages.body })
+            .from(messages)
+            .where(
+              and(
+                eq(messages.conversationId, conversationId),
+                eq(messages.direction, "inbound"),
+              ),
+            )
+            .orderBy(messages.id)
+            .limit(1);
+          body = unsupportedAcknowledgement(englishFirst(first?.body ?? ""));
+        }
         await tx.insert(jobs).values({
           conversationId,
           inboundId: insert.insertId,
           requestKey: event.key,
           kind: "auto",
           revision: nextRevision,
-          handoff: Boolean(requestedReason),
-          body: null,
+          handoff: Boolean(requestedReason) || acknowledge,
+          body,
         });
       }
     }
   });
+}
+// A nested comment is answered only when it replies to one of the bot's own comments.
+async function nestedCommentOutsideBotThread(
+  tx: AutoReplyTransaction,
+  event: InboundEvent,
+) {
+  if (event.channel !== "facebook_comment" || !event.parentId) return false;
+  const [parent] = await tx
+    .select({ id: messages.id })
+    .from(messages)
+    .innerJoin(conversations, eq(conversations.id, messages.conversationId))
+    .where(
+      and(
+        eq(messages.providerId, event.parentId),
+        eq(messages.direction, "bot"),
+        eq(conversations.channel, "facebook_comment"),
+        eq(conversations.accountId, event.accountId),
+      ),
+    )
+    .limit(1);
+  return !parent;
 }
 export async function recordDeliveryReceipts(receipts: DeliveryReceipt[]) {
   if (!receipts.length) return;
@@ -304,9 +400,6 @@ export async function recordDeliveryReceipts(receipts: DeliveryReceipt[]) {
     }
   });
 }
-type AutoReplyTransaction = Parameters<
-  Parameters<MySql2Database["transaction"]>[0]
->[0];
 // The central engine treats a repeated request id as a duplicate, so a regenerated
 // auto reply gets a new key. Staff replies keep their body and key.
 export async function requeueJob(

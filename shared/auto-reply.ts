@@ -125,6 +125,11 @@ export const autoReplySettingsSchema = z.object({
     .default("gemini-3.8-flash"),
   maxReplyChars: z.number().int().min(100).max(2000).default(600),
   retentionDays: z.number().int().min(7).max(365).default(30),
+  // 0 keeps a staff handoff until staff reopen it.
+  handoffReopenHours: z.number().int().min(0).max(720).default(24),
+  // 0 resumes automation on the next customer message after a staff reply.
+  staffReplyPauseMinutes: z.number().int().min(0).max(1440).default(0),
+  maxAutoRepliesPerHour: z.number().int().min(1).max(200).default(20),
   style: z
     .string()
     .trim()

@@ -1827,6 +1827,43 @@ function Settings({
                 />
               </Field>
             )}
+            {scope === "all" && (
+              <>
+                <Field label="رجوع الرد الآلي بعد التحويل لموظف بالساعات (0 = لا يرجع)">
+                  <Input
+                    type="number"
+                    min={0}
+                    max={720}
+                    value={config.handoffReopenHours}
+                    onChange={(e) =>
+                      update("handoffReopenHours", Number(e.target.value))
+                    }
+                  />
+                </Field>
+                <Field label="إيقاف الرد الآلي بعد رد الموظف بالدقائق (0 = يرجع مع رسالة العميل التالية)">
+                  <Input
+                    type="number"
+                    min={0}
+                    max={1440}
+                    value={config.staffReplyPauseMinutes}
+                    onChange={(e) =>
+                      update("staffReplyPauseMinutes", Number(e.target.value))
+                    }
+                  />
+                </Field>
+                <Field label="أقصى ردود آلية في الساعة لكل محادثة">
+                  <Input
+                    type="number"
+                    min={1}
+                    max={200}
+                    value={config.maxAutoRepliesPerHour}
+                    onChange={(e) =>
+                      update("maxAutoRepliesPerHour", Number(e.target.value))
+                    }
+                  />
+                </Field>
+              </>
+            )}
           </div>
           {models.isLoading && (
             <p role="status">جارٍ تحميل الموديلات المتاحة لحسابك…</p>

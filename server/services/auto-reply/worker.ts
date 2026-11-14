@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { managedReplyLive } from "../ai/replyPreview";
-import { and, eq, inArray, lt, lte, sql } from "drizzle-orm";
+import { and, eq, gte, inArray, lt, lte, sql } from "drizzle-orm";
 import {
   autoReplySettingsSchema,
   isAutoReplyEnabled,
@@ -41,6 +41,7 @@ import {
   inWorkingHours,
   safetyDecision,
   isPriceQuestion,
+  replyInEnglish,
   withinReplyWindow,
 } from "./policy";
 
@@ -331,6 +332,39 @@ export async function runAutoReplyTick() {
       inputTokens: job.inputTokens,
       outputTokens: job.outputTokens,
     };
+    // Ends the job without a Meta call, under the settings lock like every other write.
+    const finishWithoutSend = (
+      errorCode: string,
+      humanReason: string | null,
+      jobUsage = {},
+    ) =>
+      db.transaction(async (tx) => {
+        await tx
+          .select()
+          .from(settingsTable)
+          .where(eq(settingsTable.id, 1))
+          .for("update");
+        const [updated] = await tx
+          .update(jobs)
+          .set({ state: "cancelled", errorCode, leaseUntil: null, ...jobUsage })
+          .where(
+            and(
+              eq(jobs.id, job.id),
+              eq(jobs.claim, job.claim),
+              eq(jobs.state, "generating"),
+            ),
+          );
+        if (humanReason && updated.affectedRows)
+          await tx
+            .update(conversations)
+            .set({ status: "human", humanReason })
+            .where(
+              and(
+                eq(conversations.id, c.id),
+                eq(conversations.revision, job.revision),
+              ),
+            );
+      });
     if (job.kind === "auto" && !body) {
       const [inbound] = await db
         .select()
@@ -343,9 +377,26 @@ export async function runAutoReplyTick() {
         !safetyDecision(inbound.body) &&
         c.channel !== "facebook_comment"
       ) {
-        body = englishFirst(context.firstText ?? inbound.body)
+        body = replyInEnglish(inbound.body, context.firstText)
           ? config.outsideMessageEn
           : config.outsideMessage;
+        // One outside-hours notice per conversation every 6 hours is enough.
+        const [repeat] = await db
+          .select({ id: messages.id })
+          .from(messages)
+          .where(
+            and(
+              eq(messages.conversationId, c.id),
+              eq(messages.direction, "bot"),
+              eq(messages.body, body),
+              gte(messages.createdAt, new Date(Date.now() - 6 * 3600_000)),
+            ),
+          )
+          .limit(1);
+        if (repeat) {
+          await finishWithoutSend("OUTSIDE_HOURS_REPEAT", null);
+          return;
+        }
       } else {
         const approved = await db
           .select()
@@ -379,6 +430,19 @@ export async function runAutoReplyTick() {
           inputTokens: proposal.inputTokens,
           outputTokens: proposal.outputTokens,
         };
+        // A comment that asks nothing (praise, prayers, tags) is handed off without a public reply.
+        if (
+          c.channel === "facebook_comment" &&
+          proposal.handoff &&
+          !proposal.publicReply
+        ) {
+          await finishWithoutSend(
+            "SILENT_HANDOFF",
+            proposal.reason ?? "needs_review",
+            usage,
+          );
+          return;
+        }
       }
     }
     if (!body) throw new ProviderError("EMPTY_REPLY");
