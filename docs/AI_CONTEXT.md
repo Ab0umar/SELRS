@@ -737,6 +737,24 @@ Only these shared files may be edited when adding features:
 
 ---
 
+# Auto-reply webhook and send
+
+Customer-service auto-reply is separate from the booking-confirmation number. Inbox route: `/ai/replies` (`ROUTES.aiReplies`). Permission path: `/admin-hub/auto-reply`. Operator runbook: `docs/auto-reply-setup.md`. Nine-PR plan: `docs/auto-reply-fix-plan.md` (PR 2 shipped in #30).
+
+`POST /webhook/auto-reply/meta` (`server/_core/autoReplyWebhook.ts`) checks `X-Hub-Signature-256` on the raw body. Missing app secret is 503, bad signature is 401, bad JSON is 400, storage failure is 503. A signed body whose envelope fails Zod returns 200 and logs `WEBHOOK_INVALID_SCHEMA`; Meta does not redeliver it and nothing is stored. Messenger `entry.messaging` items are `safeParse`d one by one in `parseMetaEvents` (`server/services/auto-reply/events.ts`). One bad item is skipped. WhatsApp messages and `feed` changes are not split that way. An envelope failure (bad `entry` shape, or more than 1000 items) is the 200 schema case, not a per-item skip.
+
+`runAutoReplyTick` (`server/services/auto-reply/worker.ts`) sends in three steps. The settings row lock stays first.
+
+1. One transaction re-checks conversation revision, job claim, send switch, channel, recipient, and reply window, then marks the job `sending` with a 120-second lease. A closed conversation, sending off, channel off, or a disallowed recipient cancels the job as `STOPPED_BEFORE_SEND`. A settings-revision change on an auto job calls `requeueJob`, which clears `body`. Spacing blocks when `lastSentAt` for that channel account is under 2 seconds old, and also while another job for the same channel and account is `sending`. A spacing hit keeps the generated body and retries as `LOCAL_RATE_LIMIT` without using an attempt.
+2. Graph calls run with no transaction open. A price comment (`isPriceQuestion`, and no handoff) sends the private reply first. `recordSentMessage` writes that row before the public line.
+3. A second transaction records `sent`, the public message row, `lastActivityAt`, and `lastSentAt`. The job update is conditional on the same `claim`.
+
+A crash while the job is `sending` becomes `unknown` / `SEND_INTERRUPTED` when the lease expires, and the conversation moves to staff when the revision matches and status is `open` or `human`. A throw after Meta accepted the call being recorded becomes `unknown` / `SEND_COMMIT_UNCERTAIN`. Neither path resends.
+
+If the public price line fails after the private reply was stored, the job is `PRIVATE_SENT_PUBLIC_FAILED` and is not retried. A definite Meta rejection is `failed`. A network error or an already-uncertain provider error is `unknown`. The conversation goes to staff. The public line is `We have sent you the details in a private message.` when `englishFirst` is true on the comment (first letter is `a-z`), otherwise `تم إرسال التفاصيل في رسالة خاصة.`
+
+A conversation created from a staff echo stores `lastInboundAt` at epoch. The inbox shows `لم تبدأ نافذة رد من رسالة جديدة`. `sendManual` rejects with `انتهت نافذة الرد المسموح بها` until a customer message updates `lastInboundAt`. WhatsApp sends omit `context` when there is no inbound message id.
+
 # Development Workflow
 
 ## Validation Discipline
@@ -814,4 +832,4 @@ After editing:
 
 **Document version:** 2.3.0 — updated 2026-10-26
 **Aligned with:** Project Principles v2.0.0
-**Recent features (no plan):** Pentacam 5-min auto-linker (server startup scheduler), Doctor portal real-time WS notifications + auto-referral on patient registration, حجز filter in today queue (appointments-activity.tsx)
+**Recent features (no plan):** Pentacam 5-min auto-linker (server startup scheduler), Doctor portal real-time WS notifications + auto-referral on patient registration, حجز filter in today queue (appointments-activity.tsx). Auto-reply webhook and send path: section "Auto-reply webhook and send" (PR #30).
