@@ -196,6 +196,12 @@ export async function ingestEvents(batch: InboundEvent[]) {
         .select()
         .from(conversations)
         .where(eq(conversations.id, conversationId));
+      // A voice note is treated as text once the worker transcribes it.
+      const voice =
+        event.channel === "whatsapp" &&
+        Boolean(event.mediaId) &&
+        config.voiceTranscription;
+      const unsupported = event.unsupported && !voice;
       // Out-of-order deliveries are stored but cannot invalidate a newer response.
       const stale = event.at.getTime() < current.lastInboundAt.getTime();
       const [insert] = await tx.insert(messages).values({
@@ -204,13 +210,14 @@ export async function ingestEvents(batch: InboundEvent[]) {
         providerId: event.providerId,
         direction: event.humanEcho ? "staff" : "inbound",
         body: event.text,
+        ...(voice ? { mediaId: event.mediaId } : {}),
         createdAt: event.at,
       });
       const requestedReason = event.humanEcho
         ? null
         : safetyDecision(event.text);
       const pause =
-        event.humanEcho || event.unsupported || Boolean(requestedReason);
+        event.humanEcho || unsupported || Boolean(requestedReason);
       const staffReplyPause =
         current.status === "human" &&
         (current.humanReason === "external_staff_reply" ||
@@ -247,7 +254,7 @@ export async function ingestEvents(batch: InboundEvent[]) {
         ((staffReplyPause && staffPauseOver) || idleHandoff);
       const resumeAutomation = !pause && reopenable && !stale;
       const acknowledge =
-        event.unsupported &&
+        unsupported &&
         !event.humanEcho &&
         event.channel !== "facebook_comment";
       if (stale && !pause) continue;
@@ -480,6 +487,20 @@ export async function withKnowledgeUpdate<T>(
       .where(eq(settingsTable.id, 1));
     await requeueQueuedJobs(tx);
     return result;
+  });
+}
+export async function recordTranscript(messageId: number, body: string) {
+  const db = await getAutoReplyDb();
+  await db.transaction(async (tx) => {
+    await tx
+      .select()
+      .from(settingsTable)
+      .where(eq(settingsTable.id, 1))
+      .for("update");
+    await tx
+      .update(messages)
+      .set({ body, mediaId: null })
+      .where(eq(messages.id, messageId));
   });
 }
 export async function recordSentMessage(row: typeof messages.$inferInsert) {

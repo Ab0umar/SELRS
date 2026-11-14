@@ -135,6 +135,8 @@ export const autoReplyMessages = mysqlTable(
     conversationId: int("conversation_id").notNull(),
     eventKey: varchar("event_key", { length: 64 }).notNull(),
     providerId: varchar("provider_id", { length: 255 }),
+    // WhatsApp audio waiting for transcription; cleared once handled. The audio itself is never stored.
+    mediaId: varchar("media_id", { length: 255 }),
     direction: varchar("direction", { length: 20 }).notNull(),
     body: text("body").notNull(),
     state: varchar("state", { length: 32 }).default("received").notNull(),

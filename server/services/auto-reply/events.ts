@@ -17,6 +17,8 @@ export type InboundEvent = {
   deleted: boolean;
   // Facebook comments only: the comment this one answers, when it is nested.
   parentId?: string;
+  // WhatsApp voice notes only: the Graph media id to transcribe.
+  mediaId?: string;
 };
 const id = z.string().min(1).max(255);
 const message = z.object({
@@ -60,6 +62,7 @@ const whatsappValue = z.object({
         timestamp: z.string(),
         type: z.string(),
         text: z.object({ body: z.string().max(20_000) }).optional(),
+        audio: z.object({ id }).optional(),
       }),
     )
     .max(1000)
@@ -209,6 +212,9 @@ export function parseMetaEvents(
             humanEcho: false,
             unsupported: m.type !== "text" || !m.from,
             deleted: false,
+            ...(m.type === "audio" && m.audio?.id && m.from
+              ? { mediaId: m.audio.id, text: "[رسالة صوتية]" }
+              : {}),
           });
         }
       }

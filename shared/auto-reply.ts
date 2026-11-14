@@ -150,6 +150,8 @@ export const autoReplySettingsSchema = z.object({
   // 0 resumes automation on the next customer message after a staff reply.
   staffReplyPauseMinutes: z.number().int().min(0).max(1440).default(0),
   maxAutoRepliesPerHour: z.number().int().min(1).max(200).default(20),
+  // WhatsApp voice notes are sent to Google Gemini for transcription (owner-approved).
+  voiceTranscription: z.boolean().default(true),
   // Offered to the model as an approved fact; the bot never touches bookings itself.
   bookingUrl: z
     .union([

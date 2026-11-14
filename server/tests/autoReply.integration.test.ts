@@ -145,6 +145,7 @@ describe.skipIf(!testUrl)(
         "0113_auto_reply_provider_indexes.sql",
         "0114_auto_reply_handoff_notified.sql",
         "0115_auto_reply_suggestions.sql",
+        "0116_auto_reply_voice.sql",
       ]) {
         const migration = await readFile(
           new URL(`../../drizzle/${file}`, import.meta.url),
@@ -229,6 +230,59 @@ describe.skipIf(!testUrl)(
         deleted: false,
       };
     }
+    function oggFixture(seconds: number) {
+      const head = Buffer.alloc(19);
+      head.write("OpusHead", 0);
+      head.writeUInt16LE(312, 10);
+      const page = Buffer.alloc(27);
+      page.write("OggS", 0);
+      page.writeBigUInt64LE(BigInt(312 + 48000 * seconds), 6);
+      return Buffer.concat([Buffer.from("OggS"), Buffer.alloc(24), head, page]);
+    }
+    function mockVoiceNetwork(seconds: number) {
+      const fetcher = vi.fn(async (url: string, init?: RequestInit) => {
+        if (url.includes("generativelanguage")) {
+          const voice = String(init?.body).includes("inline_data");
+          return Response.json({
+            candidates: [
+              {
+                finishReason: "STOP",
+                content: {
+                  parts: [
+                    {
+                      text: voice
+                        ? "عنوان الفرع فين"
+                        : JSON.stringify({
+                            text: "العنوان المعتمد للاختبار",
+                            handoff: false,
+                            sourceIds: [1],
+                          }),
+                    },
+                  ],
+                },
+              },
+            ],
+          });
+        }
+        if (url.includes("voice-media-1"))
+          return Response.json({
+            url: "https://lookaside.example/voice",
+            mime_type: "audio/ogg; codecs=opus",
+            file_size: 4000,
+          });
+        if (url.startsWith("https://lookaside.example/"))
+          return new Response(oggFixture(seconds));
+        return Response.json({ messages: [{ id: "sent-1" }] });
+      });
+      vi.stubGlobal("fetch", fetcher);
+      return fetcher;
+    }
+    const voiceEvent = (): InboundEvent => ({
+      ...event("voice-1"),
+      text: "[رسالة صوتية]",
+      unsupported: true,
+      mediaId: "voice-media-1",
+    });
     async function enable() {
       const config = autoReplySettingsSchema.parse({
         sendingEnabled: true,
@@ -1591,6 +1645,49 @@ describe.skipIf(!testUrl)(
           .metrics({ scope: "whatsapp", days: 7 }),
       ).rejects.toMatchObject({ code: "FORBIDDEN" });
     });
+    it("transcribes a short WhatsApp voice note and answers it as text", async () => {
+      await enable();
+      await ingestEvents([voiceEvent()]);
+      expect((await db.select().from(conversations))[0].status).toBe("open");
+      const fetcher = mockVoiceNetwork(10);
+      await runAutoReplyTick();
+      const inbound = (await db.select().from(messages)).find(
+        (m) => m.direction === "inbound",
+      );
+      expect(inbound).toMatchObject({
+        body: "🎤 عنوان الفرع فين",
+        mediaId: null,
+      });
+      expect((await db.select().from(jobs))[0].state).toBe("sent");
+      const reply = fetcher.mock.calls.find(
+        ([url, init]) =>
+          String(url).includes("generativelanguage") &&
+          !String(init?.body).includes("inline_data"),
+      );
+      expect(String(reply?.[1]?.body)).toContain("عنوان الفرع فين");
+    });
+    it.each([
+      ["a voice note over two minutes", true, 180],
+      ["transcription turned off", false, 10],
+    ])(
+      "falls back to the non-text acknowledgement for %s",
+      async (_label, enabled, seconds) => {
+        const config = await enable();
+        await saveSettings({ ...config, voiceTranscription: enabled }, 1);
+        await ingestEvents([voiceEvent()]);
+        mockVoiceNetwork(seconds);
+        await runAutoReplyTick();
+        expect(
+          (await db.select().from(messages))
+            .filter((m) => m.direction === "bot")
+            .map((m) => m.body),
+        ).toEqual(["وصلتنا رسالتك، وهنحوّلها لموظف من المركز يرد عليك."]);
+        expect((await db.select().from(conversations))[0]).toMatchObject({
+          status: "human",
+          humanReason: "unsupported_message",
+        });
+      },
+    );
     it("treats a staff-started conversation as having a closed reply window", async () => {
       await enable();
       await ingestEvents([{ ...event("staff-first", "أهلا"), humanEcho: true }]);
