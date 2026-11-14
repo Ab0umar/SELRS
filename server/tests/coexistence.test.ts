@@ -177,6 +177,7 @@ describe("Coexistence trust boundaries", () => {
     expect(isRoutineLifecycleEvent("PARTNER_ADDED")).toBe(true);
     expect(isRoutineLifecycleEvent("PARTNER_APP_INSTALLED")).toBe(true);
     expect(isRoutineLifecycleEvent("ACCOUNT_RECONNECTED")).toBe(true);
+    expect(isRoutineLifecycleEvent("WEBHOOK_CONFIG_UPDATED")).toBe(true);
     for (const event of [
       "PARTNER_REMOVED",
       "DISABLED_UPDATE",

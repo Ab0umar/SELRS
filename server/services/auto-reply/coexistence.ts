@@ -3,6 +3,7 @@ import { and, desc, eq, gt, inArray, lt, sql } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import {
+  autoReplyContacts as contacts,
   autoReplyOnboarding as attempts,
   autoReplySettings as settings,
   autoReplySyncEvents as syncEvents,
@@ -202,8 +203,25 @@ export async function onboardingGraph(
     !result ||
     typeof result !== "object" ||
     "error" in result
-  )
+  ) {
+    const meta = z
+      .object({
+        error: z.object({
+          code: z.number().optional(),
+          error_subcode: z.number().optional(),
+        }),
+      })
+      .safeParse(result);
+    // Endpoint shape and Meta's numeric codes only; ids, tokens and messages stay out.
+    console.warn(
+      "[auto-reply] META_ONBOARDING_REJECTED",
+      path.split("?")[0].replace(/\d+/g, "#"),
+      meta.success
+        ? `${meta.data.error.code ?? "-"}/${meta.data.error.error_subcode ?? "-"}`
+        : "-",
+    );
     throw new Error("META_ONBOARDING_REJECTED");
+  }
   return result;
 }
 export async function exchangeOnboardingCode(
@@ -454,6 +472,7 @@ export async function initiateCoexistenceSync() {
     });
     if (!claimed) continue;
     let requestId: string | undefined;
+    let rejected = false;
     try {
       const response = z.object({ request_id: z.string() }).parse(
         await onboardingGraph(
@@ -468,6 +487,8 @@ export async function initiateCoexistenceSync() {
       requestId = response.request_id;
     } catch (error) {
       /* An uncertain POST is never automatically repeated. */
+      rejected =
+        error instanceof Error && error.message === "META_ONBOARDING_REJECTED";
       console.warn(
         "[auto-reply] COEXISTENCE_SYNC_REQUEST_FAILED",
         kind,
@@ -483,13 +504,28 @@ export async function initiateCoexistenceSync() {
         .where(eq(attempts.id, credentials.attemptId))
         .for("update");
       if (!row) return;
+      // Meta syncs contacts once per link; a refused repeat keeps the stored list in use.
+      const [stored] =
+        kind === "contacts" && rejected
+          ? await tx
+              .select({ id: contacts.id })
+              .from(contacts)
+              .where(eq(contacts.accountId, credentials.phoneId))
+              .limit(1)
+          : [];
       await tx
         .update(attempts)
         .set({
           details: {
             ...row.details,
             ...(row.details[kind] === "requesting"
-              ? { [kind]: requestId ? "accepted" : "unknown" }
+              ? {
+                  [kind]: requestId
+                    ? "accepted"
+                    : stored
+                      ? "receiving"
+                      : "unknown",
+                }
               : {}),
             ...(requestId
               ? {
