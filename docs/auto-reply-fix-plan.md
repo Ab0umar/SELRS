@@ -85,6 +85,14 @@ New settings in `shared/auto-reply.ts`, each with an Arabic field on the setting
 
 Tests: one per rule.
 
+**Shipped** in #32 (`4a73a429` on `fix/auto-reply-pr3-conversation`, merge `79f2a99f` into `fix/auto-reply-pr2-webhook-send`). Operator detail: `docs/auto-reply-setup.md`, section «حدود المحادثة». The list above is the request; the code differs in these places:
+
+- A comment that matches `safetyDecision` (`clinical`, `human_requested`, `untrusted_instruction`) or the public-comment personal-data pattern (7+ digits, «تقرير طبي», «تحاليل», `medical report`, or `@`) still posts «نرجو التواصل على الخاص» / "Please message us privately." with no model call. `isQuestion` is read only after a model response. A missing `isQuestion` is treated as a question (`parsed.isQuestion !== false` in `providers.ts`).
+- The non-text acknowledgement language comes from the first inbound message (`englishFirst`), because the stored body is `[رسالة غير نصية]`.
+- `staff_takeover` is the manual control «تحويل لموظف وإيقاف البوت» (`setConversationStatus`). It is not reopened while that reason remains. A non-text customer event replaces it with `unsupported_message`, and a safety-rule message replaces it with that rule's reason. Reopen is evaluated on a later customer message. A non-text message during `staffReplyPauseMinutes` changes the reason and does not queue the acknowledgement. Staff echoes keep `staff_takeover`.
+- The hourly cap counts stored `auto_reply_messages` rows with `direction = bot` in the last hour. It is separate from the three generation attempts per job.
+- WhatsApp `reaction` events are dropped in `events.ts` and are not stored. Messenger events with no `message.text` follow the non-text acknowledgement path.
+
 ## PR 4 — cleanup
 
 - Remove the duplicated administrator instructions from the prompt and the current message from the history sent to the model.

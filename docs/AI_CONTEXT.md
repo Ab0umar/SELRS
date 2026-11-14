@@ -1,8 +1,8 @@
 # SRV100 AI Context Document
 
 > Single "read this first" file for any AI model (Cursor, Codex, Claude, GPT, Gemini, GLM, Kimi).
-> Version: 2.3.0 — companion to `docs/PROJECT_PRINCIPLES.md`. Updated 2026-10-26: moved out of `specs/`, spec-driven workflow removed. Updated 2026-11-10: patient WhatsApp OTP login, public clinic landing at `/`, paid leave type, follow-up list includes sheet items stored on examination visits, medical assistant review restore and treatment-medicine repair.
-> Version: 2.3.0 — companion to `docs/PROJECT_PRINCIPLES.md`. Updated 2026-10-26: moved out of `specs/`, spec-driven workflow removed. Updated 2026-11-10: patient WhatsApp OTP login, public clinic landing at `/`, paid leave type, follow-up list membership, autoref/refraction completeness, medical assistant review restore and treatment-medicine repair.
+> Version: 2.3.0 — companion to `docs/PROJECT_PRINCIPLES.md`. Updated 2026-10-26: moved out of `specs/`, spec-driven workflow removed. Updated 2026-11-10: patient WhatsApp OTP login, public clinic landing at `/`, paid leave type, follow-up list includes sheet items stored on examination visits, medical assistant review restore and treatment-medicine repair. Updated 2026-11-14: auto-reply conversation limits.
+> Version: 2.3.0 — companion to `docs/PROJECT_PRINCIPLES.md`. Updated 2026-10-26: moved out of `specs/`, spec-driven workflow removed. Updated 2026-11-10: patient WhatsApp OTP login, public clinic landing at `/`, paid leave type, follow-up list membership, autoref/refraction completeness, medical assistant review restore and treatment-medicine repair. Updated 2026-11-14: auto-reply conversation limits.
 
 ---
 
@@ -605,6 +605,16 @@ Other constraints:
 - `getMyPatients`: returns patients linked via `external_doctor_referrals` OR auto-matched by `doctorCode`, **only those with at least one `srv100_uploads` record** (Pentacam images)
 - Auto-referral: on any new patient registration, `autoLinkAndNotifyDoctors()` checks for active external doctors with matching `doctorCode` and inserts referrals idempotently
 - Real-time: doctor portal WS connection authenticates via `?doctorToken=<jwt>`; receives `new-patient` events instantly
+
+## Auto-reply conversation behaviour
+
+Shipped with PR #32. The operator write-up is `docs/auto-reply-setup.md` («حدود المحادثة»). The plan status is `docs/auto-reply-fix-plan.md` (PR 3). Settings live in the shared JSON (`shared/auto-reply.ts`), group «المساعد والذاكرة وحدود الرد», shared scope only: `handoffReopenHours` (24, 0–720, 0 never), `staffReplyPauseMinutes` (0, 0–1440), `maxAutoRepliesPerHour` (20, 1–200).
+
+- Idle `human` conversations reopen on a new customer message when `lastActivityAt` is older than `handoffReopenHours`. `staff_takeover` (button «تحويل لموظف وإيقاف البوت») does not reopen while that reason remains. `staff_reply` / `external_staff_reply` wait `staffReplyPauseMinutes` instead, measured from the latest `staff` row.
+- A non-text or safety-rule customer event overwrites `humanReason`. Reopen is evaluated on a later customer message, after that new `lastActivityAt`. A non-text message during `staffReplyPauseMinutes` does not send the acknowledgement. WhatsApp `reaction` events are dropped and not stored.
+- Public comments: safety rules and the personal-data pattern (including `@`) post «نرجو التواصل على الخاص» with no model call. Other comments reach the model so it can set `isQuestion`. `isQuestion: false` with a handoff cancels the job as `SILENT_HANDOFF` and does not post. Omitted `isQuestion` still posts.
+- Language follows the current message when it has a letter; the first message is the fallback. Public comments do not use the first message.
+- The legacy confirmation webhook (`server/_core/whatsappWebhook.ts`) is a different number. Its fixed reply is text-only and at most once per number per 6 hours.
 
 ## What Must NEVER Break
 
