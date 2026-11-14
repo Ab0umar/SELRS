@@ -331,7 +331,7 @@
 .ar-conversation-dialog [data-slot="dialog-header"] {
   padding-inline-start: 40px;
 }
-.ar-settings > form > .ar-settings-group > summary {
+.ar-settings[data-view="settings"] > form > .ar-settings-group > summary {
   display: none;
 }
 .ar-conversation-dialog .ar-messages {
@@ -635,5 +635,280 @@
   .ar-message-bot,
   .ar-message-staff {
     margin-inline: 0;
+  }
+}
+
+/* Status board (admin landing) and the three-pane inbox. */
+.ar-back {
+  margin-bottom: 12px;
+}
+.ar-board {
+  display: grid;
+  gap: 32px;
+}
+.ar-board h2 {
+  margin-top: 0;
+}
+.ar-needs {
+  padding: 16px;
+  border: 1px solid var(--selrs-orange);
+  border-radius: 12px;
+  background: var(--card);
+}
+.ar-needs ul,
+.ar-shared-list,
+.ar-channel-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.ar-needs li,
+.ar-shared-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px 16px;
+  flex-wrap: wrap;
+  padding-block: 12px;
+  border-top: 1px solid var(--border);
+}
+.ar-needs li > div,
+.ar-shared-list li > div {
+  flex: 1 1 240px;
+  min-width: 0;
+}
+.ar-needs li p,
+.ar-shared-list li p {
+  margin: 2px 0 0;
+}
+.ar-channel-list {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--card);
+}
+.ar-channel-list > li {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1.4fr) minmax(0, 1fr) 80px auto;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-top: 1px solid var(--border);
+}
+.ar-channel-list > li:first-child {
+  border-top: 0;
+}
+.ar-channel-head {
+  color: var(--muted-foreground);
+  font-size: 0.85rem;
+}
+.ar-mobile-label {
+  display: none;
+}
+.ar-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+}
+.ar-state::before {
+  content: "";
+  flex: none;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--muted-foreground);
+}
+.ar-state-on::before {
+  background: var(--success);
+}
+.ar-state-wait::before {
+  background: var(--warning);
+}
+.ar-state-off::before {
+  background: var(--destructive);
+}
+.ar-seg,
+.ar-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.ar-seg {
+  width: fit-content;
+  max-width: 100%;
+  padding: 4px;
+  border-radius: 10px;
+  background: var(--muted);
+}
+.ar-seg > button,
+.ar-chips > button {
+  min-height: 44px;
+  padding-inline: 14px;
+  border-radius: 8px;
+  font-weight: 600;
+  color: var(--muted-foreground);
+}
+.ar-seg > button[aria-pressed="true"] {
+  background: var(--card);
+  color: var(--foreground);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 12%);
+}
+.ar-chips > button {
+  border: 1px solid var(--border);
+  background: var(--card);
+}
+.ar-chips > button[aria-pressed="true"] {
+  border-color: var(--primary);
+  background: var(--primary);
+  color: var(--primary-foreground);
+}
+.ar-channel-tabs {
+  margin-bottom: 20px;
+}
+.ar-inbox-a {
+  display: grid;
+  grid-template-columns: minmax(260px, 340px) minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+.ar-inbox-list {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--muted);
+}
+.ar-inbox-list .ar-list-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0;
+  border: 0;
+}
+.ar-inbox-list .ar-conversation {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--card);
+  color: var(--card-foreground);
+}
+.ar-inbox-list .ar-conversation[aria-pressed="true"] {
+  border: 2px solid var(--primary);
+  background: var(--card);
+  color: var(--card-foreground);
+}
+.ar-pager {
+  justify-content: space-between;
+}
+.ar-inbox-thread {
+  min-width: 0;
+}
+.ar-back-list {
+  display: none;
+}
+.ar-inbox-empty {
+  padding: 32px 16px;
+  border: 1px dashed var(--border);
+  border-radius: 12px;
+  text-align: center;
+  color: var(--muted-foreground);
+}
+.ar-conv {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 260px;
+  gap: 16px;
+  align-items: start;
+}
+.ar-conv-main,
+.ar-conv-details {
+  min-width: 0;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--card);
+  color: var(--card-foreground);
+}
+.ar-conv-main > * + * {
+  margin-top: 12px;
+}
+.ar-conv-main h2 {
+  margin: 0;
+}
+.ar-conv-main .ar-messages {
+  max-height: 55dvh;
+  overflow-y: auto;
+  padding: 12px;
+  border-radius: 12px;
+  background: var(--background);
+}
+.ar-conv-details dl {
+  display: grid;
+  gap: 10px;
+  margin: 12px 0;
+}
+.ar-conv-details dt {
+  color: var(--muted-foreground);
+  font-size: 0.85rem;
+}
+.ar-conv-details dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.ar-detail-actions {
+  display: grid;
+  gap: 8px;
+}
+.ar-detail-actions > button {
+  white-space: normal;
+  height: auto;
+  min-height: 44px;
+}
+@media (max-width: 1279px) {
+  .ar-conv {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+@media (max-width: 899px) {
+  .ar-inbox-a {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .ar-inbox-a.ar-has-selection > .ar-inbox-list {
+    display: none;
+  }
+  .ar-inbox-a:not(.ar-has-selection) > .ar-inbox-thread {
+    display: none;
+  }
+  .ar-back-list {
+    display: inline-flex;
+    margin-bottom: 12px;
+  }
+}
+@media (max-width: 767px) {
+  .ar-channel-head {
+    display: none !important;
+  }
+  .ar-channel-list > li {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 4px 12px;
+  }
+  .ar-channel-list > li > strong,
+  .ar-channel-list > li > span {
+    grid-column: 1;
+  }
+  .ar-channel-list > li > button {
+    grid-column: 2;
+    grid-row: 1 / span 4;
+    align-self: center;
+  }
+  .ar-mobile-label {
+    display: inline;
+  }
+  .ar-seg {
+    width: 100%;
+  }
+  .ar-seg > button {
+    flex: 1 1 auto;
+    padding-inline: 8px;
   }
 }

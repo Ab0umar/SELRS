@@ -19,6 +19,7 @@ import {
   autoReplySettingsSchema,
   supportsGeminiSampling,
   settingsForTarget,
+  isAutoReplyEnabled,
   type AutoReplyChannel,
   type AutoReplySettings,
 } from "../../../../shared/auto-reply";
@@ -27,17 +28,6 @@ import type { autoReplyRouter } from "../../../../server/routers/autoReply";
 import "./AutoReply.css";
 import { WhatsAppCoexistence } from "./WhatsAppCoexistence";
 import AssistantModelSelect from "@/features/ai/AssistantModelSelect";
-
-type Tab =
-  | "inbox"
-  | "knowledge"
-  | "settings"
-  | "sending"
-  | "instructions"
-  | "memory"
-  | "test"
-  | "activity"
-  | "metrics";
 
 function ChannelTabs({
   value,
@@ -311,17 +301,64 @@ function ChannelSelect({
   );
 }
 
+type ChannelTab = "inbox" | "reply" | "connect";
+type View =
+  | { kind: "board" }
+  | { kind: "conversations" }
+  | {
+      kind: "channel";
+      scope: string;
+      tab: ChannelTab;
+      channel?: AutoReplyChannel;
+    }
+  | { kind: "shared"; part: "knowledge" | "settings" | "test" };
+type SettingsData = AutoReplyOutputs["settings"];
+type ChannelRow = SettingsData["channels"][number];
+type Tone = "on" | "wait" | "off" | "idle";
+
+const scopeName = (scope: string, pages: FacebookPages) => {
+  if (scope === "whatsapp") return "واتساب";
+  const index = pages.findIndex((page) => page.accountId === scope);
+  if (index === 0) return "صفحة المركز";
+  if (index === 1) return "صفحة العيادة";
+  return pageLabel(scope, pages);
+};
+const rowScope = (row: { channel: AutoReplyChannel; accountId: string }) =>
+  row.channel === "whatsapp" ? "whatsapp" : row.accountId;
+const rowName = (row: ChannelRow, pages: FacebookPages) =>
+  row.channel === "whatsapp"
+    ? channelLabels.whatsapp
+    : `${channelLabels[row.channel]} · ${scopeName(row.accountId, pages)}`;
+
+// Built only from the saved settings and the last stored Meta check.
+function channelState(
+  row: ChannelRow,
+  config: AutoReplySettings,
+): { tone: Tone; label: string } {
+  if (!row.configured) return { tone: "off", label: "إعداد السيرفر غير مكتمل" };
+  if (row.errorCode)
+    return {
+      tone: "off",
+      label: `فشل آخر فحص: ${autoReplyErrorLabel(row.errorCode)}`,
+    };
+  if (!isAutoReplyEnabled(config, row.channel, row.accountId))
+    return { tone: "idle", label: "الرد الآلي مقفول للقناة" };
+  if (!config.sendingEnabled)
+    return { tone: "idle", label: "الإرسال العام متوقف" };
+  if (!row.checkedAt) return { tone: "wait", label: "شغّال · لم يُفحص الاتصال" };
+  if (!row.checkOk)
+    return { tone: "wait", label: "شغّال · الربط اتغيّر بعد آخر فحص" };
+  if (!row.checkFresh)
+    return { tone: "wait", label: "شغّال · آخر فحص أقدم من يوم" };
+  return { tone: "on", label: "شغّال" };
+}
+const parsedConfig = (data: SettingsData) =>
+  autoReplySettingsSchema.parse(data.config);
+
 export default function AutoReply() {
-  const [tab, setTab] = useState<Tab>("inbox");
   const [settingsDirty, setSettingsDirty] = useState(false);
   const canLeaveSettings = () =>
     !settingsDirty || window.confirm("عندك تعديلات لم تُحفظ. تسيبها وتكمل؟");
-  const [scope, setScope] = useState(() => {
-    const pending = restoredPreview();
-    return pending && pending.channel !== "whatsapp"
-      ? pending.accountId || "whatsapp"
-      : "whatsapp";
-  });
   const [previewPending, setPreviewPending] = useState(() => {
     try {
       return Boolean(sessionStorage.getItem("selrs.ai.reply.preview"));
@@ -329,6 +366,33 @@ export default function AutoReply() {
       return false;
     }
   });
+  const [testTarget, setTestTarget] = useState(() => {
+    const pending = restoredPreview();
+    return pending && pending.channel !== "whatsapp"
+      ? pending.accountId || "whatsapp"
+      : "whatsapp";
+  });
+  const [view, setView] = useState<View>(() => {
+    if (previewPending) return { kind: "shared", part: "test" };
+    if (new URLSearchParams(window.location.search).get("conversation"))
+      return { kind: "conversations" };
+    return { kind: "board" };
+  });
+  const go = (next: View) => {
+    // الرد and الربط share one settings form, so moving between them keeps the draft.
+    const keepsForm =
+      view.kind === "channel" &&
+      next.kind === "channel" &&
+      view.scope === next.scope &&
+      view.tab !== "inbox" &&
+      next.tab !== "inbox";
+    if (!keepsForm) {
+      if (!canLeaveSettings()) return;
+      setSettingsDirty(false);
+    }
+    setView(next);
+    window.scrollTo({ top: 0 });
+  };
   const settings = trpc.autoReply.settings.useQuery(undefined, {
     refetchInterval: 30_000,
   });
@@ -340,25 +404,76 @@ export default function AutoReply() {
     },
     onError: (e) => toast.error(e.message),
   });
+  const data = settings.data;
+  const title =
+    view.kind === "board"
+      ? "الرد الآلي"
+      : view.kind === "conversations"
+        ? "كل المحادثات"
+        : view.kind === "channel"
+          ? data
+            ? scopeName(view.scope, data.pages)
+            : "القناة"
+          : view.part === "knowledge"
+            ? "معلومات المركز"
+            : view.part === "settings"
+              ? "التعليمات والإعدادات المشتركة"
+              : "اختبار داخلي";
+  const config = data ? parsedConfig(data) : null;
+  const live = data
+    ? data.channels.filter((row) =>
+        ["on", "wait"].includes(channelState(row, config!).tone),
+      ).length
+    : 0;
   return (
     <main className="auto-reply" dir="rtl">
+      {view.kind !== "board" && (
+        <Button
+          type="button"
+          variant="outline"
+          className="ar-back"
+          disabled={previewPending && view.kind === "shared"}
+          onClick={() => go({ kind: "board" })}
+        >
+          رجوع للوحة
+        </Button>
+      )}
       <header className="ar-header">
         <div>
-          <h1>الرد الآلي</h1>
-          <p>مركز عيون الشروق · إدارة محادثات واتساب وماسنجر وتعليقات الصفحة</p>
+          <h1>{title}</h1>
+          {data && config && view.kind === "board" && (
+            <p role="status">
+              {config.sendingEnabled
+                ? `بيرد على ${count(live)} من ${count(data.channels.length)} قنوات`
+                : "الإرسال العام متوقف · مفيش رسائل بتتبعت للعملاء"}
+            </p>
+          )}
+          {data && view.kind === "channel" && (
+            <p>
+              {data.channels
+                .filter((row) => rowScope(row) === view.scope)
+                .map(
+                  (row) =>
+                    `${channelLabels[row.channel]}: ${channelState(row, config!).label}`,
+                )
+                .join(" · ")}
+            </p>
+          )}
         </div>
-        {settings.data && (
+        {data && (
           <div className="ar-toolbar">
-            <strong role="status">
-              {settings.data.config.sendingEnabled
-                ? "الإرسال العام مفعّل"
-                : "الإرسال العام متوقف"}
-            </strong>
+            {view.kind !== "board" && (
+              <strong role="status">
+                {data.config.sendingEnabled
+                  ? "الإرسال العام مفعّل"
+                  : "الإرسال العام متوقف"}
+              </strong>
+            )}
             <Button
               variant="destructive"
-              disabled={!settings.data.config.sendingEnabled || stop.isPending}
+              disabled={!data.config.sendingEnabled || stop.isPending}
               onClick={() =>
-                stop.mutate({ ...settings.data!.config, sendingEnabled: false })
+                stop.mutate({ ...data.config, sendingEnabled: false })
               }
             >
               إيقاف كل الإرسال
@@ -366,82 +481,6 @@ export default function AutoReply() {
           </div>
         )}
       </header>
-      {settings.data && (
-        <nav className="ar-scope-tabs" aria-label="جهة الرد الآلي">
-          {[
-            { id: "whatsapp", label: "واتساب" },
-            ...settings.data.pages.slice(0, 2).map((page, index) => ({
-              id: page.accountId,
-              label: index === 0 ? "صفحة المركز" : "صفحة العيادة",
-            })),
-            { id: "all", label: "المشترك" },
-          ].map(({ id, label }) => (
-            <Button
-              key={id}
-              variant={scope === id ? "default" : "outline"}
-              aria-pressed={scope === id}
-              disabled={previewPending}
-              onClick={() => {
-                if (scope === id || !canLeaveSettings()) return;
-                setSettingsDirty(false);
-                setScope(id);
-                setTab(id === "all" ? "knowledge" : "inbox");
-              }}
-            >
-              {label}
-            </Button>
-          ))}
-        </nav>
-      )}
-      {settings.data && scope === "all" && (
-        <details className="ar-assistant-disclosure">
-          <summary>المساعد والموديل الحالي</summary>
-          <ReplyAssistantSelect
-            key={`${settings.data.config.model}:${settings.data.config.engine}`}
-            data={settings.data}
-            disabled={previewPending}
-          />
-        </details>
-      )}
-      <nav className="ar-tabs" aria-label="أقسام الرد الآلي">
-        {(
-          [
-            ["inbox", "المحادثات"],
-            ["knowledge", "Teach AI"],
-            ["settings", "الربط والفحص"],
-            ["sending", "التشغيل والمواعيد"],
-            ["instructions", "الرد والتعليمات"],
-            ["memory", "ذاكرة وحدود الرد"],
-            ["test", "اختبار داخلي"],
-            ["activity", "السجل"],
-            ["metrics", "الأرقام"],
-          ] as [Tab, string][]
-        )
-          .filter(
-            ([id]) =>
-              scope !== "all" ||
-              ["knowledge", "instructions", "memory", "sending"].includes(id),
-          )
-          .map(([id, label]) => (
-            <Button
-              key={id}
-              variant={tab === id ? "default" : "outline"}
-              aria-pressed={tab === id}
-              onClick={() => {
-                if (
-                  !["settings", "sending", "instructions", "memory"].includes(
-                    id,
-                  ) &&
-                  !canLeaveSettings()
-                )
-                  return;
-                setTab(id);
-              }}
-            >
-              {label}
-            </Button>
-          ))}
-      </nav>
       {settings.isLoading ? (
         <p role="status">جارٍ تحميل إعدادات الرد الآلي…</p>
       ) : settings.error ? (
@@ -450,57 +489,378 @@ export default function AutoReply() {
           retry={() => void settings.refetch()}
         />
       ) : (
-        settings.data && (
+        data &&
+        config && (
           <>
-            {!settings.data.workerEnabled && (
+            {!data.workerEnabled && (
               <p className="ar-notice">
                 عامل الخلفية غير مفعّل على السيرفر. الاختبار الداخلي متاح، ولن
                 تُرسل رسائل للعملاء.
               </p>
             )}
-            {tab === "inbox" && (
+            {view.kind === "board" && (
+              <StatusBoard data={data} config={config} onOpen={go} />
+            )}
+            {view.kind === "conversations" && (
               <Inbox
-                key={scope}
-                scope={scope}
-                sendingEnabled={settings.data.config.sendingEnabled}
-                pages={settings.data.pages}
+                sendingEnabled={data.config.sendingEnabled}
+                pages={data.pages}
+                filters={inboxFilters(data.pages)}
               />
             )}
-            {tab === "knowledge" && (
-              <Knowledge
-                key={scope}
-                pages={settings.data.pages}
-                scope={scope}
-              />
+            {view.kind === "channel" && (
+              <>
+                <div
+                  className="ar-seg ar-channel-tabs"
+                  role="group"
+                  aria-label="أقسام القناة"
+                >
+                  {(
+                    [
+                      ["inbox", "المحادثات"],
+                      ["reply", "الرد"],
+                      ["connect", "الربط"],
+                    ] as [ChannelTab, string][]
+                  ).map(([id, label]) => (
+                    <button
+                      key={id}
+                      type="button"
+                      aria-pressed={view.tab === id}
+                      onClick={() =>
+                        view.tab !== id && go({ ...view, tab: id })
+                      }
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+                {view.tab === "inbox" && (
+                  <Inbox
+                    key={view.scope}
+                    sendingEnabled={data.config.sendingEnabled}
+                    pages={data.pages}
+                    filters={inboxFilters(data.pages, view.scope)}
+                    initialFilter={
+                      view.channel && view.channel !== "whatsapp"
+                        ? `${view.channel}:${view.scope}`
+                        : undefined
+                    }
+                  />
+                )}
+                {view.tab !== "inbox" && (
+                  <Settings
+                    key={`${view.scope}:${data.config.model}:${data.config.engine}`}
+                    data={data}
+                    scope={view.scope}
+                    onDirtyChange={setSettingsDirty}
+                    view={view.tab === "connect" ? "settings" : "reply"}
+                  />
+                )}
+                {view.tab === "reply" && (
+                  <Knowledge
+                    key={view.scope}
+                    pages={data.pages}
+                    scope={view.scope}
+                  />
+                )}
+                {view.tab === "connect" && (
+                  <>
+                    <Metrics key={`m:${view.scope}`} scope={view.scope} />
+                    <Activity
+                      key={`a:${view.scope}`}
+                      pages={data.pages}
+                      scope={view.scope}
+                    />
+                  </>
+                )}
+              </>
             )}
-            {["settings", "sending", "instructions", "memory"].includes(
-              tab,
-            ) && (
-              <Settings
-                key={`${scope}:${settings.data.config.model}:${settings.data.config.engine}`}
-                data={settings.data}
-                scope={scope}
-                onDirtyChange={setSettingsDirty}
-                view={tab as "settings" | "sending" | "instructions" | "memory"}
-              />
+            {view.kind === "shared" && view.part === "knowledge" && (
+              <Knowledge pages={data.pages} scope="all" />
             )}
-            {tab === "test" && (
-              <InternalTest
-                key={scope}
-                scope={scope}
-                pages={settings.data.pages}
-                activeEngine={settings.data.config.engine}
-                onPendingChange={setPreviewPending}
-              />
+            {view.kind === "shared" && view.part === "settings" && (
+              <>
+                <details className="ar-assistant-disclosure">
+                  <summary>المساعد والموديل الحالي</summary>
+                  <ReplyAssistantSelect
+                    key={`${data.config.model}:${data.config.engine}`}
+                    data={data}
+                    disabled={previewPending}
+                  />
+                </details>
+                <Settings
+                  key={`all:${data.config.model}:${data.config.engine}`}
+                  data={data}
+                  scope="all"
+                  onDirtyChange={setSettingsDirty}
+                  view="reply"
+                />
+              </>
             )}
-            {tab === "activity" && (
-              <Activity key={scope} pages={settings.data.pages} scope={scope} />
+            {view.kind === "shared" && view.part === "test" && (
+              <>
+                <Field label="اختبار الرد كأنه على">
+                  <select
+                    className="ar-select"
+                    value={testTarget}
+                    disabled={previewPending}
+                    onChange={(e) => setTestTarget(e.target.value)}
+                  >
+                    <option value="whatsapp">واتساب</option>
+                    {data.pages.map((page) => (
+                      <option key={page.accountId} value={page.accountId}>
+                        {scopeName(page.accountId, data.pages)}
+                      </option>
+                    ))}
+                  </select>
+                </Field>
+                <InternalTest
+                  key={testTarget}
+                  scope={testTarget}
+                  pages={data.pages}
+                  activeEngine={data.config.engine}
+                  onPendingChange={setPreviewPending}
+                />
+              </>
             )}
-            {tab === "metrics" && <Metrics key={scope} scope={scope} />}
           </>
         )
       )}
     </main>
+  );
+}
+
+function StatusBoard({
+  data,
+  config,
+  onOpen,
+}: {
+  data: SettingsData;
+  config: AutoReplySettings;
+  onOpen: (view: View) => void;
+}) {
+  const counts = trpc.autoReply.humanCounts.useQuery(undefined, {
+    refetchInterval: 30_000,
+  });
+  const recipients = config.whatsappRecipients;
+  const audience = trpc.autoReply.whatsappContactAudience.useQuery(undefined, {
+    enabled: recipients.mode === "except_contacts",
+    refetchInterval: 30_000,
+    retry: false,
+  });
+  const utils = trpc.useUtils();
+  const check = trpc.autoReply.checkConnection.useMutation({
+    onSuccess: async (r) => {
+      await utils.autoReply.settings.invalidate();
+      if (r.ok) toast.success("نجح فحص الوصول للأصل لدى Meta");
+      else
+        toast.error(
+          `فشل الفحص: ${autoReplyErrorLabel(r.errorCode ?? "META_CHECK_FAILED")}`,
+        );
+    },
+    onError: (e) => toast.error(e.message),
+  });
+  const humanFor = (row: { channel: AutoReplyChannel; accountId: string }) =>
+    (counts.data ?? [])
+      .filter(
+        (c) =>
+          c.channel === row.channel &&
+          (row.channel === "whatsapp" || c.accountId === row.accountId),
+      )
+      .reduce((sum, c) => sum + c.count, 0);
+  const humanTotal = (counts.data ?? []).reduce((sum, c) => sum + c.count, 0);
+  const needs: {
+    key: string;
+    title: string;
+    detail: string;
+    action: ReactNode;
+  }[] = [];
+  if (humanTotal > 0)
+    needs.push({
+      key: "human",
+      title: `${count(humanTotal)} محادثة مستنية موظف`,
+      detail: "البوت وقف عليها لحد ما حد يرد أو يرجّعها له.",
+      action: (
+        <Button onClick={() => onOpen({ kind: "conversations" })}>
+          افتح المحادثات
+        </Button>
+      ),
+    });
+  for (const row of data.channels.filter((r) => r.errorCode))
+    needs.push({
+      key: `check:${row.channel}:${row.accountId}`,
+      title: `${rowName(row, data.pages)}: فشل آخر فحص للاتصال`,
+      detail: `${autoReplyErrorLabel(row.errorCode!)} · ${time(row.checkedAt)}`,
+      action: (
+        <Button
+          variant="outline"
+          disabled={check.isPending}
+          onClick={() =>
+            check.mutate({ channel: row.channel, accountId: row.accountId })
+          }
+        >
+          {check.isPending ? "جارٍ الفحص…" : "افحص الاتصال"}
+        </Button>
+      ),
+    });
+  if (
+    recipients.mode === "except_contacts" &&
+    !audience.isLoading &&
+    (!audience.data?.available ||
+      recipients.confirmedContactSync !== audience.data.syncId)
+  )
+    needs.push({
+      key: "contacts",
+      title: "واتساب: قائمة جهات الاتصال محتاجة مراجعة",
+      detail: audience.isError
+        ? "تعذر قراءة حالة مزامنة جهات الاتصال."
+        : !audience.data?.available
+          ? "جهات الاتصال مش متاحة من الهاتف المرتبط، والمستلمين مضبوطين على استثنائها."
+          : `جهات الاتصال المُزامنة: ${count(audience.data.count)}، ولسه ما اتأكدتش.`,
+      action: (
+        <Button
+          variant="outline"
+          onClick={() =>
+            onOpen({ kind: "channel", scope: "whatsapp", tab: "reply" })
+          }
+        >
+          راجع وأكّد
+        </Button>
+      ),
+    });
+  if (!config.sendingEnabled)
+    needs.push({
+      key: "sending",
+      title: "الإرسال العام متوقف",
+      detail: "مفيش ردود بتتبعت للعملاء، ولا الردود اليدوية.",
+      action: (
+        <Button
+          variant="outline"
+          onClick={() => onOpen({ kind: "shared", part: "settings" })}
+        >
+          افتح الإعدادات المشتركة
+        </Button>
+      ),
+    });
+  return (
+    <div className="ar-board">
+      <section className="ar-needs" aria-labelledby="ar-needs-title">
+        <h2 id="ar-needs-title">محتاج منك</h2>
+        {counts.error && (
+          <ErrorState
+            message={`تعذر حساب المحادثات المستنية موظف: ${counts.error.message}`}
+            retry={() => void counts.refetch()}
+          />
+        )}
+        {needs.length ? (
+          <ul>
+            {needs.map((item) => (
+              <li key={item.key}>
+                <div>
+                  <strong>{item.title}</strong>
+                  <p className="ar-muted">{item.detail}</p>
+                </div>
+                {item.action}
+              </li>
+            ))}
+          </ul>
+        ) : counts.isLoading ? (
+          <p role="status">جارٍ مراجعة الحالة…</p>
+        ) : (
+          !counts.error && <p>مفيش حاجة محتاجة منك دلوقتي.</p>
+        )}
+      </section>
+      <section aria-labelledby="ar-channels-title">
+        <h2 id="ar-channels-title">القنوات</h2>
+        {data.channels.length === 0 ? (
+          <p>مفيش قنوات مضبوطة على السيرفر.</p>
+        ) : (
+          <ul className="ar-channel-list">
+            <li className="ar-channel-head" aria-hidden="true">
+              <span>القناة</span>
+              <span>الحالة</span>
+              <span>طريقة الرد</span>
+              <span>مع موظف</span>
+              <span />
+            </li>
+            {data.channels.map((row) => {
+              const state = channelState(row, config);
+              const mode = settingsForTarget(
+                config,
+                row.channel,
+                row.accountId,
+              ).replyMode;
+              return (
+                <li key={`${row.channel}:${row.accountId}`}>
+                  <strong>{rowName(row, data.pages)}</strong>
+                  <span className={`ar-state ar-state-${state.tone}`}>
+                    {state.label}
+                  </span>
+                  <span>
+                    {mode === "suggest" ? "يقترح وأنا أوافق" : "يرد لوحده"}
+                  </span>
+                  <span>
+                    <span className="ar-mobile-label">مع موظف: </span>
+                    {counts.data ? count(humanFor(row)) : "…"}
+                  </span>
+                  <Button
+                    variant="outline"
+                    aria-label={`فتح ${rowName(row, data.pages)}`}
+                    onClick={() =>
+                      onOpen({
+                        kind: "channel",
+                        scope: rowScope(row),
+                        tab: "inbox",
+                        channel: row.channel,
+                      })
+                    }
+                  >
+                    فتح
+                  </Button>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </section>
+      <section aria-labelledby="ar-shared-title">
+        <h2 id="ar-shared-title">مشترك بين كل القنوات</h2>
+        <ul className="ar-shared-list">
+          {(
+            [
+              [
+                "knowledge",
+                "معلومات المركز",
+                "مكتبة Teach AI اللي المساعد بيرد منها.",
+              ],
+              [
+                "settings",
+                "التعليمات والإعدادات المشتركة",
+                "المساعد والموديل، أسلوب الرد الافتراضي، المواعيد وحدود الرد.",
+              ],
+              [
+                "test",
+                "اختبار داخلي",
+                "جرّب رد البوت على رسالة من غير ما يتبعت لعميل.",
+              ],
+            ] as ["knowledge" | "settings" | "test", string, string][]
+          ).map(([part, label, detail]) => (
+            <li key={part}>
+              <div>
+                <strong>{label}</strong>
+                <p className="ar-muted">{detail}</p>
+              </div>
+              <Button
+                variant="outline"
+                onClick={() => onOpen({ kind: "shared", part })}
+              >
+                فتح
+              </Button>
+            </li>
+          ))}
+        </ul>
+      </section>
+    </div>
   );
 }
 
@@ -573,7 +933,6 @@ export function AutoReplyInbox() {
   const context = trpc.autoReply.inboxContext.useQuery(undefined, {
     refetchInterval: 30_000,
   });
-  const [scope, setScope] = useState("whatsapp");
   return (
     <main className="auto-reply" dir="rtl">
       <header className="ar-header">
@@ -591,34 +950,12 @@ export function AutoReplyInbox() {
         />
       ) : (
         context.data && (
-          <>
-            <nav className="ar-scope-tabs" aria-label="جهة المحادثات">
-              {[
-                { id: "whatsapp", label: "واتساب" },
-                ...context.data.pages.slice(0, 2).map((page, index) => ({
-                  id: page.accountId,
-                  label: index === 0 ? "صفحة المركز" : "صفحة العيادة",
-                })),
-              ].map(({ id, label }) => (
-                <Button
-                  key={id}
-                  variant={scope === id ? "default" : "outline"}
-                  aria-pressed={scope === id}
-                  onClick={() => setScope(id)}
-                >
-                  {label}
-                </Button>
-              ))}
-            </nav>
-            <Inbox
-              key={scope}
-              scope={scope}
-              sendingEnabled={context.data.sendingEnabled}
-              pages={context.data.pages}
-              canSuggest={false}
-              initialStatus="human"
-            />
-          </>
+          <Inbox
+            sendingEnabled={context.data.sendingEnabled}
+            pages={context.data.pages}
+            filters={inboxFilters(context.data.pages)}
+            canSuggest={false}
+          />
         )
       )}
     </main>
@@ -750,24 +1087,58 @@ function ReplyAssistantSelect({
   );
 }
 
+type InboxFilter = {
+  id: string;
+  label: string;
+  channel?: AutoReplyChannel;
+  accountId?: string;
+};
+// With a scope the inbox is one channel page; without one it spans every channel.
+function inboxFilters(pages: FacebookPages, scope?: string): InboxFilter[] {
+  const pageFilters = (accountId: string, named: boolean) =>
+    (["messenger", "facebook_comment"] as const).map((channel) => ({
+      id: `${channel}:${accountId}`,
+      label: named
+        ? `${channelLabels[channel]} · ${scopeName(accountId, pages)}`
+        : channelLabels[channel],
+      channel,
+      accountId,
+    }));
+  if (scope === "whatsapp")
+    return [{ id: "whatsapp", label: "واتساب", channel: "whatsapp" }];
+  if (scope) return pageFilters(scope, false);
+  return [
+    { id: "", label: "كل القنوات" },
+    { id: "whatsapp", label: "واتساب", channel: "whatsapp" },
+    ...pages
+      .filter((page) => page.accountId)
+      .flatMap((page) => pageFilters(page.accountId, true)),
+  ];
+}
+const statusFilters = [
+  ["human", "محتاجة ردّك"],
+  ["open", "مع البوت"],
+  ["closed", "مغلقة"],
+  ["", "الكل"],
+] as const;
+type StatusFilter = (typeof statusFilters)[number][0];
+
 function Inbox({
   sendingEnabled,
   pages,
-  scope,
+  filters,
+  initialFilter,
   canSuggest = true,
-  initialStatus = "",
 }: {
   sendingEnabled: boolean;
   pages: FacebookPages;
-  scope: string;
+  filters: InboxFilter[];
+  initialFilter?: string;
   canSuggest?: boolean;
-  initialStatus?: "" | "human";
 }) {
-  const [channel, setChannel] = useState(
-    scope === "whatsapp" ? "whatsapp" : "messenger",
-  );
-  const accountId = scope === "whatsapp" ? "" : scope;
-  const [status, setStatus] = useState<string>(initialStatus);
+  const [filterId, setFilterId] = useState(initialFilter ?? filters[0]?.id);
+  const filter = filters.find((f) => f.id === filterId) ?? filters[0];
+  const [status, setStatus] = useState<StatusFilter>("human");
   const [page, setPage] = useState(1);
   // A handoff notification links here with ?conversation=<id>.
   const [selected, setSelected] = useState<number | null>(() => {
@@ -778,9 +1149,9 @@ function Inbox({
   });
   const query = trpc.autoReply.conversations.useQuery(
     {
-      channel: channel ? (channel as AutoReplyChannel) : undefined,
-      accountId: accountId || undefined,
-      status: status ? (status as "open" | "human" | "closed") : undefined,
+      channel: filter?.channel,
+      accountId: filter?.accountId,
+      status: status || undefined,
       page,
     },
     { refetchInterval: 10_000 },
@@ -788,87 +1159,90 @@ function Inbox({
   return (
     <section
       aria-label="صندوق المحادثات"
-      className={`ar-inbox-workspace ${selected ? "ar-has-selection" : ""}`}
+      className={`ar-inbox-a ${selected ? "ar-has-selection" : ""}`}
     >
-      <div className="ar-section-heading">
-        <div>
-          <h2>صندوق المحادثات</h2>
-          <p className="ar-muted">تابع الرسائل حسب القناة وحالة المتابعة.</p>
+      <aside className="ar-inbox-list" aria-label="قائمة المحادثات">
+        <div className="ar-seg" role="group" aria-label="حالة المحادثة">
+          {statusFilters.map(([id, label]) => (
+            <button
+              key={id || "all"}
+              type="button"
+              aria-pressed={status === id}
+              onClick={() => {
+                setStatus(id);
+                setPage(1);
+              }}
+            >
+              {label}
+            </button>
+          ))}
         </div>
-      </div>
-      {scope !== "whatsapp" && (
-        <ChannelTabs
-          pageOnly
-          value={channel}
-          onChange={(value) => {
-            setChannel(value);
-            setSelected(null);
-            setPage(1);
-          }}
-        />
-      )}
-      <details className="ar-filter-disclosure">
-        <summary>تصفية المحادثات</summary>
-        <div className="ar-toolbar ar-inbox-filters">
-          <select
-            className="ar-select"
-            aria-label="حالة المحادثة"
-            value={status}
-            onChange={(e) => {
-              setStatus(e.target.value);
-              setPage(1);
-            }}
+        {filters.length > 1 && (
+          <div className="ar-chips" role="group" aria-label="القناة">
+            {filters.map((f) => (
+              <button
+                key={f.id || "all"}
+                type="button"
+                aria-pressed={f.id === filter?.id}
+                onClick={() => {
+                  setFilterId(f.id);
+                  setPage(1);
+                }}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
+        )}
+        <div className="ar-list-heading">
+          <span className="ar-muted">تحديث تلقائي كل ١٠ ثوانٍ</span>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => void query.refetch()}
           >
-            <option value="">كل الحالات</option>
-            <option value="open">رد آلي</option>
-            <option value="human">مع موظف</option>
-            <option value="closed">مغلقة</option>
-          </select>
-          <Button variant="outline" onClick={() => void query.refetch()}>
             تحديث المحادثات
           </Button>
         </div>
-      </details>
-      <div className="ar-inbox">
-        <aside className="ar-panel" aria-label="قائمة المحادثات">
-          <div className="ar-list-heading">
-            <h3>المحادثات</h3>
-            <span className="ar-muted">تحديث تلقائي كل ١٠ ثوانٍ</span>
-          </div>
-          {query.isLoading && <p role="status">جارٍ تحميل المحادثات…</p>}
-          {query.error && (
-            <ErrorState
-              message={query.error.message}
-              retry={() => void query.refetch()}
-            />
-          )}
-          {query.data?.rows.length === 0 && (
-            <p>
-              لا توجد محادثات مطابقة. تظهر الرسائل بعد استقبال Webhook من قناة
-              مربوطة فعليًا.
-            </p>
-          )}
-          {query.data?.rows.map((c) => (
-            <button
-              type="button"
-              key={c.id}
-              className="ar-conversation"
-              aria-pressed={c.id === selected}
-              onClick={() => setSelected(c.id)}
-            >
-              <strong>
-                {channelLabels[c.channel]} · <bdi>{c.participantId}</bdi>
-              </strong>
-              {c.channel !== "whatsapp" && (
-                <span>{pageLabel(c.accountId, pages)}</span>
-              )}
-              <span>
-                {statusLabels[c.status]} · #{c.id}
-              </span>
-              <small>{time(c.lastActivityAt)}</small>
-            </button>
-          ))}
-          <div className="ar-toolbar">
+        {query.isLoading && <p role="status">جارٍ تحميل المحادثات…</p>}
+        {query.error && (
+          <ErrorState
+            message={`تعذر تحميل المحادثات: ${query.error.message}`}
+            retry={() => void query.refetch()}
+          />
+        )}
+        {query.data?.rows.length === 0 && (
+          <p>
+            {status === "human"
+              ? "مفيش محادثات مستنية موظف هنا دلوقتي."
+              : "لا توجد محادثات مطابقة. تظهر الرسائل بعد استقبال Webhook من قناة مربوطة فعليًا."}
+          </p>
+        )}
+        {query.data?.rows.map((c) => (
+          <button
+            type="button"
+            key={c.id}
+            className="ar-conversation"
+            aria-pressed={c.id === selected}
+            onClick={() => setSelected(c.id)}
+          >
+            <strong>
+              {channelLabels[c.channel]} · <bdi>{c.participantId}</bdi>
+            </strong>
+            {c.channel !== "whatsapp" && (
+              <span>{pageLabel(c.accountId, pages)}</span>
+            )}
+            <span>
+              {statusLabels[c.status]} · #{c.id}
+              {c.status === "human" && c.humanReason
+                ? ` · ${autoReplyErrorLabel(c.humanReason)}`
+                : ""}
+            </span>
+            <small>{time(c.lastActivityAt)}</small>
+          </button>
+        ))}
+        {(page > 1 || query.data?.hasMore) && (
+          <div className="ar-toolbar ar-pager">
             <Button
               variant="outline"
               disabled={page === 1}
@@ -885,35 +1259,31 @@ function Inbox({
               التالي
             </Button>
           </div>
-        </aside>
-        {selected && (
-          <Dialog
-            open
-            onOpenChange={(open) => {
-              if (!open) setSelected(null);
-            }}
-          >
-            <DialogContent
-              className="auto-reply ar-conversation-dialog"
-              dir="rtl"
+        )}
+      </aside>
+      <div className="ar-inbox-thread">
+        {selected ? (
+          <>
+            <Button
+              type="button"
+              variant="outline"
+              className="ar-back-list"
+              onClick={() => setSelected(null)}
             >
-              <DialogHeader>
-                <DialogTitle>المحادثة</DialogTitle>
-                <DialogDescription>
-                  قراءة الرسائل والرد على العميل
-                </DialogDescription>
-              </DialogHeader>
-              <div className="ar-thread">
-                <Conversation
-                  key={selected}
-                  id={selected}
-                  sendingEnabled={sendingEnabled}
-                  pages={pages}
-                  canSuggest={canSuggest}
-                />
-              </div>
-            </DialogContent>
-          </Dialog>
+              رجوع للقائمة
+            </Button>
+            <Conversation
+              key={selected}
+              id={selected}
+              sendingEnabled={sendingEnabled}
+              pages={pages}
+              canSuggest={canSuggest}
+            />
+          </>
+        ) : (
+          <p className="ar-inbox-empty">
+            اختار محادثة من القائمة علشان تقرأها وترد.
+          </p>
         )}
       </div>
     </section>
@@ -956,11 +1326,17 @@ function Conversation({
       setProposal(`${r.text}${r.handoff ? "\nالمقترح: تحويل لموظف" : ""}`),
     onError: (e) => toast.error(e.message),
   });
+  // Admin only, like the per-target reset in الرد: the server keeps it on autoReplyAdminProcedure.
+  const reset = trpc.autoReply.clearAIHistory.useMutation({
+    onSuccess: () =>
+      toast.success("تم بدء سياق جديد للمحادثة، دون حذف سجل الرسائل"),
+    onError: (e) => toast.error(e.message),
+  });
   if (query.isLoading) return <p role="status">جارٍ تحميل سياق المحادثة…</p>;
   if (query.error)
     return (
       <ErrorState
-        message={query.error.message}
+        message={`تعذر تحميل المحادثة: ${query.error.message}`}
         retry={() => void query.refetch()}
       />
     );
@@ -968,47 +1344,161 @@ function Conversation({
   const { conversation: c, rows, jobs } = query.data;
   const latest = rows.filter((m) => m.direction === "inbound").at(-1);
   return (
-    <>
-      <div className="ar-toolbar">
-        <h2>
-          {channelLabels[c.channel]} ·{" "}
-          {c.channel !== "whatsapp"
-            ? `${pageLabel(c.accountId, pages)} · `
-            : ""}
-          <bdi>{c.participantId}</bdi>
-        </h2>
-        <span>{statusLabels[c.status]}</span>
-      </div>
-      {c.humanReason && (
-        <details>
-          <summary>سبب حالة المحادثة</summary>
-          <p>
-            سبب التحويل أو الإيقاف: <span>{autoReplyErrorLabel(c.humanReason)}</span>
-          </p>
-        </details>
-      )}
-      {c.channel === "facebook_comment" && (
-        <p className="ar-notice">
-          هذه محادثة عامة. لا تُدرج بيانات شخصية أو طبية.{" "}
-          <a
-            href={`https://www.facebook.com/${encodeURIComponent(c.threadId)}`}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            عرض التعليق الأصلي
-          </a>
-        </p>
-      )}
-      <details className="ar-thread-actions">
-        <summary>إدارة المحادثة</summary>
+    <div className="ar-conv">
+      <div className="ar-conv-main">
         <div className="ar-toolbar">
-          <Button
-            variant="outline"
-            disabled={status.isPending || c.status === "human"}
-            onClick={() => status.mutate({ id, status: "human" })}
-          >
-            تحويل لموظف وإيقاف البوت
-          </Button>
+          <h2>
+            {channelLabels[c.channel]} ·{" "}
+            {c.channel !== "whatsapp"
+              ? `${pageLabel(c.accountId, pages)} · `
+              : ""}
+            <bdi>{c.participantId}</bdi>
+          </h2>
+          <span>{statusLabels[c.status]}</span>
+        </div>
+        {c.channel === "facebook_comment" && (
+          <p className="ar-notice">
+            هذه محادثة عامة. لا تُدرج بيانات شخصية أو طبية.{" "}
+            <a
+              href={`https://www.facebook.com/${encodeURIComponent(c.threadId)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              عرض التعليق الأصلي
+            </a>
+          </p>
+        )}
+        <p className="ar-muted">آخر 20 رسالة</p>
+        <ol className="ar-messages" aria-label="سياق المحادثة">
+          {rows.map((m) => (
+            <li key={m.id} className={`ar-message ar-message-${m.direction}`}>
+              <div className="ar-toolbar">
+                <strong>
+                  {m.direction === "history_inbound"
+                    ? "العميل · سجل سابق"
+                    : m.direction === "history_staff"
+                      ? "موظف · سجل سابق"
+                      : m.direction === "inbound"
+                        ? "العميل"
+                        : m.direction === "bot"
+                          ? "الرد الآلي"
+                          : "موظف"}
+                </strong>
+                <small>{time(m.createdAt)}</small>
+              </div>
+              <p dir="auto">{m.body}</p>
+              <small>{statusLabels[m.state] ?? m.state}</small>
+            </li>
+          ))}
+        </ol>
+        {jobs
+          .filter((j) => j.state === "suggested" && j.body)
+          .map((j) => (
+            <SuggestedReply
+              key={j.id}
+              jobId={j.id}
+              draft={j.body!}
+              handoff={j.handoff}
+              disabled={!sendingEnabled || c.status === "closed"}
+              onDone={refresh}
+            />
+          ))}
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (text.trim()) send.mutate({ id, text, requestId });
+          }}
+        >
+          <Field label="رد الموظف">
+            <Textarea
+              value={text}
+              onChange={(e) => {
+                setText(e.target.value);
+                setRequestId(crypto.randomUUID());
+              }}
+              rows={3}
+              maxLength={c.channel === "facebook_comment" ? 400 : 2000}
+              placeholder="اكتب الرد المعتمد…"
+            />
+          </Field>
+          <p className="ar-muted">
+            الرد اليدوي يُوقف البوت حتى تعيد تفعيله. الإرسال ملتزم بنافذة القناة
+            وبالمفتاح العام.
+          </p>
+          <div className="ar-toolbar">
+            <Button
+              type="submit"
+              disabled={
+                !text.trim() ||
+                !sendingEnabled ||
+                send.isPending ||
+                c.status === "closed"
+              }
+            >
+              {send.isPending ? "جارٍ إضافة الرد…" : "إرسال رد الموظف"}
+            </Button>
+            {canSuggest && (
+              <Button
+                type="button"
+                variant="outline"
+                disabled={!latest || test.isPending}
+                onClick={() =>
+                  latest &&
+                  test.mutate({
+                    channel: c.channel,
+                    conversationId: id,
+                    text: latest.body,
+                  })
+                }
+              >
+                {test.isPending ? "جارٍ اقتراح الرد…" : "اقتراح رد دون إرسال"}
+              </Button>
+            )}
+          </div>
+          {!sendingEnabled && (
+            <p role="status">الإرسال متوقف بالمفتاح العام.</p>
+          )}
+        </form>
+        {proposal && (
+          <div className="ar-notice" role="status">
+            <strong>اختبار فقط، لم يُرسل</strong>
+            <p className="ar-prewrap" dir="auto">
+              {proposal}
+            </p>
+          </div>
+        )}
+      </div>
+      <aside className="ar-conv-details" aria-label="تفاصيل المحادثة">
+        <h3>التفاصيل</h3>
+        <dl>
+          <div>
+            <dt>القناة</dt>
+            <dd>
+              {channelLabels[c.channel]}
+              {c.channel !== "whatsapp" &&
+                ` · ${pageLabel(c.accountId, pages)}`}
+            </dd>
+          </div>
+          <div>
+            <dt>الحالة</dt>
+            <dd>{statusLabels[c.status]}</dd>
+          </div>
+          {c.humanReason && (
+            <div>
+              <dt>سبب التحويل أو الإيقاف</dt>
+              <dd>{autoReplyErrorLabel(c.humanReason)}</dd>
+            </div>
+          )}
+          <div>
+            <dt>نافذة الرد</dt>
+            <dd>
+              {new Date(c.lastInboundAt).getTime() === 0
+                ? "لم تبدأ نافذة رد من رسالة جديدة"
+                : `بدأت ${time(c.lastInboundAt)}`}
+            </dd>
+          </div>
+        </dl>
+        <div className="ar-detail-actions">
           <Button
             variant="outline"
             disabled={status.isPending || c.status === "open"}
@@ -1018,132 +1508,54 @@ function Conversation({
           </Button>
           <Button
             variant="outline"
+            disabled={status.isPending || c.status === "human"}
+            onClick={() => status.mutate({ id, status: "human" })}
+          >
+            تحويل لموظف وإيقاف البوت
+          </Button>
+          <Button
+            variant="outline"
             disabled={status.isPending || c.status === "closed"}
             onClick={() => status.mutate({ id, status: "closed" })}
           >
             إغلاق المحادثة
           </Button>
-        </div>
-      </details>
-      <p className="ar-muted">
-        آخر 20 رسالة ·{" "}
-        {new Date(c.lastInboundAt).getTime() === 0
-          ? "لم تبدأ نافذة رد من رسالة جديدة"
-          : `بدء نافذة الرد: ${time(c.lastInboundAt)}`}
-      </p>
-      <ol className="ar-messages" aria-label="سياق المحادثة">
-        {rows.map((m) => (
-          <li key={m.id} className={`ar-message ar-message-${m.direction}`}>
-            <div className="ar-toolbar">
-              <strong>
-                {m.direction === "history_inbound"
-                  ? "العميل · سجل سابق"
-                  : m.direction === "history_staff"
-                    ? "موظف · سجل سابق"
-                    : m.direction === "inbound"
-                      ? "العميل"
-                      : m.direction === "bot"
-                        ? "الرد الآلي"
-                        : "موظف"}
-              </strong>
-              <small>{time(m.createdAt)}</small>
-            </div>
-            <p dir="auto">{m.body}</p>
-            <small>{statusLabels[m.state] ?? m.state}</small>
-          </li>
-        ))}
-      </ol>
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          if (text.trim()) send.mutate({ id, text, requestId });
-        }}
-      >
-        <Field label="رد الموظف">
-          <Textarea
-            value={text}
-            onChange={(e) => {
-              setText(e.target.value);
-              setRequestId(crypto.randomUUID());
-            }}
-            rows={3}
-            maxLength={c.channel === "facebook_comment" ? 400 : 2000}
-            placeholder="اكتب الرد المعتمد…"
-          />
-        </Field>
-        <p className="ar-muted">
-          الرد اليدوي يُوقف البوت حتى تعيد تفعيله. الإرسال ملتزم بنافذة القناة
-          وبالمفتاح العام.
-        </p>
-        <div className="ar-toolbar">
-          <Button
-            type="submit"
-            disabled={
-              !text.trim() ||
-              !sendingEnabled ||
-              send.isPending ||
-              c.status === "closed"
-            }
-          >
-            {send.isPending ? "جارٍ إضافة الرد…" : "إرسال رد الموظف"}
-          </Button>
           {canSuggest && (
             <Button
-              type="button"
               variant="outline"
-              disabled={!latest || test.isPending}
-              onClick={() =>
-                latest &&
-                test.mutate({
-                  channel: c.channel,
-                  conversationId: id,
-                  text: latest.body,
-                })
-              }
+              disabled={reset.isPending}
+              onClick={() => {
+                if (
+                  window.confirm(
+                    "البوت هيبدأ سياق جديد للمحادثة دي، وسجل الرسائل مش هيتمسح. تكمل؟",
+                  )
+                )
+                  reset.mutate({ conversationId: id });
+              }}
             >
-              {test.isPending ? "جارٍ اقتراح الرد…" : "اقتراح رد دون إرسال"}
+              بدء سياق جديد للبوت
             </Button>
           )}
         </div>
-        {!sendingEnabled && <p role="status">الإرسال متوقف بالمفتاح العام.</p>}
-      </form>
-      {jobs
-        .filter((j) => j.state === "suggested" && j.body)
-        .map((j) => (
-          <SuggestedReply
-            key={j.id}
-            jobId={j.id}
-            draft={j.body!}
-            handoff={j.handoff}
-            disabled={!sendingEnabled || c.status === "closed"}
-            onDone={refresh}
-          />
-        ))}
-      {proposal && (
-        <div className="ar-notice" role="status">
-          <strong>اختبار فقط، لم يُرسل</strong>
-          <p className="ar-prewrap" dir="auto">
-            {proposal}
-          </p>
-        </div>
-      )}
-      <details>
-        <summary>حالات الردود ({jobs.length})</summary>
-        {jobs.map((j) => (
-          <p key={j.id}>
-            #{j.id} · {statusLabels[j.state] ?? j.state} · محاولات {j.attempts}
-            {j.errorCode && (
-              <>
-                {" "}
-                · <span>{autoReplyErrorLabel(j.errorCode)}</span>
-              </>
-            )}
-            {j.state === "unknown" &&
-              " · راجع القناة قبل إرسال أي رد آخر لتجنب التكرار"}
-          </p>
-        ))}
-      </details>
-    </>
+        <details>
+          <summary>حالات الردود ({jobs.length})</summary>
+          {jobs.map((j) => (
+            <p key={j.id}>
+              #{j.id} · {statusLabels[j.state] ?? j.state} · محاولات{" "}
+              {j.attempts}
+              {j.errorCode && (
+                <>
+                  {" "}
+                  · <span>{autoReplyErrorLabel(j.errorCode)}</span>
+                </>
+              )}
+              {j.state === "unknown" &&
+                " · راجع القناة قبل إرسال أي رد آخر لتجنب التكرار"}
+            </p>
+          ))}
+        </details>
+      </aside>
+    </div>
   );
 }
 
@@ -1471,7 +1883,7 @@ function Settings({
   onDirtyChange,
 }: {
   data: AutoReplyOutputs["settings"];
-  view: "settings" | "sending" | "instructions" | "memory";
+  view: "settings" | "reply";
   scope: string;
   onDirtyChange: (dirty: boolean) => void;
 }) {
@@ -1558,7 +1970,7 @@ function Settings({
   const phoneContacts = trpc.autoReply.whatsappContactAudience.useQuery(
     undefined,
     {
-      enabled: scope === "whatsapp" && view === "sending",
+      enabled: scope === "whatsapp" && view === "reply",
       refetchInterval: 5000,
       retry: false,
     },
@@ -1727,7 +2139,7 @@ function Settings({
         <details
           className="ar-settings-group"
           open
-          hidden={section !== "sending"}
+          hidden={section !== "reply"}
         >
           <summary>تشغيل القنوات والصفحات</summary>
           <h2>الإرسال وأسلوب الرد</h2>
@@ -1968,8 +2380,7 @@ function Settings({
         </details>
         <details
           className="ar-settings-group"
-          open
-          hidden={section !== "memory"}
+          hidden={section !== "reply"}
         >
           <summary>المساعد والذاكرة وحدود الرد</summary>
           <div className="ar-form-grid">
@@ -2207,7 +2618,7 @@ function Settings({
         <details
           className="ar-settings-group"
           open
-          hidden={section !== "instructions"}
+          hidden={section !== "reply"}
         >
           <summary>أسلوب الرد والتعليمات الإضافية</summary>
           <Field
@@ -2322,7 +2733,7 @@ function Settings({
         <details
           className="ar-settings-group"
           open
-          hidden={section !== "sending"}
+          hidden={section !== "reply"}
         >
           <summary>ساعات العمل والرد خارج المواعيد</summary>
           <h2>ساعات العمل بتوقيت القاهرة</h2>

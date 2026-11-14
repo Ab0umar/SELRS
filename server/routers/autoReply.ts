@@ -533,6 +533,19 @@ export const autoReplyRouter = router({
         await clearLifecycleRecheck(input.accountId);
       return { ok, errorCode };
     }),
+  // Status board: conversations waiting for staff, per channel and account.
+  humanCounts: autoReplyAdminProcedure.query(async () => {
+    const db = await getAutoReplyDb();
+    return db
+      .select({
+        channel: conversations.channel,
+        accountId: conversations.accountId,
+        count: sql<number>`count(*)`.mapWith(Number),
+      })
+      .from(conversations)
+      .where(eq(conversations.status, "human"))
+      .groupBy(conversations.channel, conversations.accountId);
+  }),
   conversations: autoReplyInboxRead
     .input(
       z.object({
