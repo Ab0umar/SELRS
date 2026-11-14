@@ -28,16 +28,13 @@ import {
   marketingSlotForWeekday,
 } from "../../../shared/marketingSchedule";
 import { eq, and, gte } from "drizzle-orm";
-import { count as drizzleCount } from "drizzle-orm";
 import { getDb } from "../../db";
 import {
   marketingPosts,
-  marketingSettings,
   marketingLogs,
   marketingGenerationJobs,
 } from "../../../drizzle/schema";
-import { pickUnpublishedTopic, type PostDay } from "./topicRotation";
-import { publishedMarketingTopics } from "./topicHistory";
+import type { PostDay } from "./topicRotation";
 import {
   ORPHANED_START_ERROR,
   startManusGeneration,

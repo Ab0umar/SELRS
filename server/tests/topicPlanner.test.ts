@@ -1,7 +1,14 @@
 import { beforeEach, expect, it, vi } from "vitest";
-const mocks = vi.hoisted(() => ({ generate: vi.fn(), budget: vi.fn() }));
+const mocks = vi.hoisted(() => ({
+  generate: vi.fn(),
+  budget: vi.fn(),
+  reusable: [] as string[],
+}));
 vi.mock("../services/marketing/topicHistory", () => ({
-  publishedMarketingTopics: async () => ["الليزك"],
+  marketingTopicHistory: async () => ({
+    blocking: ["الليزك"],
+    reusable: mocks.reusable,
+  }),
 }));
 vi.mock("../db", () => ({
   getDb: async () => ({

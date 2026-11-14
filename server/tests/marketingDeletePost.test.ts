@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({
   db: vi.fn(),
   settle: vi.fn(),
+  removeFiles: vi.fn(async () => undefined),
   status: "draft" as string,
   updates: [] as unknown[],
   deleted: 0,
@@ -16,6 +17,10 @@ vi.mock("../services/marketing/topicHistory", async (original) => ({
   settleTopicForPost: mocks.settle,
 }));
 vi.mock("../_core/env", () => ({ ENV: {} }));
+vi.mock("../services/marketing/imageCleanup", () => ({
+  marketingDraftFiles: async () => ({ postId: 3, imageUrl: null, extra: [] }),
+  removeMarketingDraftFiles: mocks.removeFiles,
+}));
 import { marketingRouter } from "../routers/marketing";
 import { makeCallerAs } from "./helpers/auth";
 
@@ -71,6 +76,7 @@ describe("deletePost rules", () => {
       expect.objectContaining({ state: "failed" }),
     );
     expect(mocks.deleted).toBe(1);
+    expect(mocks.removeFiles).toHaveBeenCalledOnce();
     expect(mocks.logs).toContainEqual(
       expect.objectContaining({
         action: "delete_post",
@@ -84,5 +90,6 @@ describe("deletePost rules", () => {
     expect(mocks.settle).not.toHaveBeenCalled();
     expect(mocks.updates).toEqual([]);
     expect(mocks.deleted).toBe(1);
+    expect(mocks.removeFiles).not.toHaveBeenCalled();
   });
 });
