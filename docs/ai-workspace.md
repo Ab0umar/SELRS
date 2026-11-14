@@ -129,6 +129,9 @@ The panel labels are: `accepted` قبلتها ميتا، بانتظار نتيج
 ## Marketing Facebook app credentials
 
 `FB_USE_AUTO_REPLY_APP` defaults to `false` in `.env.example`. `server/_core/env.ts` sets `ENV.fbAppId` and `ENV.fbAppSecret` from `FB_APP_ID` and `FB_APP_SECRET`. When the flag is `true`, those two fields are read from `AUTO_REPLY_META_APP_ID` and `AUTO_REPLY_META_APP_SECRET` instead. `server/services/marketing/facebookOAuth.service.ts` is the caller. The auto-reply webhook keeps reading `AUTO_REPLY_META_APP_SECRET` directly. See `docs/auto-reply-setup.md` for the reply go-live checks.
+Old administration and marketing links redirect into these pages, preserving query parameters and fragments. Existing permission IDs are retained and normalized by both the route guard and navigation filtering. `aiPermissionPath` maps `/ai/marketing` to `/marketing` and `/ai/marketing/<rest>` to `/marketing/<rest>`. Management permission alone does not grant access to clinical, reply or marketing pages. The permission editor groups the existing AI IDs under the AI section. No permission migration is required.
+
+Marketing content screens are the exception to the admin-only AI shell. `AiPage` still sets `requiredRoles={["admin"]}`, and `ProtectedRoute` renders the page for another role when that mapped permission is granted. `/marketing` opens the dashboard only. `/marketing/drafts` and `/marketing/history` are separate ids, so a dashboard grant does not open drafts or history. A `:rw` suffix is required before a content mutation; the page itself opens with either the read or the write token. Brand, settings, and WhatsApp page ids can open those URLs, and their procedures remain `adminProcedure`. The sidebar leaf and the admin bottom-nav tab for محتوى التسويق list `roles: ["admin"]`, so other roles reach the screens from the home card (dashboard grant only) or by URL. The full procedure map is in `docs/api-reference.md`.
 
 ## Design read and verification
 

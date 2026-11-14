@@ -18,7 +18,7 @@ export default function CentralDraftImage({ postId }: { postId: number }) {
   const [requestId, setRequestId] = useState(() => pendingImage(postId));
   const busy = useRef(false);
   const utils = trpc.useUtils();
-  const capability = trpc.aiManagement.status.useQuery(undefined, {
+  const capability = trpc.marketing.assistantStatus.useQuery(undefined, {
     retry: false,
   });
   const enabled =

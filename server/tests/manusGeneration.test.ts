@@ -1,12 +1,36 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-vi.mock("../services/marketing/equipmentAssets",async original=>({...await original<typeof import("../services/marketing/equipmentAssets")>(),readEquipmentPhoto:vi.fn().mockResolvedValue(null)}));
-vi.mock("../services/marketing/pageBranding",()=>({readMarketingPageBranding:vi.fn().mockResolvedValue({pageRole:"center",pageId:"1",name:"Fixture",address:"Fixture address",phone:"000",logo:Buffer.alloc(0)}),brandMarketingImageUrl:vi.fn(async(url:string)=>url),prepareMarketingPublication:vi.fn(async(message:string,imageUrl:string|null)=>({message,imageUrl}))}));
+vi.mock("../services/marketing/equipmentAssets", async (original) => ({
+  ...(await original<typeof import("../services/marketing/equipmentAssets")>()),
+  readEquipmentPhoto: vi.fn().mockResolvedValue(null),
+}));
+vi.mock("../services/marketing/pageBranding", () => ({
+  readMarketingPageBranding: vi.fn().mockResolvedValue({
+    pageRole: "center",
+    pageId: "1",
+    name: "Fixture",
+    address: "Fixture address",
+    phone: "000",
+    logo: Buffer.alloc(0),
+  }),
+  brandMarketingImageUrl: vi.fn(async (url: string) => url),
+  prepareMarketingPublication: vi.fn(
+    async (message: string, imageUrl: string | null) => ({ message, imageUrl }),
+  ),
+}));
 import * as pageService from "../services/marketing/page.service";
 import * as jobContext from "../services/marketing/jobContext";
 import * as publisher from "../services/marketing/publish.service";
 import * as scheduler from "../services/ai/marketingScheduler";
 import { marketingGenerationJobs } from "../../drizzle/schema";
-vi.mock("../db", () => ({ getDb: vi.fn() }));
+// Approval mode defaults to on; these tests cover pages where the owner turned it off.
+vi.mock("../db", () => ({
+  getDb: vi.fn(),
+  getSystemSetting: async () => ({ value: "false" }),
+  updateSystemSettings: async () => undefined,
+}));
+vi.mock("../_core/appNotifications", () => ({
+  pushAppNotification: vi.fn(async () => undefined),
+}));
 vi.mock("../_core/env", () => ({
   ENV: { manusApiKey: "test-key", marketingImageDir: "test-images" },
 }));
@@ -35,6 +59,7 @@ import {
   startManusGeneration,
 } from "../services/marketing/manusGeneration.service";
 import { MARKETING_IMAGE_PEOPLE_POLICY } from "../services/marketing/imagePolicy";
+import { readEquipmentPhoto } from "../services/marketing/equipmentAssets";
 
 function chain<T>(value: T) {
   const result = {
@@ -453,7 +478,8 @@ describe("durable Manus generation", () => {
     db.transaction.mockRejectedValue(new Error("deadlock"));
     const failed = () =>
       updates.filter(
-        (value) => (value as { state?: string }).state === "failed" &&
+        (value) =>
+          (value as { state?: string }).state === "failed" &&
           (value as { error?: string }).error === "deadlock",
       );
     for (let tick = 0; tick < 3; tick++) await processManusGenerationJobs();
@@ -462,10 +488,14 @@ describe("durable Manus generation", () => {
     expect(failed()).toHaveLength(1);
   });
   it("abandons a blocking job as failed and logs the admin", async () => {
-    db.select.mockReturnValue(chain([{ ...job, state: "uncertain", postId: 7 }]));
+    db.select.mockReturnValue(
+      chain([{ ...job, state: "uncertain", postId: 7 }]),
+    );
     const result = await resolveManusGenerationJob("review-job", "abandon", 99);
     expect(result.state).toBe("failed");
-    expect(updates).toContainEqual(expect.objectContaining({ state: "failed" }));
+    expect(updates).toContainEqual(
+      expect.objectContaining({ state: "failed" }),
+    );
     expect(inserts).toContainEqual(
       expect.objectContaining({
         postId: 7,
@@ -483,5 +513,28 @@ describe("durable Manus generation", () => {
     const result = await resolveManusGenerationJob("review-job", "recheck", 99);
     expect(result.state).toBe("uncertain");
     expect(updates).toEqual([]);
+  });
+  it("completes a text-only job with the real device photo when Manus returns no image", async () => {
+    vi.mocked(readEquipmentPhoto).mockResolvedValue({
+      fileUrl: "/uploads/marketing/device.jpg",
+    } as never);
+    vi.mocked(readManusTask).mockResolvedValue({
+      status: "stopped",
+      has_running_background_jobs: false,
+      attachments: [
+        { filename: "post.json", url: "https://manuscdn.com/post.json" },
+      ],
+    });
+    vi.mocked(downloadManusFile).mockResolvedValueOnce(
+      Buffer.from(
+        JSON.stringify({ title: "t", content: "c", cta: "", hashtags: "" }),
+      ),
+    );
+    await processManusGenerationJobs();
+    expect(inserts).toContainEqual(
+      expect.objectContaining({ imageUrl: "/uploads/marketing/device.jpg" }),
+    );
+    expect(downloadManusFile).toHaveBeenCalledTimes(1);
+    vi.mocked(readEquipmentPhoto).mockResolvedValue(null);
   });
 });

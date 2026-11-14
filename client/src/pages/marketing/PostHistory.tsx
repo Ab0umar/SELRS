@@ -48,6 +48,18 @@ export default function PostHistory() {
   });
 
   const posts = listQuery.data ?? [];
+  const statsQuery = trpc.marketing.postStats.useQuery();
+  const refreshStats = trpc.marketing.refreshPostStats.useMutation({
+    onSuccess: (stats) => {
+      void utils.marketing.postStats.invalidate();
+      if (stats.state === "unavailable")
+        toast.error(stats.reason ?? "تعذر قراءة أداء المنشورات");
+      else toast.success("تم تحديث أداء المنشورات");
+    },
+    onError: (err: { message: string }) => toast.error(err.message),
+  });
+  const stats = statsQuery.data;
+  const number = (value: number) => value.toLocaleString("ar-EG");
 
   return (
     <div className="space-y-4">
@@ -63,10 +75,29 @@ export default function PostHistory() {
         </Button>
       </div>
 
+      <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border bg-card px-4 py-3 text-sm">
+        <p className="text-muted-foreground">
+          {stats?.state === "unavailable"
+            ? `أداء المنشورات غير متاح: ${stats.reason ?? ""}. أضف صلاحية read_insights لرمز الصفحة من إعدادات Facebook ثم حدّث.`
+            : stats?.fetchedAt
+              ? `أداء المنشورات (الوصول والتفاعل) محدث في ${new Date(stats.fetchedAt).toLocaleString("ar-EG", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}، ويتحدث يوميًا`
+              : "أداء المنشورات يتحدث يوميًا ولم يُقرأ بعد"}
+        </p>
+        <Button
+          size="sm"
+          variant="outline"
+          disabled={refreshStats.isPending}
+          onClick={() => refreshStats.mutate()}
+        >
+          {refreshStats.isPending ? "جارٍ التحديث…" : "تحديث الأداء الآن"}
+        </Button>
+      </div>
+
       {/* Filter tabs */}
       <div className="flex gap-2">
         {(["published", "failed", "all"] as const).map((f) => (
-          <Button variant="bare"
+          <Button
+            variant="bare"
             key={f}
             onClick={() => setFilter(f)}
             aria-pressed={filter === f}
@@ -160,7 +191,10 @@ export default function PostHistory() {
                             <>
                               <span>·</span>
                               <span>
-                                {marketingSlotLabel(post.postDay, post.pageRole ?? "center")}
+                                {marketingSlotLabel(
+                                  post.postDay,
+                                  post.pageRole ?? "center",
+                                )}
                               </span>
                             </>
                           )}
@@ -204,6 +238,18 @@ export default function PostHistory() {
                     {post.hashtags && (
                       <p className="text-xs text-primary/70">{post.hashtags}</p>
                     )}
+
+                    {stats?.posts[String(post.id)] && (
+                      <p className="text-xs text-muted-foreground">
+                        {stats.posts[String(post.id)]!.reach !== null &&
+                          `الوصول ${number(stats.posts[String(post.id)]!.reach!)} · `}
+                        التفاعلات{" "}
+                        {number(stats.posts[String(post.id)]!.reactions)} ·
+                        التعليقات{" "}
+                        {number(stats.posts[String(post.id)]!.comments)} ·
+                        المشاركات {number(stats.posts[String(post.id)]!.shares)}
+                      </p>
+                    )}
                   </div>
                 </div>
               );
@@ -224,7 +270,12 @@ export default function PostHistory() {
       </div>
 
       {/* Full-image lightbox */}
-      <Dialog open={!!lightboxUrl} onOpenChange={(open) => { if (!open) setLightboxUrl(null); }}>
+      <Dialog
+        open={!!lightboxUrl}
+        onOpenChange={(open) => {
+          if (!open) setLightboxUrl(null);
+        }}
+      >
         <DialogContent className="max-w-3xl p-2 bg-black border-0">
           {lightboxUrl && (
             <img

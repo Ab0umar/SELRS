@@ -11,15 +11,38 @@ import { assertDraftImageAvailable } from "../services/marketing/draftImageClaim
 import type { RowDataPacket } from "mysql2/promise";
 import type { MySql2Database } from "drizzle-orm/mysql2";
 import { configuredMarketingAssistant } from "../../shared/marketing-assistant";
+import { availableGeminiModels } from "../services/auto-reply/ai-configuration";
 import {
   AiManagementStore,
   AiManagementError,
 } from "../services/ai/managementStore";
-import { getDbConnection } from "../db";
+import {
+  getDbConnection,
+  getEffectiveUserPermissions,
+  updateSystemSettings,
+} from "../db";
 import { marketingGenerationInput } from "../../shared/ai-request-context";
 import { trackedAiOperation, readAiOperation } from "../services/ai/operations";
 import { readMarketingGenerationRequest } from "../services/marketing/generationRequest";
 import { readMarketingSchedulerStatus } from "../services/marketing/schedulerStatus";
+import { checkMarketingContent } from "../services/marketing/contentCheck";
+import {
+  readMarketingPostStats,
+  refreshMarketingPostStats,
+} from "../services/marketing/postInsights";
+import {
+  cairoSlotTime,
+  generateWeekDrafts,
+  marketingCalendar,
+} from "../services/marketing/contentCalendar";
+import {
+  marketingDraftFiles,
+  removeMarketingDraftFiles,
+} from "../services/marketing/imageCleanup";
+import {
+  marketingApprovalRequired,
+  setMarketingApprovalRequired,
+} from "../services/marketing/marketingReview";
 import {
   generateWhatsAppCopy,
   readWhatsAppCopy,
@@ -46,7 +69,12 @@ import path from "node:path";
 import fs from "node:fs/promises";
 import { nanoid } from "nanoid";
 import { randomBytes, randomUUID } from "node:crypto";
-import { router, adminProcedure } from "../_core/procedures";
+import {
+  router,
+  adminProcedure,
+  protectedProcedure,
+  writePermissionPath,
+} from "../_core/procedures";
 import { getDb } from "../db";
 import {
   marketingPosts,
@@ -70,9 +98,15 @@ import {
 import {
   publishedMarketingTopics,
   PublishedMarketingTopicError,
+  settleTopicForPost,
+  marketingTopicReuseMonths,
 } from "../services/marketing/topicHistory";
 import { TRPCError } from "@trpc/server";
-import { publishMarketingPost } from "../services/marketing/publish.service";
+import {
+  publishMarketingPost,
+  reconcilePublishingPost,
+  resolvePublishingPost,
+} from "../services/marketing/publish.service";
 import {
   getMarketingPageTarget,
   type MarketingPageRole,
@@ -88,6 +122,53 @@ import {
   marketingSummary,
   sendMarketingBatch,
 } from "../services/whatsappMarketing.service";
+
+// Marketing content screens open to staff by page permission. Each procedure
+// requires the permission of a screen that uses it (exact path, no parent
+// inheritance); mutations need ":rw". Settings, Facebook connection, scheduler
+// provider and the brand library stay adminProcedure.
+const DASHBOARD = "/marketing";
+const DRAFTS = "/marketing/drafts";
+const HISTORY = "/marketing/history";
+type ContentScreen = typeof DASHBOARD | typeof DRAFTS | typeof HISTORY;
+
+export function marketingScreenAllowed(
+  permissions: unknown[],
+  screens: ContentScreen[],
+  write: boolean,
+) {
+  return permissions.some((permission) => {
+    const raw = String(permission ?? "").trim();
+    const clean = write
+      ? writePermissionPath(raw)
+      : raw.replace(/:r[w]?$/, "").trim();
+    if (clean === null) return false;
+    const normalized = clean.toLowerCase().replace(/\/+$/, "");
+    return screens.some((screen) => normalized === screen);
+  });
+}
+
+function contentAccess(screens: ContentScreen[], write: boolean) {
+  return protectedProcedure.use(async ({ ctx, next }) => {
+    if (ctx.user.role === "admin") return next();
+    const permissions = await getEffectiveUserPermissions(
+      ctx.user.id,
+      ctx.user.role ?? undefined,
+    );
+    if (!marketingScreenAllowed(permissions, screens, write))
+      throw new TRPCError({
+        code: "FORBIDDEN",
+        message: write
+          ? "تحتاج صلاحية تعديل محتوى التسويق"
+          : "تحتاج صلاحية محتوى التسويق",
+      });
+    return next();
+  });
+}
+const contentRead = (...screens: ContentScreen[]) =>
+  contentAccess(screens, false);
+const contentWrite = (...screens: ContentScreen[]) =>
+  contentAccess(screens, true);
 
 const MAX_REFERENCE_IMAGE_BYTES = 10 * 1024 * 1024;
 const MAX_PROFILE_ANALYSES = 12;
@@ -241,7 +322,7 @@ export const marketingRouter = router({
 
   // ─── Posts ────────────────────────────────────────────────
 
-  listPosts: adminProcedure
+  listPosts: contentRead(DRAFTS, HISTORY)
     .input(
       z.object({
         status: z
@@ -276,10 +357,57 @@ export const marketingRouter = router({
         .orderBy(desc(marketingPosts.createdAt))
         .limit(input.limit)
         .offset(input.offset);
-      return rows;
+      // Recomputed on read so the flags follow the admin's edits.
+      return rows.map((row: typeof marketingPosts.$inferSelect) => ({
+        ...row,
+        contentFlags: row.status === "draft" ? checkMarketingContent(row) : [],
+      }));
     }),
 
-  getPost: adminProcedure
+  topicReuseMonths: adminProcedure.query(async () => ({
+    months: await marketingTopicReuseMonths(),
+  })),
+
+  setTopicReuseMonths: adminProcedure
+    .input(z.object({ months: z.number().int().min(0).max(120) }).strict())
+    .mutation(async ({ input, ctx }) => {
+      await updateSystemSettings("marketing_topic_reuse_months", input.months);
+      await addLog(
+        null,
+        "topic_reuse_months",
+        "info",
+        `Topic reuse window set to ${input.months} months by user ${ctx.user.id}`,
+      );
+      return { ok: true };
+    }),
+
+  approvalMode: adminProcedure
+    .input(z.object({ pageRole: z.enum(["center", "doctor"]) }).strict())
+    .query(async ({ input }) => ({
+      required: await marketingApprovalRequired(input.pageRole),
+    })),
+
+  setApprovalMode: adminProcedure
+    .input(
+      z
+        .object({
+          pageRole: z.enum(["center", "doctor"]),
+          required: z.boolean(),
+        })
+        .strict(),
+    )
+    .mutation(async ({ input, ctx }) => {
+      await setMarketingApprovalRequired(input.pageRole, input.required);
+      await addLog(
+        null,
+        "approval_mode",
+        "info",
+        `Approval mode for ${input.pageRole} set to ${input.required ? "on" : "off"} by user ${ctx.user.id}`,
+      );
+      return { ok: true };
+    }),
+
+  getPost: contentRead(DASHBOARD, DRAFTS)
     .input(z.object({ id: z.number().int().positive() }))
     .query(async ({ input }) => {
       const db = await getDb();
@@ -292,7 +420,7 @@ export const marketingRouter = router({
       return row ?? null;
     }),
 
-  createPost: adminProcedure
+  createPost: contentWrite(DRAFTS)
     .input(
       z.object({
         title: z.string().min(1).max(255),
@@ -303,10 +431,11 @@ export const marketingRouter = router({
         hashtags: z.string().optional(),
         imagePrompt: z.string().optional(),
         imageUrl: z.string().max(1000).optional(),
-        platform: z.enum(["facebook", "instagram", "both"]).default("facebook"),
+        // Only Facebook publishing exists; Instagram was dropped by the owner.
+        platform: z.literal("facebook").default("facebook"),
         pageRole: z.enum(["center", "doctor"]).default("center"),
         postDay: z.enum(["saturday", "tuesday", "thursday"]).optional(),
-        status: z.enum(["draft", "scheduled"]).default("draft"),
+        status: z.literal("draft").default("draft"),
         scheduledAt: z.string().optional(),
       }),
     )
@@ -334,7 +463,7 @@ export const marketingRouter = router({
       return { id };
     }),
 
-  updatePost: adminProcedure
+  updatePost: contentWrite(DRAFTS)
     .input(
       z.object({
         id: z.number().int().positive(),
@@ -346,9 +475,9 @@ export const marketingRouter = router({
         hashtags: z.string().optional(),
         imagePrompt: z.string().optional(),
         imageUrl: z.string().max(1000).optional(),
-        platform: z.enum(["facebook", "instagram", "both"]).optional(),
+        platform: z.literal("facebook").optional(),
         postDay: z.enum(["saturday", "tuesday", "thursday"]).optional(),
-        status: z.enum(["draft", "scheduled"]).optional(),
+        status: z.literal("draft").optional(),
         scheduledAt: z.string().optional(),
       }),
     )
@@ -364,7 +493,10 @@ export const marketingRouter = router({
         .update(marketingPosts)
         .set(updates)
         .where(
-          and(eq(marketingPosts.id, id), eq(marketingPosts.status, "draft")),
+          and(
+            eq(marketingPosts.id, id),
+            inArray(marketingPosts.status, ["draft", "scheduled"]),
+          ),
         );
       if (!updated.affectedRows)
         throw new Error("المسودة غير موجودة أو تغيرت حالتها");
@@ -372,17 +504,192 @@ export const marketingRouter = router({
       return { ok: true };
     }),
 
-  deletePost: adminProcedure
+  deletePost: contentWrite(DRAFTS, HISTORY)
     .input(z.object({ id: z.number().int().positive() }))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) throw new Error("Database not available");
-      await db.delete(marketingPosts).where(eq(marketingPosts.id, input.id));
-      await addLog(null, "delete_post", "info", `Post deleted: ${input.id}`);
+      const files = await marketingDraftFiles(input.id);
+      let wasDraft = false;
+      await db.transaction(
+        async (
+          tx: Pick<MySql2Database, "select" | "insert" | "update" | "delete">,
+        ) => {
+          const [post] = await tx
+            .select({ status: marketingPosts.status })
+            .from(marketingPosts)
+            .where(eq(marketingPosts.id, input.id))
+            .for("update");
+          if (!post) throw new Error("المنشور غير موجود");
+          if (post.status === "publishing")
+            throw new Error(
+              "المنشور قيد النشر؛ حدد نتيجة النشر أولًا ثم احذفه إن لزم",
+            );
+          if (post.status === "draft") {
+            wasDraft = true;
+            await settleTopicForPost(tx, input.id, "released");
+            await tx
+              .update(marketingGenerationJobs)
+              .set({ state: "failed", error: "حُذفت المسودة" })
+              .where(
+                and(
+                  eq(marketingGenerationJobs.postId, input.id),
+                  inArray(marketingGenerationJobs.state, [
+                    "starting",
+                    "running",
+                    "uncertain",
+                  ]),
+                ),
+              );
+          }
+          await tx
+            .delete(marketingPosts)
+            .where(eq(marketingPosts.id, input.id));
+        },
+      );
+      // Only drafts: a published post's image may still be live on Facebook.
+      if (wasDraft)
+        await removeMarketingDraftFiles(files).catch(() =>
+          console.error("[marketing] Could not remove draft images", input.id),
+        );
+      await addLog(
+        null,
+        "delete_post",
+        "info",
+        `Post ${input.id} deleted by user ${ctx.user.id}`,
+      );
       return { ok: true };
     }),
 
-  publishPost: adminProcedure
+  postStats: contentRead(HISTORY).query(() => readMarketingPostStats()),
+
+  refreshPostStats: contentWrite(HISTORY).mutation(() =>
+    refreshMarketingPostStats(),
+  ),
+
+  contentCalendar: contentRead(DASHBOARD).query(() => marketingCalendar(14)),
+
+  schedulePost: contentWrite(DRAFTS)
+    .input(
+      z
+        .object({
+          id: z.number().int().positive(),
+          pageRole: z.enum(["center", "doctor"]),
+          date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+          hour: z.number().int().min(0).max(23),
+        })
+        .strict(),
+    )
+    .mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) throw new Error("Database not available");
+      const at = cairoSlotTime(input.date, input.hour);
+      if (Number.isNaN(at.getTime()) || at.getTime() <= Date.now() + 60_000)
+        throw new Error("اختر موعدًا في المستقبل");
+      const [updated] = await db
+        .update(marketingPosts)
+        .set({ status: "scheduled", scheduledAt: at, pageRole: input.pageRole })
+        .where(
+          and(
+            eq(marketingPosts.id, input.id),
+            inArray(marketingPosts.status, ["draft", "scheduled"]),
+          ),
+        );
+      if (!updated.affectedRows)
+        throw new Error("المسودة غير موجودة أو تغيرت حالتها");
+      await addLog(
+        input.id,
+        "schedule_post",
+        "info",
+        `Scheduled for ${at.toISOString()} on ${input.pageRole} by user ${ctx.user.id}`,
+      );
+      return { ok: true, scheduledAt: at.toISOString() };
+    }),
+
+  unschedulePost: contentWrite(DASHBOARD)
+    .input(z.object({ id: z.number().int().positive() }).strict())
+    .mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) throw new Error("Database not available");
+      const [updated] = await db
+        .update(marketingPosts)
+        .set({ status: "draft" })
+        .where(
+          and(
+            eq(marketingPosts.id, input.id),
+            eq(marketingPosts.status, "scheduled"),
+          ),
+        );
+      if (!updated.affectedRows)
+        throw new Error("المنشور لم يعد مجدولًا؛ حدّث الصفحة");
+      await addLog(
+        input.id,
+        "unschedule_post",
+        "info",
+        `Returned to draft by user ${ctx.user.id}`,
+      );
+      return { ok: true };
+    }),
+
+  generateWeekDrafts: contentWrite(DASHBOARD).mutation(async ({ ctx }) => {
+    const providers = await marketingSchedulerProviders();
+    const run = generateWeekDrafts(
+      async ({ requestId, pageRole, slot, avoid }) => {
+        const topic = await planMarketingTopic(undefined, avoid);
+        const provider =
+          providers.find((setting) => setting.pageRole === pageRole)
+            ?.provider ?? "manus";
+        if (provider === "central") {
+          const result = await generateCentralMarketingDraft(
+            { requestId, topic, postDay: slot, pageRole },
+            ctx.user.id,
+            undefined,
+            { detach: true },
+          );
+          return { topic: result.topic };
+        }
+        return startManusGeneration({
+          requestId,
+          topic,
+          postDay: slot,
+          pageRole,
+          createdBy: ctx.user.id,
+        });
+      },
+    );
+    // Each slot plans a topic with a model call; the calendar shows progress.
+    void run.catch((error) =>
+      console.error("[marketing] generateWeekDrafts failed", error),
+    );
+    await addLog(
+      null,
+      "generate_week",
+      "info",
+      `Week draft generation started by user ${ctx.user.id}`,
+    );
+    return { ok: true };
+  }),
+
+  reconcilePublishingPost: contentWrite(DASHBOARD)
+    .input(z.object({ id: z.number().int().positive() }).strict())
+    .mutation(({ input, ctx }) =>
+      reconcilePublishingPost(input.id, ctx.user.id),
+    ),
+
+  resolvePublishingPost: contentWrite(DASHBOARD)
+    .input(
+      z
+        .object({
+          id: z.number().int().positive(),
+          outcome: z.enum(["published", "not_published"]),
+        })
+        .strict(),
+    )
+    .mutation(({ input, ctx }) =>
+      resolvePublishingPost(input.id, input.outcome, ctx.user.id),
+    ),
+
+  publishPost: contentWrite(DASHBOARD, DRAFTS)
     .input(
       z.object({
         id: z.number().int().positive(),
@@ -394,7 +701,7 @@ export const marketingRouter = router({
       return { ok: true, fbPostId: result.fbPostId };
     }),
 
-  generatePost: adminProcedure
+  generatePost: contentWrite(DASHBOARD)
     .input(marketingGenerationInput)
     .mutation(async ({ input, ctx }) => {
       const operation = trackedAiOperation(
@@ -465,19 +772,54 @@ export const marketingRouter = router({
       // Topic planning is a model call (slow on Grok) that can outlast the proxy
       // timeout; the client polls generationRequest, which reports a rejection.
       void operation.catch((error) =>
-        console.error("[marketing] generatePost failed", input.requestId, error),
+        console.error(
+          "[marketing] generatePost failed",
+          input.requestId,
+          error,
+        ),
       );
       return { jobId: input.requestId, topic: "" };
     }),
 
-  generationRequest: adminProcedure
+  generationRequest: contentRead(DASHBOARD)
     .input(z.object({ requestId: z.string().uuid() }).strict())
     .query(({ input, ctx }) =>
       readMarketingGenerationRequest(input.requestId, ctx.user.id),
     ),
 
-  generationJobs: adminProcedure.query(() => listManusGenerationJobs()),
-  resolveGenerationJob: adminProcedure
+  // Staff-readable subset of aiManagement.status/profiles/models (admin-only there).
+  assistantStatus: contentRead(DASHBOARD, DRAFTS).query(() => ({
+    enabled: process.env.AI_CORE_MANAGEMENT_ENABLED === "true",
+    marketingDraftAvailable: true,
+    marketingWorkflowAvailable: true,
+    marketingRecoveryAvailable: true,
+    credentials: {
+      grok: Boolean(process.env.XAI_API_KEY),
+      gemini: Boolean(process.env.GEMINI_API_KEY),
+      manus: Boolean(process.env.MANUS_API_KEY),
+    },
+  })),
+  assistantProfiles: contentRead(DASHBOARD, DRAFTS).query(async () => {
+    if (process.env.AI_CORE_MANAGEMENT_ENABLED !== "true") return [];
+    return (await new AiManagementStore(getDbConnection).listProfiles()).filter(
+      (profile) => profile.workload.startsWith("marketing."),
+    );
+  }),
+  assistantModels: contentRead(DASHBOARD, DRAFTS).query(async () =>
+    (await availableGeminiModels(process.env.GEMINI_API_KEY ?? "", true)).map(
+      (model) => ({
+        id: model.name.replace(/^models\//, ""),
+        label: model.displayName ?? model.name,
+        kind: /image|nano-banana/i.test(model.name)
+          ? ("image" as const)
+          : ("text" as const),
+      }),
+    ),
+  ),
+  generationJobs: contentRead(DASHBOARD, DRAFTS).query(() =>
+    listManusGenerationJobs(),
+  ),
+  resolveGenerationJob: contentWrite(DASHBOARD, DRAFTS)
     .input(
       z
         .object({
@@ -489,17 +831,19 @@ export const marketingRouter = router({
     .mutation(({ input, ctx }) =>
       resolveManusGenerationJob(input.jobId, input.action, ctx.user.id),
     ),
-  centralGenerationJobs: adminProcedure.query(() => centralMarketingJobs()),
+  centralGenerationJobs: contentRead(DASHBOARD, DRAFTS).query(() =>
+    centralMarketingJobs(),
+  ),
   generateWhatsAppCopy: adminProcedure
     .input(whatsappCopyInput)
     .mutation(({ input, ctx }) => generateWhatsAppCopy(input, ctx.user.id)),
   readWhatsAppCopy: adminProcedure
     .input(z.object({ requestId: z.string().uuid() }).strict())
     .query(({ input, ctx }) => readWhatsAppCopy(input.requestId, ctx.user.id)),
-  centralRecoveryPlan: adminProcedure
+  centralRecoveryPlan: contentRead(DASHBOARD, DRAFTS)
     .input(z.object({ jobId: z.string().uuid() }).strict())
     .query(({ input }) => marketingRecoveryPlan(input.jobId)),
-  recoverCentralJob: adminProcedure
+  recoverCentralJob: contentWrite(DASHBOARD, DRAFTS)
     .input(recoveryInput)
     .mutation(({ input, ctx }) => recoverCentralMarketing(input, ctx.user.id)),
   centralSchedulerProviders: adminProcedure.query(() =>
@@ -515,7 +859,7 @@ export const marketingRouter = router({
         .strict(),
     )
     .mutation(({ input }) => saveMarketingSchedulerProvider(input)),
-  regenerateCentralImage: adminProcedure
+  regenerateCentralImage: contentWrite(DRAFTS)
     .input(
       z
         .object({
@@ -527,13 +871,13 @@ export const marketingRouter = router({
     .mutation(({ input, ctx }) =>
       regenerateCentralMarketingImage(input, ctx.user.id),
     ),
-  centralGenerationJob: adminProcedure
+  centralGenerationJob: contentRead(DASHBOARD, DRAFTS)
     .input(z.object({ requestId: z.string().uuid() }).strict())
     .query(
       async ({ input }) =>
         (await centralMarketingJobs(input.requestId))[0] ?? null,
     ),
-  generateCentralPost: adminProcedure
+  generateCentralPost: contentWrite(DASHBOARD)
     .input(centralMarketingInput)
     .mutation(async ({ input, ctx }) => {
       try {
@@ -555,7 +899,7 @@ export const marketingRouter = router({
 
   // ─── Image Generation ─────────────────────────────────────
 
-  generateImageForPost: adminProcedure
+  generateImageForPost: contentWrite(DRAFTS)
     .input(
       z.object({
         postId: z.number().int().positive(),
@@ -785,7 +1129,7 @@ export const marketingRouter = router({
 
   // ─── Dashboard summary ─────────────────────────────────────
 
-  dashboardSummary: adminProcedure
+  dashboardSummary: contentRead(DASHBOARD)
     .input(z.object({ pageRole: z.enum(["center", "doctor"]) }).optional())
     .query(async ({ input }) => {
       const db = await getDb();
@@ -1493,7 +1837,7 @@ export const marketingRouter = router({
       return { ok: true };
     }),
 
-  getSchedulerStatus: adminProcedure
+  getSchedulerStatus: contentRead(DASHBOARD)
     .input(
       z
         .object({ pageRole: z.enum(["center", "doctor"]).default("center") })

@@ -11,7 +11,7 @@ export default function ManusGenerationJobs({
 }) {
   const utils = trpc.useUtils();
   const previous = useRef(new Map<string, string>());
-  const capabilities = trpc.aiManagement.status.useQuery(undefined, {
+  const capabilities = trpc.marketing.assistantStatus.useQuery(undefined, {
     retry: false,
   });
   const central = trpc.marketing.centralGenerationJobs.useQuery(undefined, {

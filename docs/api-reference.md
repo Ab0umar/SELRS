@@ -1433,6 +1433,109 @@ Admin-only procedures that recover a stuck Facebook generation. Checked against 
 `resolveGenerationJob` applies only to `starting`, `running`, and `uncertain`. A `recheck` with no `taskId` does not change the row; `error` is «لا يوجد رقم مهمة في Manus لإعادة الفحص؛ يمكنك إيقاف المهمة». The dashboard and drafts jobs list calls these for Manus `uncertain` and `starting` rows. Central `uncertain` rows use `centralRecoveryPlan` and `recoverCentralJob` instead.
 
 Router file: `server/routers/marketing.ts`
+## 📣 Marketing Router (`marketing`): content scheduling and publishing
+
+Router file: `server/routers/marketing.ts`. This section covers the Facebook post workflow from `docs/marketing-content-fix-plan.md` (PRs 1–7). WhatsApp campaign procedures and brand-library analysis stay `adminProcedure` and are not specified below.
+
+### Staff page permissions
+
+Content procedures use `contentRead` / `contentWrite` in `server/routers/marketing.ts`. Both wrap `protectedProcedure` and call `getEffectiveUserPermissions` (the same direct-override, role-default, inherit-extras, and explicit-empty rules as the rest of the app).
+
+- Role `admin` passes every content check. Other roles, including `manager`, do not.
+- The permission token must equal one screen path after normalization (trim, lowercase, drop a trailing slash). `marketingScreenAllowed` compares with `===`. It does not use `permMatchesPath`, so a parent path does not cover a child screen.
+- A read check strips a trailing `:r` or `:rw`, so a write grant can also read that screen.
+- A write check keeps the path only when the token ends in `:rw` (`writePermissionPath`). A read-only grant cannot mutate.
+- Refusal messages: `تحتاج صلاحية محتوى التسويق` (read) and `تحتاج صلاحية تعديل محتوى التسويق` (write).
+- `adminProcedure` resources answer `Only administrators can access this resource` even when the caller holds every marketing page permission, including `/marketing/settings:rw` and `/marketing/brand:rw`.
+
+Permission editor entries (`client/src/lib/page-permissions.ts`, group التسويق):
+
+| Label | Permission id | Opens these procedures |
+|---|---|---|
+| التسويق (الرئيسية) | `/marketing` | Read: `dashboardSummary`, `getSchedulerStatus`, `contentCalendar`, `generationRequest`. Write: `generatePost`, `generateCentralPost`, `reconcilePublishingPost`, `resolvePublishingPost`, `unschedulePost`, `generateWeekDrafts`. |
+| المسودات | `/marketing/drafts` | Read: `listPosts`. Write: `createPost`, `updatePost`, `schedulePost`, `generateImageForPost`, `regenerateCentralImage`. |
+| سجل الحملات | `/marketing/history` | Read: `listPosts`, `postStats`. Write: `refreshPostStats`. |
+| الهوية البصرية | `/marketing/brand` | None of the content procedures. Brand-library procedures stay `adminProcedure`. |
+| إعدادات التسويق | `/marketing/settings` | None of the content procedures. Settings, Facebook connection, scheduler provider, approval mode, topic reuse, run-now, and page auto-publish stay `adminProcedure`. |
+| حملات واتساب | `/marketing/whatsapp` | None of the content procedures. WhatsApp campaign procedures stay `adminProcedure`. |
+
+Shared by more than one screen:
+
+| Screens | Read | Write (`:rw` on either screen) |
+|---|---|---|
+| Dashboard or drafts | `getPost`, `generationJobs`, `centralGenerationJobs`, `centralGenerationJob`, `centralRecoveryPlan`, `assistantStatus`, `assistantProfiles`, `assistantModels` | `publishPost`, `resolveGenerationJob`, `recoverCentralJob` |
+| Drafts or history | — | `deletePost` |
+
+`assistantStatus`, `assistantProfiles`, and `assistantModels` are the staff-readable copies of `aiManagement.status`, `profiles`, and `models`. `aiManagement` stays admin-only. `assistantProfiles` returns workloads whose name starts with `marketing.`; it returns `[]` when `AI_CORE_MANAGEMENT_ENABLED` is not `true`. `assistantStatus` reports whether Grok, Gemini, and Manus credentials are present as booleans.
+
+New posts store `createdBy`. Delete, schedule, unschedule, and week-draft generation write the user id into `marketingLogs`. The create and update log lines record the action and the post, and leave the user id off that line. These procedures do not call a shared `auditWrites` helper.
+
+Regression: `server/tests/marketingStaffPermission.test.ts`.
+
+### Where staff open the screens
+
+`App.tsx` mounts marketing inside `AiRoutes` (`client/src/routes/ai-routes.tsx`), wrapped by `AiLayout`:
+
+| Screen | URL | Legacy URL (redirects here) |
+|---|---|---|
+| Dashboard | `/ai/marketing` | `/marketing` |
+| Drafts | `/ai/marketing/drafts` | `/marketing/drafts` |
+| History | `/ai/marketing/history` | `/marketing/history` |
+| Brand library | `/ai/marketing/brand` | `/marketing/brand` |
+| Settings | `/ai/marketing/settings` | `/marketing/settings` |
+| WhatsApp | `/ai/marketing/whatsapp` | `/marketing/whatsapp` |
+
+`legacyAiRoutes` in `client/src/features/ai/navigation.ts` performs those redirects and keeps the query string and hash. `client/src/routes/marketing-routes.tsx` and `MarketingLayout` are not imported by `App.tsx`, so edits there do not change the running app. The staff tab filter in `MarketingLayout` is on that unmounted tree.
+
+`AiPage` sets `requiredRoles={["admin"]}`. `ProtectedRoute` still renders the page for another role when the normalized path is allowed. `aiPermissionPath` maps `/ai/marketing` to `/marketing` and `/ai/marketing/<rest>` to `/marketing/<rest>` before that check. `/marketing/drafts` and `/marketing/history` each have their own permission id, so a dashboard grant does not open them.
+
+Navigation that staff actually see:
+
+- The home card التسويق (`MainHome`) appears when `/marketing` is granted. Its link is `/marketing`, which redirects to `/ai/marketing`. A drafts-only or history-only grant does not show the card; those URLs still work when opened directly.
+- The sidebar leaf محتوى التسويق and the admin bottom-nav tab set `roles: ["admin"]`. The role check runs before the page-permission check, so other roles do not see those entries. The staff bottom nav has no marketing tab.
+- On a marketing screen, `AiLayout` lists every `aiMarketingPages` entry, including brand and settings. Each link still needs its own page permission. WhatsApp is a separate submodule and is not in that list.
+
+Controls that stay on `user.role === "admin"` inside the shared page components: the dashboard auto-publish toggle and run-now action (`MarketingDashboard`), and اختر من المكتبة on drafts (`DraftPosts`). The procedures behind them (`setPageAutoPublish`, `runSchedulerNow`, `listReferenceDesigns`) are `adminProcedure`.
+
+> **Default changed:** approval mode is **on** for both pages unless the owner turns it off. Scheduled drafts are generated and wait for an admin to publish them.
+
+### Procedures added or changed
+
+| Procedure | Type | Input | Notes |
+|---|---|---|---|
+| `resolveGenerationJob` | mutation | `{ jobId, action: "recheck" \| "abandon" }` | Re-checks a Manus job now, or marks it `failed` to free its draft. Abandon is logged with the user id. |
+| `reconcilePublishingPost` | mutation | `{ id }` | For a post stuck in `publishing`: reads the page's posts since the `publish_claim` log and marks it `published` on a match. Returns `{ state: "published", fbPostId }` or `{ state: "unmatched", reason }`. |
+| `resolvePublishingPost` | mutation | `{ id, outcome: "published" \| "not_published" }` | Manual decision after an unmatched reconcile. `not_published` returns the post to draft and releases its topic. Logged with the user id. |
+| `deletePost` | mutation | `{ id }` | Refuses posts in `publishing`. For drafts: releases a pending topic reservation, fails pending Manus jobs and removes generated/branded image files no other post uses. |
+| `createPost` / `updatePost` | mutation | — | `platform` accepts only `"facebook"` (Instagram was dropped). `status` accepts only `"draft"`; use `schedulePost` to schedule. |
+| `listPosts` | query | — | Each row carries `contentFlags: string[]`, recomputed on read for drafts. |
+| `approvalMode` / `setApprovalMode` | query / mutation | `{ pageRole }` / `{ pageRole, required }` | Reads or sets approval mode for one page. |
+| `topicReuseMonths` / `setTopicReuseMonths` | query / mutation | — / `{ months }` (0–120) | Reads or sets `marketing_topic_reuse_months`. Set in the settings page; the change is logged with the user id. |
+| `contentCalendar` | query | — | Next 14 days: enabled slots of connected pages, and posts with a `scheduledAt` (scheduled posts and drafts generated for a slot). |
+| `schedulePost` / `unschedulePost` | mutation | `{ id, pageRole, date (yyyy-MM-dd), hour }` (Cairo) / `{ id }` | Draft → `scheduled` at that time, or back to draft. A minute worker publishes due posts through the normal publish claim and notifies admins. `updatePost` also edits scheduled posts. |
+| `generateWeekDrafts` | mutation | — | Starts one draft per empty enabled slot in the next 7 days with each page's scheduler provider. The drafts carry the slot time in `scheduledAt` and are not published until an admin schedules them; the daily scheduler skips a slot that already has a planned post. |
+| `postStats` / `refreshPostStats` | query / mutation | — | Reach (`post_impressions_unique`) and reactions/comments/shares for posts published in the last 60 days, stored in the system setting `marketing_post_stats_v1` and refreshed once a day. `state: "unavailable"` with a reason when the page token lacks `read_insights`. The topic planner receives the best and worst 5 topics as data. |
+| `getSchedulerStatus` | query | `{ pageRole }` | Now also returns `lastSkip: { reason, at } \| null`. |
+
+### System settings (no new columns)
+
+| Key | Default | Meaning |
+|---|---|---|
+| `marketing_require_approval_<pageRole>` | `true` (when never saved) | Scheduled drafts are not auto-published. |
+| `marketing_topic_reuse_months` | `0` | Months after which a published topic no longer blocks; the planner is told to use a new angle. Posts are dated by `publishedAt`, reservations by their creation time. |
+| `marketing_scheduler_skip_<pageRole>` | — | Last reason the scheduler skipped a page (written by the server). |
+
+Environment: `MARKETING_GRAPH_VERSION` (format `v<major>.<minor>`, default `v21.0`) selects the Graph API version used for publishing and reconciliation.
+
+### Scheduler and generation behaviour
+
+- A failed scheduled start backs off 5 minutes, 30 minutes, then 2 hours, and stops until the next Cairo day. The backoff is held in memory, so a restart resets it.
+- If the day's Manus job ended `failed`, one second attempt runs with a distinct request id. Uncertain jobs, and starts that expired without a Manus task id, are never retried automatically.
+- Manus jobs still `starting` without a task id after 10 minutes become `failed`. `uncertain` jobs with a task id are polled for 6 hours. A local save error after Manus succeeded is retried on the next 3 ticks.
+- Central jobs that fail stay `uncertain` with a specific `errorCode`: `ai_*`, `gateway_*`, `invalid_output`, `topic_unavailable`, `stale_execution` or `generation_or_persistence_failed`.
+- The duplicate-post guard uses Cairo midnight.
+- Every generated draft passes a content check (prices, offers, guarantees, percentages; phone numbers and links in the content). Flagged drafts are saved and never auto-published.
+- Admins are notified (in-app and push, title and reason only) when a draft is ready (for review, waiting for approval, flagged, or auto-published), when scheduled generation fails or ends uncertain, and when publishing fails, ends uncertain, or Facebook rejects the page token.
 
 ---
 
