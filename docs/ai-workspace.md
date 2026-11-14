@@ -30,7 +30,7 @@ The sidebar lists those five groups separately (`adminNavGroups` in `client/src/
 
 `marketing.generatePost` and `marketing.generateCentralPost` are `adminProcedure`s in `server/routers/marketing.ts`. Gemini and Grok drafting goes through `generateCentralMarketingDraft` in `server/services/ai/marketingDraft.ts` with `{ detach: true }`.
 
-The detached call inserts `aiMarketingJobs` (and `aiMarketingJobContext`) and returns `{ jobId, topic, state: "running", postId: null }` before `finishCentralMarketingDraft` writes the text and image. The client already polls the job. A failure after that insert is logged as `[marketing] central draft failed` plus the request id. Validation that runs before the insert still fails the mutation: central management disabled, a missing or disabled `marketing.text` / `marketing.image` profile, a Manus profile for a workload whose model was not selected, a missing `GEMINI_API_KEY` or `XAI_API_KEY` for the chosen provider, a repeated request id whose topic, page, or day differs, or a topic that was already published (`PublishedMarketingTopicError` becomes `PRECONDITION_FAILED` on `generateCentralPost`).
+The detached call inserts `aiMarketingJobs` (and `aiMarketingJobContext`) and returns `{ jobId, topic, state: "running", postId: null }` before `finishCentralMarketingDraft` writes the text and image. The client already polls the job. A rejection from that detached promise is logged as `[marketing] central draft failed` plus the request id. Errors caught inside `finishCentralMarketingDraft` leave the row `uncertain` and store `error_code`; the codes are in the next section. Validation that runs before the insert still fails the mutation: central management disabled, a missing or disabled `marketing.text` / `marketing.image` profile, a Manus profile for a workload whose model was not selected, a missing `GEMINI_API_KEY` or `XAI_API_KEY` for the chosen provider, a repeated request id whose topic, page, or day differs, or a topic that was already published (`PublishedMarketingTopicError` becomes `PRECONDITION_FAILED` on `generateCentralPost`).
 
 `generatePost` adds topic planning:
 
@@ -41,19 +41,82 @@ The dashboard polls `marketing.generationRequest` every 4 seconds (`MarketingDas
 
 `AI_CORE_MANAGEMENT_ENABLED=true` with no request `assistant` resolves the configured marketing assistant. If none is configured, the operation throws `AiManagementError("unavailable")`. On the empty-topic path that rejection is the generic toast above.
 
-## Scheduled generation after a failure
+## Scheduled generation and stuck jobs
 
-`checkDueMarketingPosts` in `server/services/marketing/scheduler.service.ts` skips a page while `marketingStartAllowed` is false. `runScheduledPost` returning `ok: false` calls `recordMarketingStartFailure`. If generation was not accepted, the unused claim is released. If it was accepted, the claim stays and the backoff still advances. Delays for that page and Cairo day are 5 minutes, 30 minutes, then 2 hours (`MARKETING_RETRY_DELAYS_MS`). Another failure the same day sets `nextAt` to infinity until the Cairo date changes. The map is in memory: a process restart allows an immediate attempt. A run that returns `ok: true`, including a skip, calls `clearMarketingStartFailures`.
+Shipped in PR #29. `initMarketingScheduler` (`server/services/marketing/scheduler.service.ts`) still runs at process start and every five minutes in `Africa/Cairo`. A slot is due when `autoPublish` is on, the Cairo hour has reached `publishHour`, today's weekday is enabled for that page, and the duplicate guard finds no non-failed `marketing_posts` row for that `pageRole` and `postDay` created after the server's local midnight. The claim id uses the Cairo calendar date (`marketing:<yyyy-mm-dd>:<day>:<pageRole>`). Those two clocks differ when the host timezone is not Cairo.
 
-After a claim is accepted, a job whose state is `failed` gets one second claim. The request id is the schedule hash of `marketing:<cairo-day>:<slot>:<pageRole>:retry`. A job failed with the orphan prefix `انقطع بدء مهمة Manus قبل استلام رقمها`, and any `uncertain` job, does not get that second claim.
+`claimMarketingSchedule` still owns the page/day reservation. A check that finds an existing reservation returns `{ ok: true, skipped: "This page/day generation is already reserved; inspect its existing job" }` unless the Manus retry rule below opens the `:retry` claim.
 
-`processManusGenerationJobs` marks a `starting` row with no `taskId` older than 10 minutes as `failed`, and the error says a Manus task may already exist. Rows with a `taskId` in `uncertain` keep being polled for 6 hours (`UNCERTAIN_POLL_MS`). Other pending rows still become `uncertain` after 30 minutes (`MAX_AGE_MS`). A `LocalFinishError` while saving a finished Manus result stays on the job and is tried again on later ticks while the in-memory count is at most 3 (`MAX_LOCAL_RETRIES`). The next failure marks it `failed`. Restarting the process clears that count.
+### Pre-acceptance backoff
 
-`marketing.resolveGenerationJob` (`adminProcedure`) takes `recheck` or `abandon` for a job still in `starting`, `running`, or `uncertain`. Recheck needs a `taskId`. Abandon sets `failed` with «أوقفها المسؤول يدويًا» and frees the draft. The drafts job list calls this.
+`server/services/marketing/schedulerBackoff.ts` stores one in-memory entry per page role (`center`, `doctor`). `checkDueMarketingPosts` calls `recordMarketingStartFailure` only when `runScheduledPost` returns `ok: false`. The waits are 5 minutes, then 30 minutes, then 2 hours. The failure after the 2-hour wait stops that page until the next Cairo date (`en-CA` calendar in `Africa/Cairo`). An `ok: true` result, including "post already exists" and "already reserved", calls `clearMarketingStartFailures`. The map lives in the process: a restart allows the next check to try immediately. The cron can fire before `nextAt`; that tick skips the page.
 
-Central drafts still have no `failed` state. `finishCentralMarketingDraft` logs the error name and `centralDraftErrorCode`, then stores that code on an `uncertain` row: `stale_execution`, `ai_<code>`, `gateway_<code>_<status>`, `invalid_output`, `topic_unavailable`, or `generation_or_persistence_failed`.
+`ok: false` covers a missing database, a missing linked page, a topic-planner throw, and a generation throw. After a central job has been accepted, a result other than `{ state: "completed", postId }` throws «توليد الجدولة غير محسوم؛ راجع المهمة قبل المحاولة مرة أخرى», which is also `ok: false`. The unused claim is released only when acceptance never happened. The error is inserted into `marketing_logs` with action `scheduler_run`. A later check that only sees the surviving claim returns `ok: true` and clears the backoff counter.
 
-Topic planning sends `topic` and `title` only. `PLANNER_PUBLISHED_CAP` is 200. Exact-identity exclusion still uses the full published list in code.
+### One retry after a definite Manus failure
+
+When the first claim already exists, `definitelyFailedJob` reads `marketing_generation_jobs` for that id. State `failed` whose `error` does not start with `ORPHANED_START_ERROR` («انقطع بدء مهمة Manus قبل استلام رقمها») gets one more claim. The retry id is the same UUID-shaped SHA-256 of `marketing:<cairo-day>:<day>:<pageRole>:retry`. `uncertain`, `starting`, and `running` rows are left in place. A job failed by the 10-minute orphan sweep is left in place, because a Manus task may already exist.
+
+`ai_marketing_jobs.state` is `running`, `completed`, or `uncertain`. A central schedule claim therefore never matches `definitelyFailedJob`, and the scheduler does not open a `:retry` claim for it.
+
+### Topic planner input
+
+`planMarketingTopic` (`server/services/marketing/topicPlanner.ts`) still rejects an exact repeat against the full published history plus the latest 60 posts. `publishedMarketingTopics()` has no `ORDER BY`. The model payload is separate from that exclusion set:
+
+- The latest 60 posts contribute `topic` and `title`. `content` is not sent.
+- `rejected` contains only proposals discarded during this call. The loop allows three attempts, then throws «تعذر اختيار فكرة جديدة دون تكرار؛ أعد المحاولة أو اكتب موضوعًا محددًا».
+- Published strings are de-duplicated by `marketingTopicIdentity`, then `slice(-200)` keeps the last 200 in the order the query returned. That is not a date order.
+- `buildPlannerInput` drops from the front of that published list, then from the end of the recent list, until `JSON.stringify` length is at most `PLANNER_INPUT_LIMIT` (30,000). `withMarketingBudget` rejects an instruction or input longer than 32,000 characters.
+
+### Manus worker
+
+`initManusGenerationWorker` calls `processManusGenerationJobs` on start and every 20 seconds when `MANUS_API_KEY` is set. One pass runs at a time and reads at most five pending jobs that have a `taskId`.
+
+| Condition | Result |
+| --- | --- |
+| `starting`, `taskId` null, `createdAt` older than 10 minutes | `failed`. Error is «انقطع بدء مهمة Manus قبل استلام رقمها؛ قد تكون المهمة موجودة في Manus، راجعها قبل إعادة المحاولة». No automatic `:retry`. |
+| `starting` or `running`, has `taskId`, older than 30 minutes | `uncertain`, error «انتهت مهلة التوليد؛ راجع المهمة في Manus قبل إعادة المحاولة». Later ticks keep polling it. |
+| `uncertain`, has `taskId`, `createdAt` within 6 hours | The tick reads the Manus task and can still save the draft. |
+| `uncertain`, `createdAt` older than 6 hours | The worker stops selecting the row. It stays `uncertain` and still blocks a new image on that draft. |
+| Manus finished, then the local file write, branding, or DB save threw | `LocalFinishError`. The in-memory counter allows the next three times that job is processed to try the save again. The fourth local failure sets `failed`. A restart zeroes the counter. The worker selects at most five pending jobs per pass, oldest first. |
+| Draft row missing, or the image update matched zero rows because the draft changed | `DefiniteJobError`. The job is `failed` on that tick. Messages: «المسودة المطلوبة غير موجودة» or «المسودة تغيرت أثناء التوليد؛ لم يتم استبدال الصورة». |
+
+### Admin resolution
+
+`marketing.resolveGenerationJob` is an `adminProcedure` in `server/routers/marketing.ts`. Input is `{ jobId: string (1–36), action: "recheck" | "abandon" }`. It acts on `marketing_generation_jobs` in `starting`, `running`, or `uncertain`. Any other state is returned unchanged.
+
+- `recheck` with a `taskId` calls `finishJob` immediately. A saved draft comes back `completed`. A task that is still running returns the current state and the worker's message. With no `taskId`, the row is unchanged and the error is «لا يوجد رقم مهمة في Manus لإعادة الفحص؛ يمكنك إيقاف المهمة».
+- `abandon` sets `failed` and error «أوقفها المسؤول يدويًا». `marketing_logs.action` is `manus_job_abandoned` and the message includes the user id. The pending-job check on the draft then allows another image. A Manus result that arrives afterward is not written.
+
+`ManusGenerationJobs` (heading «مهام التوليد») is rendered from `MarketingDashboard.tsx` and `DraftPosts.tsx`. For a Manus job in `uncertain` or `starting`, `ManusJobResolve` shows «إعادة فحص المهمة الآن» when `taskId` is set, and «إيقاف المهمة». Abandon opens a confirmation dialog before the mutation. Central `uncertain` rows keep `MarketingJobRecovery` (`marketing.centralRecoveryPlan` / `recoverCentralJob`) when AI management recovery is enabled. They do not get the Manus buttons.
+
+### Central `error_code`
+
+`finishCentralMarketingDraft` catches the failure, leaves `ai_marketing_jobs.state` as `uncertain`, and sets `error_code` from `centralDraftErrorCode`. The log line is `[marketing] central draft ended uncertain`, the request id, `error.name`, and the code. Provider body text is not included.
+
+| Cause | `error_code` |
+| --- | --- |
+| `StaleMarketingExecutionError` | `stale_execution` |
+| `AiManagementError` | `ai_disabled`, `ai_budget`, `ai_capacity`, `ai_duplicate`, or `ai_unavailable` |
+| `AiGatewayError` | `gateway_<code>` or `gateway_<code>_<http status>`. Codes: `configuration`, `capacity`, `provider`, `invalid_output` |
+| `ZodError` or `SyntaxError` | `invalid_output` |
+| `PublishedMarketingTopicError` | `topic_unavailable` |
+| any other error | `generation_or_persistence_failed` |
+
+The same column is also written outside that function. `centralMarketingJobs` (the jobs-list query, latest 50 rows) sets `interrupted_or_timed_out` on every `running` row whose `updatedAt` is older than 5 minutes. The dashboard polls that query every 5 seconds while AI management reports enabled, so loading «مهام التوليد» performs the update. Image regeneration stores `image_failed_or_draft_changed`. Recovery can store `recovery_requires_review`.
+
+The jobs list copies `errorCode` onto the central row's `error` field. The red/muted error paragraph is rendered for Manus `failed` and Manus `uncertain` rows. A central code is on the database row and in the log; the on-screen recovery copy comes from `MarketingJobRecovery`'s plan reasons.
+
+### When a scheduled day has no post
+
+1. Confirm `[marketing-scheduler] Initialized` and any `scheduler_run` row in `marketing_logs`.
+2. Confirm the page target: linked Facebook page, `autoPublish`, the weekday switch, and `publishHour`.
+3. A non-failed post for that page and slot with `createdAt` after the server's local midnight blocks the run. The claim id uses the Cairo date, so the two windows match when the host timezone is Cairo.
+4. A live claim whose Manus job is `uncertain`, `starting`, `running`, or orphan-`failed` does not get `:retry`. Use «مهام التوليد» on `/ai/marketing` or the drafts page.
+5. Three spaced start failures, then one more, stop that page until the next Cairo day. Restarting the server clears that wait.
+6. Topic planning fails closed with «تعذر اختيار فكرة جديدة دون تكرار…» after three colliding proposals. Exact exclusion still uses the full history, including identities trimmed out of the model input.
+
+Tests: `server/tests/marketingSchedulerRetry.test.ts`, `server/tests/topicPlanner.test.ts`, `server/tests/manusGeneration.test.ts`, `server/tests/centralDraftErrorCode.test.ts`.
 
 ## WhatsApp campaign deliveries
 

@@ -1420,5 +1420,21 @@ Router file: `server/routers/doctorPortal.ts`
 
 ---
 
-**Last Updated:** 2026-11-10
+## Marketing generation jobs (`marketing`)
+
+Admin-only procedures that recover a stuck Facebook generation. Checked against `server/routers/marketing.ts`, `server/services/marketing/manusGeneration.service.ts`, and `server/services/ai/marketingDraft.ts` on 2026-11-14. Scheduler backoff, the topic-planner size limit, and the error-code table are in `docs/ai-workspace.md`.
+
+| Procedure | Type | Auth | Input | Result |
+|---|---|---|---|---|
+| `generationJobs` | query | `adminProcedure` | none | Latest 20 `marketing_generation_jobs` rows (`listManusGenerationJobs`). |
+| `resolveGenerationJob` | mutation | `adminProcedure` | `{ jobId: string (1–36), action: "recheck" \| "abandon" }` | `{ state, error }`. `recheck` polls Manus when `taskId` is set. `abandon` sets `failed` with «أوقفها المسؤول يدويًا» and writes `marketing_logs` action `manus_job_abandoned` including the user id. Rows already `completed` or `failed` are returned as they are. |
+| `centralGenerationJobs` | query | `adminProcedure` | none | Latest 50 `ai_marketing_jobs` rows. `state` is `running`, `completed`, or `uncertain`. Before returning, the query sets `running` rows with `updatedAt` older than 5 minutes to `uncertain` / `interrupted_or_timed_out`. Other `errorCode` values come from `centralDraftErrorCode` and the image/recovery writers. |
+
+`resolveGenerationJob` applies only to `starting`, `running`, and `uncertain`. A `recheck` with no `taskId` does not change the row; `error` is «لا يوجد رقم مهمة في Manus لإعادة الفحص؛ يمكنك إيقاف المهمة». The dashboard and drafts jobs list calls these for Manus `uncertain` and `starting` rows. Central `uncertain` rows use `centralRecoveryPlan` and `recoverCentralJob` instead.
+
+Router file: `server/routers/marketing.ts`
+
+---
+
+**Last Updated:** 2026-11-14
 **API Version:** 2.1.0

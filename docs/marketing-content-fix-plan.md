@@ -34,7 +34,12 @@ Scope: scheduled and manual Facebook post generation and publishing. Out of scop
 
 ## PR 1 — stop silent stoppages
 
-Shipped on `main` (merge of the marketing silent-stoppage PR). Current delays, the one failed-job retry, Manus orphan and uncertain windows, and central `errorCode` values are in `docs/ai-workspace.md` under "Scheduled generation after a failure". The steps below are the record of what landed; later PRs in this file are still open.
+**Landed.** Merged as PR #29 (`084c9f5d` on `main`, 2026-11-14). Do not re-apply this section. Current behavior, admin actions, and the failure checks are in `docs/ai-workspace.md` ("Scheduled generation and stuck jobs") and the `marketing.resolveGenerationJob` row in `docs/api-reference.md`. The bullets below are the problem statement from before that merge.
+
+Two deviations from the bullets, both called out in the PR #29 body:
+
+- `publishedMarketingTopics()` has no `ORDER BY`. The 200-item cap keeps the last 200 unique values in returned order.
+- A `starting` job failed by the 10-minute orphan sweep is not given the automatic second attempt. Its Manus task may still exist.
 
 1. **Topic planner input must stay bounded** (`topicPlanner.ts`). Today it sends the content of the last 60 posts plus every published topic twice, and `withMarketingBudget` rejects any input over 32000 characters, so planning fails once there are roughly 45–50 full posts.
    - Send only `topic` and `title` for recent posts, never `content`.

@@ -2,6 +2,8 @@
 
 ## Behavior
 
+This section records the 2026-10-27 catch-up. PR #29 (merged 2026-11-14) added pre-acceptance backoff and one automatic retry after a definite Manus `failed` job. `uncertain` attempts and orphaned starts are still not recreated. Use `docs/ai-workspace.md` for the current rules.
+
 The scheduler now checks when the application starts and every five minutes in Africa/Cairo. For each page independently, the current enabled calendar slot becomes due at its configured hour and remains eligible until that Cairo day ends. This compensates for starting or recovering the service after the exact scheduled hour. It does not queue a backlog from earlier dates.
 
 The existing non-failed-post check and durable page/day claim prevent a second generation. An accepted, failed-with-job or uncertain attempt is not recreated automatically. Known preflight failures with no accepted job retain the existing unused-claim cleanup. Provider capacity is still required; catch-up does not switch providers or bypass their limits.
