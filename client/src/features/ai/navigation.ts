@@ -3,8 +3,8 @@ import { ROUTES } from "@shared/routes";
 export const aiPages = [
   {
     path: ROUTES.ai,
-    label: "نظرة عامة",
-    description: "حالة المزوّدين والوصول إلى أدوات الذكاء الاصطناعي",
+    label: "الخدمات",
+    description: "حالة كل خدمة ومزوّدها وحدودها في صفحة واحدة",
   },
   {
     path: ROUTES.aiReplies,
@@ -27,24 +27,17 @@ export const aiPages = [
     description: "الحملات وصياغة الرسائل ونتائج التسليم",
   },
   {
-    path: ROUTES.aiSettings,
-    label: "المزوّدون والحدود",
-    description: "اختيار المزوّد والموديل وحدود كل مهمة",
-  },
-  {
-    path: ROUTES.aiExperiments,
-    label: "تجارب الاتصال",
-    description: "اختبار النص والصورة ببيانات اصطناعية",
-  },
-  {
     path: ROUTES.aiUsage,
-    label: "سجل الاستخدام",
-    description: "الطلبات وحالتها واستهلاك التوكنات ورصيد Manus",
+    label: "سجل الطلبات",
+    description: "كل طلب وحالته واستهلاكه",
   },
 ] as const;
 
 export const legacyAiRoutes: Record<string, string> = {
   "/admin-hub/ai": ROUTES.ai,
+  // The settings and connection-test pages became rows of the one AI page.
+  [ROUTES.aiSettings]: ROUTES.ai,
+  [ROUTES.aiExperiments]: ROUTES.ai,
   "/admin-hub/auto-reply": ROUTES.aiReplies,
   "/admin-hub/medical-assistant": ROUTES.aiMedical,
   "/admin/ai": ROUTES.ai,
@@ -104,7 +97,7 @@ export const aiSubmodules: readonly AiSubmodule[] = [
     ...submodule(
       "core",
       ROUTES.ai,
-      [ROUTES.ai, ROUTES.aiSettings, ROUTES.aiExperiments, ROUTES.aiUsage].map(
+      [ROUTES.ai, ROUTES.aiUsage].map(
         pageByPath,
       ),
     ),
@@ -135,6 +128,11 @@ export function aiPermissionPath(path: string): string {
   if (path === ROUTES.aiMedical) return "/admin-hub/medical-assistant";
   if (path === ROUTES.aiMarketing) return "/marketing";
   if (path === ROUTES.aiWhatsApp) return "/marketing/whatsapp";
-  if (aiPages.some((page) => page.path === path)) return "/admin-hub/ai";
+  if (
+    path === ROUTES.aiSettings ||
+    path === ROUTES.aiExperiments ||
+    aiPages.some((page) => page.path === path)
+  )
+    return "/admin-hub/ai";
   return path;
 }

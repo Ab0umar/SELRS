@@ -34,7 +34,7 @@ export default function AiLayout({ children }: { children: ReactNode }) {
         </Link>
         <div className="ai-workspace-actions">
           {current.key !== "core" && (
-            <Link href={ROUTES.aiSettings}>إعدادات AI</Link>
+            <Link href={ROUTES.ai}>إعدادات AI</Link>
           )}
           {isAiMobileApp() ? (
             <>

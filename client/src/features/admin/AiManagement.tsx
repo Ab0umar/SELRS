@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import type { inferRouterOutputs } from "@trpc/server";
 import type { AppRouter } from "../../../../server/routers";
+import { Link } from "wouter";
+import { ROUTES } from "@shared/routes";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -60,7 +62,13 @@ function errorText(message: string) {
   return "تعذرت العملية. راجع حالة الخادم وسجل الطلبات قبل إعادة المحاولة.";
 }
 
-function ProfileEditor({ profile }: { profile: Profile }) {
+function ProfileEditor({
+  profile,
+  title,
+}: {
+  profile: Profile;
+  title: string;
+}) {
   const [draft, setDraft] = useState(profile);
   useEffect(() => {
     setDraft(profile);
@@ -71,8 +79,8 @@ function ProfileEditor({ profile }: { profile: Profile }) {
   const dirty = JSON.stringify(draft) !== JSON.stringify(profile);
   return (
     <form
-      className="ai-panel ai-profile"
-      aria-label="إعدادات المهمة"
+      className="ai-profile"
+      aria-label={`إعدادات ${title}`}
       onSubmit={async (event) => {
         event.preventDefault();
         if (save.isPending) return;
@@ -80,15 +88,15 @@ function ProfileEditor({ profile }: { profile: Profile }) {
         try {
           await save.mutateAsync(draft);
           await utils.aiManagement.profiles.invalidate();
+          await utils.aiManagement.todayUsage.invalidate();
           setMessage(
-            "تم حفظ إعدادات المهمة. الحدود الجديدة تسري على الطلبات التالية، ولا تلغي حجوزات أو طلبات سابقة.",
+            "تم الحفظ. الحدود الجديدة تسري على الطلبات التالية، ولا تلغي حجوزات أو طلبات سابقة.",
           );
         } catch (error) {
           setMessage(errorText(error instanceof Error ? error.message : ""));
         }
       }}
     >
-      <h2>{labels[profile.workload]}</h2>
       <div className="ai-fields">
         <label>
           المزوّد
@@ -135,7 +143,7 @@ function ProfileEditor({ profile }: { profile: Profile }) {
           />
         </label>
         <label>
-          الحد اليومي للطلبات
+          أقصى طلبات في اليوم
           <Input
             type="number"
             min={1}
@@ -198,7 +206,7 @@ function ProfileEditor({ profile }: { profile: Profile }) {
             }))
           }
         />
-        تفعيل هذه المهمة
+        تشغيل الخدمة
       </label>
       <p className="ai-help">
         الحدود تخص الطلبات التي تمر عبر الموديول المركزي. التوكنات وأرصدة Manus
@@ -206,7 +214,7 @@ function ProfileEditor({ profile }: { profile: Profile }) {
       </p>
       <div className="ai-actions">
         <Button type="submit" disabled={!dirty || save.isPending}>
-          {save.isPending ? "جارٍ الحفظ..." : "حفظ إعدادات المهمة"}
+          {save.isPending ? "جارٍ الحفظ..." : "حفظ"}
         </Button>
       </div>
       {message && (
@@ -218,28 +226,88 @@ function ProfileEditor({ profile }: { profile: Profile }) {
   );
 }
 
+// Services in the owner's words, built from the workload profiles.
+const SERVICES: ReadonlyArray<{ label: string; workload: Workload }> = [
+  { label: "الرد الآلي", workload: "reply.live" },
+  { label: "المساعد الطبي", workload: "medical.documentation" },
+  { label: "نصوص التسويق", workload: "marketing.text" },
+  { label: "صور التسويق", workload: "marketing.image" },
+  { label: "صياغة رسائل واتساب", workload: "whatsapp.marketing" },
+];
+const TEST_ONLY: readonly Workload[] = ["reply.preview", "medical.synthetic"];
+const providerName = (provider: Profile["provider"]) =>
+  provider === "manus" ? "Manus" : provider === "grok" ? "Grok" : "Gemini";
+type Status = Output["status"];
+type Today = Output["todayUsage"];
+
+function serviceState(
+  workload: Workload,
+  profile: Profile | undefined,
+  status: Status,
+): { tone: "on" | "off" | "down"; text: string } {
+  if (!status.enabled)
+    return {
+      tone: "down",
+      text: "واقفة: إدارة الذكاء الاصطناعي مش مفعّلة على السيرفر",
+    };
+  if (!profile)
+    return { tone: "down", text: "واقفة: مفيش إعداد محفوظ للخدمة دي" };
+  if (!profile.enabled) return { tone: "off", text: "متوقفة باختيارك" };
+  const keys = status.credentials;
+  const hasKey =
+    profile.provider === "manus"
+      ? keys.manus
+      : profile.provider === "grok"
+        ? keys.grok
+        : workload.startsWith("reply.")
+          ? keys.replyGemini || keys.gemini
+          : keys.gemini;
+  if (!hasKey)
+    return {
+      tone: "down",
+      text: `واقفة: مفتاح ${providerName(profile.provider)} مش موجود على السيرفر`,
+    };
+  return { tone: "on", text: "شغّالة" };
+}
+
+function todayLine(profile: Profile | undefined, today: Today | undefined) {
+  if (!profile) return "مفيش حد يومي";
+  if (!today) return "استهلاك النهارده مش متاح";
+  const row = today.find((entry) => entry.workload === profile.workload);
+  return `النهارده ${row?.requests ?? 0} من ${profile.dailyRequests} طلب`;
+}
+
+const TONE_CLASS = {
+  on: "text-success",
+  off: "text-muted-foreground",
+  down: "text-destructive",
+} as const;
+
 export default function AiManagement({
   view = "overview",
 }: {
-  view?: "overview" | "settings" | "experiments" | "usage";
+  view?: "overview" | "usage";
 }) {
-  const showProfiles = view === "settings" || view === "experiments";
   const status = trpc.aiManagement.status.useQuery(undefined, {
     retry: false,
     refetchOnWindowFocus: false,
   });
   const enabled = status.data?.enabled === true;
   const profiles = trpc.aiManagement.profiles.useQuery(undefined, {
-    enabled: enabled && showProfiles,
+    enabled: enabled && view === "overview",
     retry: false,
     refetchOnWindowFocus: false,
+  });
+  const today = trpc.aiManagement.todayUsage.useQuery(undefined, {
+    enabled: enabled && view === "overview",
+    retry: false,
+    refetchInterval: 30000,
   });
   const usage = trpc.aiManagement.usage.useQuery(undefined, {
     enabled: enabled && view === "usage",
     retry: false,
     refetchInterval: 10000,
   });
-  const [selected, setSelected] = useState<Workload>("reply.preview");
   const [confirm, setConfirm] = useState<Profile>();
   const [requestId, setRequestId] = useState(restoredRequest);
   const [message, setMessage] = useState("");
@@ -256,9 +324,6 @@ export default function AiManagement({
       retry: false,
       refetchInterval: requestId ? 4000 : false,
     },
-  );
-  const active = profiles.data?.find(
-    (profile) => profile.workload === selected,
   );
 
   function clearPending() {
@@ -287,14 +352,15 @@ export default function AiManagement({
     clearPending();
     setMessage(
       usageMissing
-        ? "انتهى التوليد، لكن بيانات الاستهلاك غير متاحة. حجز التوكنات محفوظ للمراجعة."
+        ? "انتهى التوليد، لكن بيانات الاستهلاك غير متاحة. الحجز محفوظ للمراجعة."
         : state === "completed"
-          ? "اكتملت مهمة المزوّد. راجع سجل الاستهلاك؛ اكتمال المهمة لا يثبت جودة ملف التسويق."
+          ? "اكتملت مهمة المزوّد. راجع سجل الطلبات؛ اكتمال المهمة لا يثبت جودة الناتج."
           : state === "rejected"
             ? "لم يبدأ التوليد. راجع الإعدادات ثم ابدأ تجربة جديدة."
             : "فشلت التجربة. لم نرسل طلبًا بديلًا تلقائيًا.",
     );
     void utils.aiManagement.usage.invalidate();
+    void utils.aiManagement.todayUsage.invalidate();
   }, [tracking.data?.state, requestId, probe.isPending, utils]);
 
   async function runProbe() {
@@ -334,288 +400,307 @@ export default function AiManagement({
       } else setMessage("بدأت مهمة Manus. متابعة الحالة لا تنشئ مهمة جديدة.");
     } catch (error) {
       setMessage(
-        `${errorText(error instanceof Error ? error.message : "")} احتفظ بمعرف الطلب الظاهر؛ لن نعيد التوليد تلقائيًا.`,
+        `${errorText(error instanceof Error ? error.message : "")} رقم الطلب محفوظ؛ لن نعيد التوليد تلقائيًا.`,
       );
     } finally {
       sending.current = false;
       void utils.aiManagement.usage.invalidate();
+      void utils.aiManagement.todayUsage.invalidate();
     }
   }
+
+  const profileFor = (workload: Workload) =>
+    profiles.data?.find((profile) => profile.workload === workload);
+  const states_ = status.data
+    ? SERVICES.map(({ workload }) =>
+        serviceState(workload, profileFor(workload), status.data),
+      )
+    : [];
+  const downCount = states_.filter((state) => state.tone === "down").length;
+
+  const row = (label: string, workload: Workload) => {
+    const profile = profileFor(workload);
+    const state = serviceState(workload, profile, status.data!);
+    return (
+      <li key={workload}>
+        <details className="ai-panel ai-service">
+          <summary className="ai-service-summary">
+            <span className="ai-service-name">{label}</span>
+            <span className={`ai-service-state ${TONE_CLASS[state.tone]}`}>
+              {state.text}
+            </span>
+            <span className="ai-help">
+              {profile ? (
+                <bdi>
+                  {providerName(profile.provider)} · {profile.model}
+                </bdi>
+              ) : (
+                "مفيش مزوّد"
+              )}
+              {" · "}
+              {todayLine(profile, today.data)}
+            </span>
+          </summary>
+          {profile ? (
+            <div className="ai-service-body">
+              <ProfileEditor profile={profile} title={label} />
+              {workload === "medical.documentation" ? (
+                <p className="ai-help">
+                  تجربة الاتصال للمساعد الطبي بتتم من صفحة المساعد الطبي نفسها.
+                </p>
+              ) : (
+                <div className="ai-actions">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={!profile.enabled || Boolean(requestId)}
+                    onClick={() => setConfirm(profile)}
+                  >
+                    جرّب الاتصال
+                  </Button>
+                  {!profile.enabled && (
+                    <span className="ai-help">فعّل الخدمة الأول لتجربتها.</span>
+                  )}
+                </div>
+              )}
+              <p className="ai-help">
+                المزوّد والموديل بيتختاروا من هنا. الشاشات التانية بتعرضهم
+                للقراءة.
+              </p>
+            </div>
+          ) : (
+            <p className="ai-help">
+              مفيش إعداد محفوظ للخدمة دي على السيرفر.
+            </p>
+          )}
+        </details>
+      </li>
+    );
+  };
 
   return (
     <section
       className="ai-management"
       dir="rtl"
-      aria-label="إدارة الذكاء الاصطناعي والتواصل"
+      aria-label="إدارة الذكاء الاصطناعي"
     >
       <header className="ai-heading">
         <div>
-          <h1>
-            {
-              {
-                overview: "نظرة عامة",
-                settings: "المزوّدون والحدود",
-                experiments: "تجارب الاتصال",
-                usage: "سجل الاستخدام",
-              }[view]
-            }
-          </h1>
+          <h1>{view === "usage" ? "سجل الطلبات" : "الذكاء الاصطناعي"}</h1>
           <p>
-            {
-              {
-                overview: "أدوات الذكاء الاصطناعي وإعداداتها في مكان واحد.",
-                settings: "إعداد المزوّد والموديل وحدود الاستخدام لكل مهمة.",
-                experiments:
-                  "اختبار اتصال المزوّدين ببيانات اصطناعية قبل الاستخدام.",
-                usage: "متابعة حالة الطلبات واستهلاك كل مزوّد.",
-              }[view]
-            }
+            {view === "usage"
+              ? "حالة كل طلب واستهلاكه، من الأحدث."
+              : !status.data || (enabled && profiles.isLoading)
+                ? "جارٍ قراءة حالة الخدمات…"
+                : downCount
+                  ? `${downCount} خدمة واقفة من ${SERVICES.length}.`
+                  : "مفيش خدمة واقفة."}
           </p>
         </div>
         <Button
           variant="outline"
           onClick={() => {
             void status.refetch();
-            if (enabled && showProfiles) {
+            if (enabled && view === "overview") {
               void profiles.refetch();
+              void today.refetch();
             }
-            if (enabled && view === "usage") {
-              void usage.refetch();
-            }
+            if (enabled && view === "usage") void usage.refetch();
           }}
           disabled={status.isFetching}
         >
           تحديث الحالة
         </Button>
       </header>
-      {status.isLoading && <p role="status">جارٍ قراءة حالة الموديول...</p>}
+      {status.isLoading && <p role="status">جارٍ قراءة حالة الخدمات...</p>}
       {status.isError && (
         <p role="alert">
-          تعذر تحميل حالة الموديول أو التحقق من صلاحيتك. أعد المحاولة من «تحديث
+          تعذر تحميل الحالة أو التحقق من صلاحيتك. أعد المحاولة من «تحديث
           الحالة».
         </p>
       )}
-      {status.data && (view === "overview" || !enabled) && (
+      {status.data && !enabled && (
         <section className="ai-panel" aria-label="حالة التشغيل">
-          <h2>
-            {enabled
-              ? "إدارة التجارب متاحة"
-              : "إدارة التجارب غير مفعّلة على الخادم"}
-          </h2>
+          <h2>إدارة الذكاء الاصطناعي مش مفعّلة على السيرفر</h2>
           <p>
-            {enabled
-              ? "تغيير إعدادات التجارب لا يغيّر النشر أو الرد الآلي أو المساعد الطبي الحالي."
-              : "يلزم تطبيق جداول الموديول وتفعيل AI_CORE_MANAGEMENT_ENABLED على الخادم قبل الحفظ أو التوليد."}
-          </p>
-          <dl className="ai-credentials">
-            <div>
-              <dt>مفتاح Grok للتسويق</dt>
-              <dd>
-                {status.data.credentials.grok
-                  ? "موجود على الخادم"
-                  : "غير مضبوط"}
-              </dd>
-            </div>
-            <div>
-              <dt>مفتاح Gemini العام</dt>
-              <dd>
-                {status.data.credentials.gemini
-                  ? "موجود على الخادم"
-                  : "غير مضبوط"}
-              </dd>
-            </div>
-            <div>
-              <dt>مفتاح Gemini للرد الآلي</dt>
-              <dd>
-                {status.data.credentials.replyGemini
-                  ? "موجود على الخادم"
-                  : "غير مضبوط"}
-              </dd>
-            </div>
-            <div>
-              <dt>مفتاح Manus</dt>
-              <dd>
-                {status.data.credentials.manus
-                  ? "موجود على الخادم"
-                  : "غير مضبوط"}
-              </dd>
-            </div>
-          </dl>
-          <p className="ai-help">
-            وجود المفتاح ليس اختبار اتصال. المفاتيح نفسها لا تُعرض هنا.
+            لازم تجهيز جداول الإدارة وتفعيلها على السيرفر قبل الحفظ أو التجربة.
+            الخدمات الحالية شغّالة بإعداداتها القديمة ومش بتتأثر.
           </p>
         </section>
       )}
-      {enabled && (
+      {view === "overview" && status.data && (
         <>
-          {showProfiles && profiles.isLoading && (
-            <p role="status">جارٍ تحميل إعدادات المهام...</p>
-          )}
-          {showProfiles && profiles.isError && (
+          {enabled && profiles.isError && (
             <p role="alert">
-              تعذر تحميل الإعدادات. تحقق من جداول الموديول ثم حدّث الحالة.
+              تعذر تحميل إعدادات الخدمات. حدّث الحالة، ولو استمر راجع تجهيز
+              الإدارة على السيرفر.
             </p>
           )}
-          {showProfiles && profiles.data?.length === 0 && (
+          {enabled && today.isError && (
+            <p role="alert">تعذر قراءة استهلاك النهارده.</p>
+          )}
+          {enabled && profiles.data?.length === 0 && (
             <p role="status">
-              لا توجد إعدادات مهام. يلزم تطبيق بيانات التهيئة على الخادم.
+              مفيش إعدادات خدمات محفوظة. لازم تجهيز البيانات الأولية على
+              السيرفر.
             </p>
           )}
-          {showProfiles && profiles.data && profiles.data.length > 0 && (
-            <label className="ai-task-label" htmlFor="ai-workload">
-              المهمة
-              <select
-                id="ai-workload"
-                aria-label="المهمة"
-                value={selected}
-                onChange={(event) =>
-                  setSelected(event.target.value as Workload)
-                }
-              >
-                {profiles.data.map((profile) => (
-                  <option key={profile.workload} value={profile.workload}>
-                    {labels[profile.workload]}
-                  </option>
-                ))}
-              </select>
-            </label>
+          {(!enabled || profiles.data) && (
+            <ul className="ai-service-list">
+              {SERVICES.map(({ label, workload }) => row(label, workload))}
+            </ul>
           )}
-          {showProfiles && active && view === "settings" && (
-            <ProfileEditor key={active.workload} profile={active} />
+          {enabled && profiles.data && (
+            <details className="ai-panel">
+              <summary className="ai-service-summary">
+                <span className="ai-service-name">تجارب بس</span>
+                <span className="ai-help">
+                  معاينة الرد الآلي واختبار طبي ببيانات اصطناعية
+                </span>
+              </summary>
+              <ul className="ai-service-list">
+                {TEST_ONLY.map((workload) => row(labels[workload], workload))}
+              </ul>
+            </details>
           )}
-          {view === "experiments" && active && (
-            <section className="ai-panel space-y-3" aria-label="تجربة المهمة">
-              <h2>{labels[active.workload]}</h2>
-              <p>
-                <bdi>
-                  {active.provider} / {active.model}
-                </bdi>
-              </p>
-              <p>
-                تستخدم التجربة بيانات ثابتة، وقد تستهلك رصيدًا عند تأكيد
-                التشغيل.
-              </p>
-              {active.workload === "medical.documentation" ? (
-                <p>راجع الاقتراحات الطبية من قسم المساعد الطبي.</p>
-              ) : (
-                <Button
-                  disabled={!active.enabled || Boolean(requestId)}
-                  onClick={() => setConfirm(active)}
-                >
-                  تشغيل تجربة اتصال
-                </Button>
-              )}
-              {!active.enabled && (
-                <p>فعّل المهمة من قسم المزوّدين والحدود لتجربتها.</p>
-              )}
-            </section>
-          )}
-          {requestId && (
-            <section className="ai-notice" aria-label="الطلب الجاري">
-              <p>
-                معرف الطلب: <bdi>{requestId}</bdi>
-              </p>
-              <p>
-                {tracking.data
-                  ? states[tracking.data.state]
-                  : "جارٍ التحقق من الطلب. لا تبدأ تجربة أخرى حتى تتضح النتيجة."}
-              </p>
-              <Button
-                variant="outline"
-                onClick={() => void tracking.refetch()}
-                disabled={tracking.isFetching}
-              >
-                متابعة نفس الطلب
-              </Button>
-              {tracking.isError && (
-                <p role="alert">
-                  تعذرت المتابعة. معرف الطلب محفوظ؛ لم نعد إرساله.
-                </p>
-              )}
-            </section>
-          )}
-          {message && (
-            <p className="ai-feedback" role="status" aria-live="polite">
-              {message}
+          <details className="ai-panel">
+            <summary className="ai-service-summary">
+              <span className="ai-service-name">مفاتيح المزوّدين</span>
+            </summary>
+            <dl className="ai-credentials">
+              {(
+                [
+                  ["grok", "مفتاح Grok للتسويق"],
+                  ["gemini", "مفتاح Gemini العام"],
+                  ["replyGemini", "مفتاح Gemini للرد الآلي"],
+                  ["manus", "مفتاح Manus"],
+                ] as const
+              ).map(([key, label]) => (
+                <div key={key}>
+                  <dt>{label}</dt>
+                  <dd>
+                    {status.data.credentials[key]
+                      ? "موجود على الخادم"
+                      : "غير مضبوط"}
+                  </dd>
+                </div>
+              ))}
+            </dl>
+            <p className="ai-help">
+              وجود المفتاح ليس اختبار اتصال. المفاتيح نفسها لا تُعرض هنا.
             </p>
-          )}
-          {image && (
-            <figure className="ai-image">
-              <img
-                src={image}
-                alt="صورة استقبال عيادة خيالية مولدة لاختبار الاتصال، وليست صورة المركز"
-              />
-              <figcaption>صورة تجربة اصطناعية، غير منشورة.</figcaption>
-            </figure>
-          )}
-          {view === "usage" && (
-            <section className="ai-panel" aria-label="سجل الاستهلاك">
-              <h2>آخر الطلبات</h2>
-              <p className="ai-help">
-                حتى 100 طلب. لا تُعرض نصوص المرضى أو مفاتيح الاتصال.
-              </p>
-              {usage.isLoading ? (
-                <p role="status">جارٍ تحميل سجل الاستهلاك...</p>
-              ) : usage.isError ? (
-                <p role="alert">
-                  تعذر تحميل السجل. حدّث الحالة قبل إعادة تجربة غير محسومة.
-                </p>
-              ) : !usage.data?.length ? (
-                <p>لا توجد طلبات مسجلة. تظهر التجارب هنا بعد تشغيلها.</p>
-              ) : (
-                <ul className="ai-usage-list">
-                  {usage.data.map((row) => (
-                    <li key={row.request_id}>
-                      <div className="ai-record-heading">
-                        <strong>{labels[row.workload]}</strong>
-                        <span>{states[row.state]}</span>
-                      </div>
-                      <p>
-                        <bdi>
-                          {row.provider} / {row.model}
-                        </bdi>
-                      </p>
-                      <dl className="ai-usage-details">
-                        <div>
-                          <dt>توكنات الإدخال</dt>
-                          <dd>
-                            {row.error_code === "usage_metadata_missing"
-                              ? "غير متاح"
-                              : row.input_tokens}
-                          </dd>
-                        </div>
-                        <div>
-                          <dt>توكنات الإخراج</dt>
-                          <dd>
-                            {row.error_code === "usage_metadata_missing"
-                              ? "غير متاح"
-                              : row.output_tokens}
-                          </dd>
-                        </div>
-                        <div>
-                          <dt>رصيد Manus المستهلك</dt>
-                          <dd>{row.credits ?? "غير متاح"}</dd>
-                        </div>
-                      </dl>
-                      <p className="ai-help">
-                        معرف الطلب: <bdi>{row.request_id}</bdi>
-                      </p>
-                      <p className="ai-help">
-                        {new Date(row.created_ms).toLocaleString("ar-EG", {
-                          timeZone: "Africa/Cairo",
-                        })}{" "}
-                        بتوقيت القاهرة
-                      </p>
-                      {row.error_code && (
-                        <p>تحتاج النتيجة مراجعة قبل إعادة الإرسال.</p>
-                      )}
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </section>
-          )}
+          </details>
+          <Link href={ROUTES.aiUsage} className="ai-usage-link">
+            سجل الطلبات بالتفصيل
+          </Link>
         </>
+      )}
+      {requestId && (
+        <section className="ai-notice" aria-label="الطلب الجاري">
+          <p>
+            {tracking.data
+              ? states[tracking.data.state]
+              : "جارٍ التحقق من الطلب. لا تبدأ تجربة أخرى حتى تتضح النتيجة."}
+          </p>
+          <details className="ai-help">
+            <summary>تفاصيل للدعم الفني</summary>
+            رقم الطلب: <bdi>{requestId}</bdi>
+          </details>
+          <Button
+            variant="outline"
+            onClick={() => void tracking.refetch()}
+            disabled={tracking.isFetching}
+          >
+            متابعة نفس الطلب
+          </Button>
+          {tracking.isError && (
+            <p role="alert">تعذرت المتابعة. رقم الطلب محفوظ؛ لم نعد إرساله.</p>
+          )}
+        </section>
+      )}
+      {message && (
+        <p className="ai-feedback" role="status" aria-live="polite">
+          {message}
+        </p>
+      )}
+      {image && (
+        <figure className="ai-image">
+          <img
+            src={image}
+            alt="صورة استقبال عيادة خيالية مولدة لاختبار الاتصال، وليست صورة المركز"
+          />
+          <figcaption>صورة تجربة اصطناعية، غير منشورة.</figcaption>
+        </figure>
+      )}
+      {view === "usage" && enabled && (
+        <section className="ai-panel" aria-label="سجل الطلبات">
+          <h2>آخر الطلبات</h2>
+          <p className="ai-help">
+            حتى 100 طلب. لا تُعرض نصوص المرضى أو مفاتيح الاتصال.
+          </p>
+          {usage.isLoading ? (
+            <p role="status">جارٍ تحميل السجل...</p>
+          ) : usage.isError ? (
+            <p role="alert">
+              تعذر تحميل السجل. حدّث الحالة قبل إعادة تجربة غير محسومة.
+            </p>
+          ) : !usage.data?.length ? (
+            <p>لا توجد طلبات مسجلة. تظهر التجارب هنا بعد تشغيلها.</p>
+          ) : (
+            <ul className="ai-usage-list">
+              {usage.data.map((row) => (
+                <li key={row.request_id}>
+                  <div className="ai-record-heading">
+                    <strong>{labels[row.workload]}</strong>
+                    <span>{states[row.state]}</span>
+                  </div>
+                  <p>
+                    <bdi>
+                      {row.provider} / {row.model}
+                    </bdi>
+                  </p>
+                  <dl className="ai-usage-details">
+                    <div>
+                      <dt>وحدات الإدخال (توكنز)</dt>
+                      <dd>
+                        {row.error_code === "usage_metadata_missing"
+                          ? "غير متاح"
+                          : row.input_tokens}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>وحدات الإخراج (توكنز)</dt>
+                      <dd>
+                        {row.error_code === "usage_metadata_missing"
+                          ? "غير متاح"
+                          : row.output_tokens}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>رصيد Manus المستهلك</dt>
+                      <dd>{row.credits ?? "غير متاح"}</dd>
+                    </div>
+                  </dl>
+                  <p className="ai-help">
+                    رقم الطلب: <bdi>{row.request_id}</bdi>
+                  </p>
+                  <p className="ai-help">
+                    {new Date(row.created_ms).toLocaleString("ar-EG", {
+                      timeZone: "Africa/Cairo",
+                    })}{" "}
+                    بتوقيت القاهرة
+                  </p>
+                  {row.error_code && (
+                    <p>تحتاج النتيجة مراجعة قبل إعادة الإرسال.</p>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+          <Link href={ROUTES.ai} className="ai-usage-link">
+            رجوع لصفحة الذكاء الاصطناعي
+          </Link>
+        </section>
       )}
       <Dialog
         open={Boolean(confirm)}
@@ -631,13 +716,9 @@ export default function AiManagement({
             </DialogTitle>
             <DialogDescription>
               سيُرسل طلب واحد إلى{" "}
-              {confirm?.provider === "manus"
-                ? "Manus"
-                : confirm?.provider === "grok"
-                  ? "Grok"
-                  : "Gemini"}
-              ، وقد يستهلك رصيدًا مدفوعًا. سنستخدم بيانات ثابتة فقط، بدون نشر أو
-              إرسال رسائل أو بيانات مرضى.
+              {confirm ? providerName(confirm.provider) : ""}، وقد يستهلك رصيدًا
+              مدفوعًا. سنستخدم بيانات ثابتة فقط، بدون نشر أو إرسال رسائل أو
+              بيانات مرضى.
             </DialogDescription>
           </DialogHeader>
           <div className="ai-actions">
