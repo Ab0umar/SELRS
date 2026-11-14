@@ -1420,5 +1420,35 @@ Router file: `server/routers/doctorPortal.ts`
 
 ---
 
-**Last Updated:** 2026-11-10
+## Marketing publish (`marketing`)
+
+Admin procedures for Facebook publication state. Checked against `server/routers/marketing.ts` and `server/services/marketing/publish.service.ts` on 2026-11-14. The operator steps are in `docs/operations.md` (Marketing publish integrity). Every procedure below uses `adminProcedure`.
+
+| Procedure | Type | Input | Result |
+|---|---|---|---|
+| `reconcilePublishingPost` | mutation | `{ id }` | `{ state: "published", fbPostId }` or `{ state: "unmatched", reason }` |
+| `resolvePublishingPost` | mutation | `{ id, outcome: "published" \| "not_published" }` | `{ ok: true }` |
+| `deletePost` | mutation | `{ id }` | `{ ok: true }`. Refuses `status === "publishing"`. |
+| `createPost` | mutation | post fields; `platform` is `"facebook"` (default); `status` is `"draft"` (default) | `{ id }` |
+| `updatePost` | mutation | `{ id }` plus optional fields; `platform` and `status`, when sent, must be `"facebook"` and `"draft"` | updated row |
+| `publishPost` | mutation | `{ id, pageRole: "center" \| "doctor" }` | `{ ok: true, fbPostId }`. Refuses a post already in `publishing`. |
+| `getSchedulerStatus` | query | `{ pageRole }` optional, default `"center"` | includes `lastSkip: { reason, at } \| null` |
+
+`reconcilePublishingPost` reads `GET /{page-id}/posts` (`fields=id,message,created_time`, `limit=50`) from the claim time minus 2 minutes. The claim time is the latest `marketing_logs` row with `action = "publish_claim"`, or `updatedAt` when that row is missing. A match is a message that, after whitespace is collapsed, starts with `buildMessage` (`content` or else `title`, then `cta`, then `hashtags`). The contact footer may follow that prefix. The prepared caption is not stored.
+
+`resolvePublishingPost` with `published` sets `published` and leaves `fbPostId` null. `not_published` sets `draft` and deletes `marketing_topic_publications` rows for that post that are still in state `publishing`. Both require the post to still be `publishing` inside the transaction.
+
+`deletePost` on a draft releases those same topic rows and sets `marketing_generation_jobs` in `starting`, `running`, or `uncertain` to `failed` with error `حُذفت المسودة`. It does not update `ai_marketing_jobs`. The `delete_post` log has `postId` null because it is written after the delete; the id and user id are in the message.
+
+`createPost` / `updatePost` reject every `platform` other than `facebook`, and every `status` other than `draft`. `scheduledAt` is still accepted and stored. It does not schedule a send.
+
+`getSchedulerStatus.lastSkip` is the system setting `marketing_scheduler_skip_<pageRole>`, written when `runScheduledPost` finds a non-`failed` post for that page and slot created since midnight in `Africa/Cairo`.
+
+`MARKETING_GRAPH_VERSION` (`v<major>.<minor>`, otherwise `v21.0`) applies to `facebookPublisher.service.ts` only.
+
+Router file: `server/routers/marketing.ts`
+
+---
+
+**Last Updated:** 2026-11-14
 **API Version:** 2.1.0

@@ -1,8 +1,8 @@
 # SRV100 AI Context Document
 
 > Single "read this first" file for any AI model (Cursor, Codex, Claude, GPT, Gemini, GLM, Kimi).
-> Version: 2.3.0 — companion to `docs/PROJECT_PRINCIPLES.md`. Updated 2026-10-26: moved out of `specs/`, spec-driven workflow removed. Updated 2026-11-10: patient WhatsApp OTP login, public clinic landing at `/`, paid leave type, follow-up list includes sheet items stored on examination visits, medical assistant review restore and treatment-medicine repair.
-> Version: 2.3.0 — companion to `docs/PROJECT_PRINCIPLES.md`. Updated 2026-10-26: moved out of `specs/`, spec-driven workflow removed. Updated 2026-11-10: patient WhatsApp OTP login, public clinic landing at `/`, paid leave type, follow-up list membership, autoref/refraction completeness, medical assistant review restore and treatment-medicine repair.
+> Version: 2.3.0 — companion to `docs/PROJECT_PRINCIPLES.md`. Updated 2026-10-26: moved out of `specs/`, spec-driven workflow removed. Updated 2026-11-10: patient WhatsApp OTP login, public clinic landing at `/`, paid leave type, follow-up list includes sheet items stored on examination visits, medical assistant review restore and treatment-medicine repair. Updated 2026-11-14: marketing posts stuck in `publishing`, Cairo scheduler day, `MARKETING_GRAPH_VERSION`.
+> Version: 2.3.0 — companion to `docs/PROJECT_PRINCIPLES.md`. Updated 2026-10-26: moved out of `specs/`, spec-driven workflow removed. Updated 2026-11-10: patient WhatsApp OTP login, public clinic landing at `/`, paid leave type, follow-up list membership, autoref/refraction completeness, medical assistant review restore and treatment-medicine repair. Updated 2026-11-14: marketing posts stuck in `publishing`, Cairo scheduler day, `MARKETING_GRAPH_VERSION`.
 
 ---
 
@@ -757,6 +757,19 @@ Every completed change reports:
 
 ---
 
+# Marketing publish integrity
+
+Checked 2026-11-14 against the publish, scheduler, and Manus services. Contract: `docs/api-reference.md` (Marketing publish). Runbook: `docs/operations.md` (Marketing publish integrity).
+
+- A post left in `publishing` after an uncertain Facebook result is settled with `marketing.reconcilePublishingPost` or `marketing.resolvePublishingPost`. `deletePost` refuses `publishing`.
+- Automatic match uses a prefix of `buildMessage` (stored content or title, CTA, hashtags). The contact footer is not part of the stored body. Manual `published` stores `fbPostId` as null.
+- `createPost` and `updatePost` accept only `platform: "facebook"` and `status: "draft"`.
+- The scheduled duplicate guard uses midnight in `Africa/Cairo`. The skip reason is the system setting `marketing_scheduler_skip_<pageRole>`.
+- `MARKETING_GRAPH_VERSION` changes `facebookPublisher.service.ts` only. Any other value uses `v21.0`. OAuth stays on `v21.0`; page contact lookup stays on `v25.0`.
+- A new Manus post for البنتاكام, الفحص قبل الليزك, or الفحص الدوري للعيون asks for text only when that page has the matching device photo assigned.
+
+---
+
 # Common Mistakes To Avoid
 
 1. **Cross-importing between Medical and Accounting modules** — violates Principle I
@@ -812,6 +825,6 @@ After editing:
 
 ---
 
-**Document version:** 2.3.0 — updated 2026-10-26
+**Document version:** 2.3.0 — updated 2026-11-14 (marketing publish integrity)
 **Aligned with:** Project Principles v2.0.0
 **Recent features (no plan):** Pentacam 5-min auto-linker (server startup scheduler), Doctor portal real-time WS notifications + auto-referral on patient registration, حجز filter in today queue (appointments-activity.tsx)

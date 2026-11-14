@@ -159,6 +159,73 @@ sends per IP in 15 minutes.
 Paid leave for attendance is a separate change. See `docs/ATTENDANCE_SYNC.md` (Paid leave).
 It needs `drizzle/0110_attendance_paid_leave.sql` so `attendance_leaves.type` accepts `paid`.
 
+## Marketing publish integrity
+
+Checked against `server/services/marketing/publish.service.ts`, `facebookPublisher.service.ts`, `scheduler.service.ts`, `manusGeneration.service.ts`, and `server/routers/marketing.ts` on 2026-11-14. Procedure shapes are in `docs/api-reference.md` (Marketing publish).
+
+`publishMarketingPost` sets `marketing_posts.status` to `publishing` and writes a `publish_claim` log before the Graph call. A definite Facebook rejection returns the post to `draft` and releases its topic. A timeout, HTTP 5xx, HTTP 408, or a success body with no post id leaves the post in `publishing`. Another publish then throws `المنشور قيد النشر أو يحتاج مراجعة نتيجة النشر على Facebook`. `marketing.deletePost` refuses that status.
+
+### Stuck post on the dashboard
+
+**تحقق من Facebook** is rendered only for `status === "publishing"` inside **آخر المنشورات** on `/ai/marketing` (`MarketingDashboard`). `/marketing` redirects there (`legacyAiRoutes` in `client/src/features/ai/navigation.ts`). The card link **عرض المسودات** goes to `/marketing/drafts`, which redirects to `/ai/marketing/drafts`; that page does not render the button. The list is `dashboardSummary.recentPosts`: the five newest posts for the page selected in **الصفحة** (`center` = المركز, `doctor` = العيادة), ordered by `createdAt`. A stuck post that is not in those five rows has no button; call `marketing.reconcilePublishingPost` with its id.
+
+The button calls `reconcilePublishingPost`. A match toasts `وجدنا المنشور على Facebook وسجلناه كمنشور`. Anything else opens **حدد نتيجة النشر**:
+
+| Button | Procedure | Result |
+|---|---|---|
+| نُشر على الصفحة | `resolvePublishingPost` `{ outcome: "published" }` | `published`, `publishedAt` is now, `fbPostId` stays null, topic rows in state `publishing` become `published` |
+| لم يُنشر، أعده إلى المسودات | `resolvePublishingPost` `{ outcome: "not_published" }` | `draft`, those topic rows are deleted |
+
+Both write `marketing_logs.action = publish_reconcile` and include the user id in the message. Choose **نُشر على الصفحة** only after the live post is visible. That path stores no Facebook id.
+
+### What reconcile compares
+
+1. The post must already be `publishing`. Otherwise: `المنشور ليس في حالة قيد النشر`.
+2. The search window starts at the latest `publish_claim` log for that post, or `updatedAt` when the log is missing, minus 2 minutes.
+3. The page id and token come from `marketing_facebook_pages` for the post's `pageRole`. Only `center` falls back to `marketing_settings.fbPageId` and `fbAccessToken`. No token returns unmatched with `الصفحة غير مربوطة؛ حدد النتيجة يدويًا`.
+4. The call is `GET /{page-id}/posts?fields=id,message,created_time&since=<unix seconds>&limit=50`. There is no second page. A token that cannot read posts returns unmatched; the Graph error text is `لا يسمح رمز الصفحة بقراءة منشوراتها؛ حدد النتيجة يدويًا`.
+5. A match is a returned post whose `created_time` is inside the window and whose message, after collapsing whitespace, starts with `buildMessage`: `content`, or `title` when content is empty, then `cta`, then `hashtags`. `prepareMarketingPublication` appends the contact footer after that string and does not store the result, so the footer may follow the prefix. An empty body never matches.
+6. On a match the post becomes `published`, `fbPostId` is the Graph id, `publishedAt` is now, and `marketing_topic_publications` rows for that post still in state `publishing` become `published`.
+
+If the status changes before the settle transaction commits, the error is `تغيرت حالة المنشور؛ حدّث الصفحة`.
+
+### Delete
+
+`marketing.deletePost` (admin):
+
+- `publishing`: refused, `المنشور قيد النشر؛ حدد نتيجة النشر أولًا ثم احذفه إن لزم`.
+- `draft`, same transaction: delete `marketing_topic_publications` rows for that post that are still `publishing`, and set `marketing_generation_jobs` in `starting`, `running`, or `uncertain` to `failed` with error `حُذفت المسودة`.
+- `ai_marketing_jobs` is not updated. Its states are `running`, `completed`, and `uncertain`.
+- The `delete_post` log is inserted after the row is gone, with `postId` null. The message contains the deleted id and the user id.
+
+### Scheduler day and last skip
+
+`runScheduledPost` counts "today" from midnight in `Africa/Cairo` (`cairoDayStart`), not the machine's local midnight. In the helper test, `2026-11-14T23:30:00Z` is already 15 November in Cairo (UTC+2), so the day starts at `2026-11-14T22:00:00.000Z`.
+
+A non-`failed` post with the same `postDay` and `pageRole` and `createdAt` at or after that instant skips generation. The reason is stored with `getSystemSetting` / `updateSystemSettings` under `marketing_scheduler_skip_<pageRole>` as JSON `{ reason, at }`. `getSchedulerStatus` returns it as `lastSkip`, and the scheduler card prints **آخر تخطٍّ**. A disabled day skips without writing that setting. If the setting write throws, the log line is `[marketing-scheduler] Could not record skip reason` and the run still skips.
+
+### Graph API version
+
+`MARKETING_GRAPH_VERSION` (see `.env.example`) is read only in `facebookPublisher.service.ts`, for photo/feed publish and the reconcile list. It must match `v<digits>.<digits>`, for example `v22.0`. Empty, `22.0`, or any other string uses `v21.0`. Facebook OAuth in `facebookOAuth.service.ts` stays on `v21.0`. The contact lookup in `pageBranding.ts` stays on `v25.0`.
+
+### Manus text when a device photo exists
+
+A new Manus post (no `postId`) whose topic resolves to an assigned equipment photo asks Manus for `post.json` only. `finishJob` then brands that photo and writes no generated image file. Topics with an equipment kind in `server/services/marketing/medicalVisuals.ts`:
+
+| Topic | Kind |
+|---|---|
+| البنتاكام | `pentacam` |
+| الفحص قبل الليزك | `pentacam` |
+| الفحص الدوري للعيون | `slit-lamp` |
+
+`readEquipmentPhoto` returns a file only when that page role has a reference assigned for the kind. An image job on an existing draft still requires a Manus image. If the assignment is gone when the job finishes, the error is `صورة الجهاز لم تعد متاحة ولم ترجع Manus صورة`.
+
+### Create and update limits
+
+`createPost` and `updatePost` accept `platform: "facebook"` only, and `status: "draft"` only. `scheduledAt` can be stored on a draft; it does not publish. `instagram`, `both`, and `status: "scheduled"` fail input validation.
+
+Tests: `server/tests/marketingPublishReconcile.test.ts`, `marketingDeletePost.test.ts`, `marketingPublishHelpers.test.ts`, and the device-photo case in `manusGeneration.test.ts`.
+
 ## Incident response
 
 An incident is any outage or severe degradation: application down, a critical feature
