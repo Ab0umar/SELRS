@@ -1,8 +1,8 @@
 # SRV100 AI Context Document
 
 > Single "read this first" file for any AI model (Cursor, Codex, Claude, GPT, Gemini, GLM, Kimi).
-> Version: 2.3.0 — companion to `docs/PROJECT_PRINCIPLES.md`. Updated 2026-10-26: moved out of `specs/`, spec-driven workflow removed. Updated 2026-11-10: patient WhatsApp OTP login, public clinic landing at `/`, paid leave type, follow-up list includes sheet items stored on examination visits, medical assistant review restore and treatment-medicine repair.
-> Version: 2.3.0 — companion to `docs/PROJECT_PRINCIPLES.md`. Updated 2026-10-26: moved out of `specs/`, spec-driven workflow removed. Updated 2026-11-10: patient WhatsApp OTP login, public clinic landing at `/`, paid leave type, follow-up list membership, autoref/refraction completeness, medical assistant review restore and treatment-medicine repair.
+> Version: 2.3.0 — companion to `docs/PROJECT_PRINCIPLES.md`. Updated 2026-10-26: moved out of `specs/`, spec-driven workflow removed. Updated 2026-11-10: patient WhatsApp OTP login, public clinic landing at `/`, paid leave type, follow-up list includes sheet items stored on examination visits, medical assistant review restore and treatment-medicine repair. Updated 2026-11-14: six clinical reports share quiet-paper stationery (blank/preprinted stock, color/mono ink); see `docs/design-guides.md`.
+> Version: 2.3.0 — companion to `docs/PROJECT_PRINCIPLES.md`. Updated 2026-10-26: moved out of `specs/`, spec-driven workflow removed. Updated 2026-11-10: patient WhatsApp OTP login, public clinic landing at `/`, paid leave type, follow-up list membership, autoref/refraction completeness, medical assistant review restore and treatment-medicine repair. Updated 2026-11-14: six clinical reports share quiet-paper stationery (blank/preprinted stock, color/mono ink); see `docs/design-guides.md`.
 
 ---
 
@@ -99,6 +99,7 @@ MySQL (selrs26)                    MSSQL (op2026)
 - KF routes: `/kf/*` — gated by KF permission
 - Key renames done: `/txhub` → `/treatment`, `/today` → `/bookings`, `/admin-hub` → `/booking-triage` (redirects in place)
 - AI workspaces: `client/src/features/ai/navigation.ts`. Homes are `/ai`, `/ai/medical`, `/ai/replies`, `/ai/marketing`, and `/ai/marketing/whatsapp`. `aiSubmoduleFor` uses the longest home. `aiPermissionPath` still maps those pages onto `/admin-hub/ai`, `/admin-hub/medical-assistant`, `/admin-hub/auto-reply`, `/marketing`, and `/marketing/...`. Legacy URLs, including `/ai/whatsapp` and `/admin-hub/auto-reply`, redirect and keep the query string. Generation, campaign receipts, and the auto-reply go-live messages are in `docs/ai-workspace.md` and `docs/auto-reply-setup.md`.
+- Clinical reports: `/reports` and `/clinical-reports` open the six-tab hub in `ClinicalReportsPage`. Stock and ink are the `data-report-stock` / `data-report-color` attributes, persisted in this browser as `clinical-report-stock` and `clinical-report-color`. Print clearance is sheet padding (8mm blank, 50mm preprinted), not `@page` margin. Direct routes, print-profile interaction, and the Edge check are in `docs/design-guides.md` section 4.
 - Backend: `server/routers/index.ts` composes `appRouter = { medical, patient, accounting, attendance, kf, doctorPortal, patientPortal, ... }`
 
 ## tRPC Structure

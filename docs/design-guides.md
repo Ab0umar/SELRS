@@ -113,6 +113,80 @@ with `min-w-max`; code, status and action columns are `text-center` with a fixed
   preserved live field values. Not verified: physical Android printing, hardware margins,
   production saving, all saved designer configurations.
 
+### Six clinical reports (quiet paper)
+
+The six documents on `ClinicalReportsPage` share one stationery skin. The hub is
+`/reports` and `/clinical-reports` (default tab `offdays`). Each direct route below opens
+the same page on one tab. `/post-op-offdays-en` is a separate English page and does not
+use this skin. `/medical-reports` is the records list, not this hub.
+
+| Tab query | Label | Sheet root | Direct route |
+| --- | --- | --- | --- |
+| `offdays` | إجازة ما بعد العملية | `.report-sheet-body` | `/post-op-offdays` |
+| `pre-post-op` | تقرير قبل وبعد | `.report-sheet-body` | `/pre-post-op-report` |
+| `referral` | خطاب الإحالة | `.report-sheet-body` | `/sheets/referral` |
+| `medical-report` | تقرير طبي | `.printable-report-sheet` | `/medical-report` |
+| `condition` | تقرير حالة طبية | `.report-sheet-body` | `/medical-condition-report` |
+| `clinical` | التقرير الشامل | `.report-sheet-body` | `/clinical-report` |
+
+`tab`, `patientId`, and `id` stay in the query string. A route `:id` selects the same
+patient. The hub print button calls `window.print()` for the open tab. Title inputs are
+`print:hidden`; the printed title is the adjacent text. An empty occupation row is
+`print:hidden`.
+
+Paper and ink are two `<select>`s on the hub, stored only in this browser:
+
+| Control | Values | `localStorage` | Effect |
+| --- | --- | --- | --- |
+| الورق | `blank` (default), `preprinted` | `clinical-report-stock` | `data-report-stock` on the page |
+| لون الطباعة | `color` (default), `mono` | `clinical-report-color` | `data-report-color` on the page |
+
+`blank` prints the letterhead (`/logos/full.png`, عيون الشروق) and the footer
+(عيون الشروق · لليزك وتصحيح الإبصار, `selrs.cc`). `preprinted` keeps both nodes in the
+DOM and sets `display: none`, then reserves the physical letterhead with
+`--report-top-clearance: 50mm` (screen `padding-top: 50mm` as well). Print `@page` margin
+stays `0`. Chrome drops a large `@page` top margin, so clearance is the sheet padding in
+`ClinicalReportFrame` and `PrintableMedicalReport`:
+`var(--report-top-clearance, 8mm) 15mm 8mm 15mm`. Blank top is 8mm. Both sheets are
+210mm wide.
+
+Color ink uses `#0b2a52`, `#0b4a8f`, `#4a6283`, rule `#b9c8da`, tint `#eef4fb`, and a
+`#f7941d` title mark. Mono sets those tokens to `#111` / `#444` / `#999` / `#fff`, turns
+the title mark `#666`, and grayscales the logo (`grayscale(1) contrast(1.35)`). In print,
+mono also forces sheet text to `#111` and backgrounds to transparent.
+
+Quiet-paper rules in `client/src/styles/medical-report-brand.css` strip `rounded` and
+`border` boxes inside either sheet root. `.report-stamp-space` and a wrapper whose only
+child is one `input` or `textarea` stay. Headings become a 15px rule, not a card.
+`ReportSection`, `ReportFacts`, and `ReportFact` in `ReportStationery.tsx` are the
+shared blocks. Screen edits use a dashed border; print makes field borders transparent.
+
+Saved print profiles (`shared/printSettings.ts`, applied by `applyClinicalPrintSettings`)
+are separate from stock and ink. `currentPrintDocument` picks a profile when the path
+matches `PRINT_DOCUMENTS` in `client/src/lib/clinicalPrintSettings.ts`, or when a visible
+sheet matches the fallback selector. `/reports` is not a profile route. The `report`
+profile route is `/clinical-reports` or `/medical-reports`, and its selector is
+`.printable-report-sheet`. The records list at `/medical-reports` usually has no such
+sheet, so the profile does nothing there. Inactive Radix tabs unmount, so on the hub
+that profile runs only while the medical-report tab is mounted (including
+`/medical-report`, via the fallback). An enabled profile puts its margins on `@page`
+and sets the matched sheet's padding to `0`
+inside `@layer base`. That `!important` beats the unlayered 8mm/50mm padding. On
+`/reports` the other five tabs keep that stationery padding even when their direct-route
+profiles are enabled, because those paths are not `/reports`. Leave a profile disabled
+unless its `@page` margin is the clearance you want. Each of these URLs is its own
+entry in `PAGE_PERMISSION_DEFINITIONS`; a parent path does not grant it. Admins skip
+that check.
+
+`scripts/verify-report-stationery.mjs` loads each tab from `http://127.0.0.1:5186/reports`
+in Edge, mocks tRPC GETs, and checks all four stock/color pairs: letterhead and footer
+nodes exist, they are hidden only for `preprinted`, print top is about 30.24px (8mm) or
+188.98px (50mm), width is about 793.7px, mono ink is `#000` or `#111`, and each mocked
+sample PDF is one page. It then appends a long paragraph to the clinical sheet and
+expects more than one page. It does not load a real patient. Reference shots from the
+layout change: `docs/screenshots/reports-quiet-blank.png`,
+`docs/screenshots/reports-quiet-mono.png`, `docs/screenshots/reports-quiet-preprinted.png`.
+
 ## 5. Verification
 
 For each changed screen record the build/run command and result, viewports, theme, data
