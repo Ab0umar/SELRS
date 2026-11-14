@@ -12,7 +12,10 @@
 
 import cron from "node-cron";
 import { planMarketingTopic } from "./topicPlanner";
-import { setMarketingSchedulerStatus } from "./schedulerStatus";
+import {
+  recordMarketingSchedulerSkip,
+  setMarketingSchedulerStatus,
+} from "./schedulerStatus";
 import {
   claimMarketingSchedule,
   releaseUnusedMarketingSchedule,
@@ -59,6 +62,37 @@ const CAIRO_WEEKDAY_TO_JS_DAY: Record<string, number> = {
   Fri: 5,
   Sat: 6,
 };
+
+/** UTC instant of 00:00 today in Cairo. */
+export function cairoDayStart(date = new Date()): Date {
+  const parts = Object.fromEntries(
+    new Intl.DateTimeFormat("en-US", {
+      timeZone: CAIRO_TIME_ZONE,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hourCycle: "h23",
+    })
+      .formatToParts(date)
+      .map((part) => [part.type, part.value]),
+  );
+  const wall = Date.UTC(
+    Number(parts.year),
+    Number(parts.month) - 1,
+    Number(parts.day),
+    Number(parts.hour),
+    Number(parts.minute),
+    Number(parts.second),
+  );
+  const offset = wall - Math.floor(date.getTime() / 1000) * 1000;
+  return new Date(
+    Date.UTC(Number(parts.year), Number(parts.month) - 1, Number(parts.day)) -
+      offset,
+  );
+}
 
 function getCairoScheduleParts(date = new Date()): {
   jsDay: number;
@@ -223,8 +257,7 @@ export async function runScheduledPost(
   }
 
   // Duplicate guard: non-failed post already exists today for this day?
-  const todayStart = new Date();
-  todayStart.setHours(0, 0, 0, 0);
+  const todayStart = cairoDayStart();
 
   const todayPosts = await db
     .select({ id: marketingPosts.id, status: marketingPosts.status })
@@ -239,6 +272,10 @@ export async function runScheduledPost(
 
   const existing = todayPosts.filter((p: any) => p.status !== "failed");
   if (existing.length > 0) {
+    await recordMarketingSchedulerSkip(
+      pageRole,
+      `يوجد منشور لهذا اليوم بالفعل (رقم ${existing[0]!.id})، لذلك لم يبدأ التوليد المجدول`,
+    );
     return {
       ok: true,
       skipped: `Post already exists for ${day} today (id: ${existing[0]!.id})`,

@@ -70,9 +70,14 @@ import {
 import {
   publishedMarketingTopics,
   PublishedMarketingTopicError,
+  settleTopicForPost,
 } from "../services/marketing/topicHistory";
 import { TRPCError } from "@trpc/server";
-import { publishMarketingPost } from "../services/marketing/publish.service";
+import {
+  publishMarketingPost,
+  reconcilePublishingPost,
+  resolvePublishingPost,
+} from "../services/marketing/publish.service";
 import {
   getMarketingPageTarget,
   type MarketingPageRole,
@@ -303,10 +308,11 @@ export const marketingRouter = router({
         hashtags: z.string().optional(),
         imagePrompt: z.string().optional(),
         imageUrl: z.string().max(1000).optional(),
-        platform: z.enum(["facebook", "instagram", "both"]).default("facebook"),
+        // Only Facebook publishing exists; Instagram was dropped by the owner.
+        platform: z.literal("facebook").default("facebook"),
         pageRole: z.enum(["center", "doctor"]).default("center"),
         postDay: z.enum(["saturday", "tuesday", "thursday"]).optional(),
-        status: z.enum(["draft", "scheduled"]).default("draft"),
+        status: z.literal("draft").default("draft"),
         scheduledAt: z.string().optional(),
       }),
     )
@@ -346,9 +352,9 @@ export const marketingRouter = router({
         hashtags: z.string().optional(),
         imagePrompt: z.string().optional(),
         imageUrl: z.string().max(1000).optional(),
-        platform: z.enum(["facebook", "instagram", "both"]).optional(),
+        platform: z.literal("facebook").optional(),
         postDay: z.enum(["saturday", "tuesday", "thursday"]).optional(),
-        status: z.enum(["draft", "scheduled"]).optional(),
+        status: z.literal("draft").optional(),
         scheduledAt: z.string().optional(),
       }),
     )
@@ -374,13 +380,71 @@ export const marketingRouter = router({
 
   deletePost: adminProcedure
     .input(z.object({ id: z.number().int().positive() }))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) throw new Error("Database not available");
-      await db.delete(marketingPosts).where(eq(marketingPosts.id, input.id));
-      await addLog(null, "delete_post", "info", `Post deleted: ${input.id}`);
+      await db.transaction(
+        async (
+          tx: Pick<MySql2Database, "select" | "insert" | "update" | "delete">,
+        ) => {
+          const [post] = await tx
+            .select({ status: marketingPosts.status })
+            .from(marketingPosts)
+            .where(eq(marketingPosts.id, input.id))
+            .for("update");
+          if (!post) throw new Error("المنشور غير موجود");
+          if (post.status === "publishing")
+            throw new Error(
+              "المنشور قيد النشر؛ حدد نتيجة النشر أولًا ثم احذفه إن لزم",
+            );
+          if (post.status === "draft") {
+            await settleTopicForPost(tx, input.id, "released");
+            await tx
+              .update(marketingGenerationJobs)
+              .set({ state: "failed", error: "حُذفت المسودة" })
+              .where(
+                and(
+                  eq(marketingGenerationJobs.postId, input.id),
+                  inArray(marketingGenerationJobs.state, [
+                    "starting",
+                    "running",
+                    "uncertain",
+                  ]),
+                ),
+              );
+          }
+          await tx
+            .delete(marketingPosts)
+            .where(eq(marketingPosts.id, input.id));
+        },
+      );
+      await addLog(
+        null,
+        "delete_post",
+        "info",
+        `Post ${input.id} deleted by user ${ctx.user.id}`,
+      );
       return { ok: true };
     }),
+
+  reconcilePublishingPost: adminProcedure
+    .input(z.object({ id: z.number().int().positive() }).strict())
+    .mutation(({ input, ctx }) =>
+      reconcilePublishingPost(input.id, ctx.user.id),
+    ),
+
+  resolvePublishingPost: adminProcedure
+    .input(
+      z
+        .object({
+          id: z.number().int().positive(),
+          outcome: z.enum(["published", "not_published"]),
+        })
+        .strict(),
+    )
+    .mutation(({ input, ctx }) =>
+      resolvePublishingPost(input.id, input.outcome, ctx.user.id),
+    ),
 
   publishPost: adminProcedure
     .input(
@@ -465,7 +529,11 @@ export const marketingRouter = router({
       // Topic planning is a model call (slow on Grok) that can outlast the proxy
       // timeout; the client polls generationRequest, which reports a rejection.
       void operation.catch((error) =>
-        console.error("[marketing] generatePost failed", input.requestId, error),
+        console.error(
+          "[marketing] generatePost failed",
+          input.requestId,
+          error,
+        ),
       );
       return { jobId: input.requestId, topic: "" };
     }),

@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import ManusGenerationJobs from "./ManusGenerationJobs";
+import PublishingPostResolve from "./PublishingPostResolve";
 import AssistantModelSelect from "@/features/ai/AssistantModelSelect";
 import { Input } from "@/components/ui/input";
 import {
@@ -762,6 +763,9 @@ export default function MarketingDashboard() {
                     <Badge className={`text-xs ${badge.className}`}>
                       {badge.label}
                     </Badge>
+                    {post.status === "publishing" && (
+                      <PublishingPostResolve postId={post.id} />
+                    )}
                     {post.status === "draft" && (
                       <>
                         <select
@@ -837,6 +841,7 @@ interface SchedulerData {
   publishHour: number;
   lastSchedulerRun: Date | string | null;
   schedulerStatus: string | null;
+  lastSkip?: { reason: string; at: string } | null;
   nextRun: { day: string; date: string } | null;
 }
 
@@ -968,6 +973,18 @@ function SchedulerCard({
       {!data?.autoPublish && (
         <p className="mt-2 text-xs text-muted-foreground">
           النشر التلقائي معطّل — فعّله من الإعدادات
+        </p>
+      )}
+      {data?.lastSkip && (
+        <p className="mt-2 text-xs text-muted-foreground">
+          آخر تخطٍّ (
+          {new Date(data.lastSkip.at).toLocaleString("ar-EG", {
+            month: "short",
+            day: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+          })}
+          ): {data.lastSkip.reason}
         </p>
       )}
       {data?.autoPublish && !data?.fbConnected && (

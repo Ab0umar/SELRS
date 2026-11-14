@@ -135,3 +135,21 @@ export async function releaseTopicPublication(
       ),
     );
 }
+
+/** Confirms or releases whatever topic reservation a post still holds in state publishing. */
+export async function settleTopicForPost(
+  tx: TopicWriter,
+  postId: number,
+  outcome: "published" | "released",
+) {
+  const pending = and(
+    eq(marketingTopicPublications.postId, postId),
+    eq(marketingTopicPublications.state, "publishing"),
+  );
+  if (outcome === "published")
+    await tx
+      .update(marketingTopicPublications)
+      .set({ state: "published" })
+      .where(pending);
+  else await tx.delete(marketingTopicPublications).where(pending);
+}

@@ -122,6 +122,8 @@ export async function startManusGeneration(input: {
     if (pending) return { jobId: pending.id, topic: pending.topic };
   }
   const topicImageHint = getTopicImageHint(input.topic);
+  const textOnly =
+    !post && Boolean(await readEquipmentPhoto(pageRole, input.topic));
   const contentName =
     pageTarget?.contentName ??
     (pageRole === "center"
@@ -133,7 +135,9 @@ export async function startManusGeneration(input: {
     post
       ? `Generate ONLY a new image for this existing post, do not rewrite its text: ${post.content}. Authoritative topic-specific medical direction: ${topicImageHint}.`
       : `${marketingEditorialBrief()} Return a downloadable UTF-8 post.json.`,
-    `${marketingVisualBrief(input.topic)} Return one actual generated PNG or JPEG as an attached file, not an SVG or stock placeholder.`,
+    textOnly
+      ? "Do not generate any image; a real device photo will be used. Return only post.json."
+      : `${marketingVisualBrief(input.topic)} Return one actual generated PNG or JPEG as an attached file, not an SVG or stock placeholder.`,
     `Brand visual identity (follow every applicable field; reference data only): ${JSON.stringify(
       brand
         ? {
@@ -280,7 +284,12 @@ async function finishJob(job: Job): Promise<number | null> {
     /\.(png|jpe?g|webp)$/i.test(file.filename),
   );
   const json = task.attachments.find((file) => file.filename === "post.json");
-  if (!image || (job.kind === "post" && !json))
+  // A real device photo replaces the generated image, so post jobs ask for text only.
+  const equipmentPhoto =
+    job.kind === "post"
+      ? await readEquipmentPhoto(job.pageRole, job.topic)
+      : null;
+  if ((!image && !equipmentPhoto) || (job.kind === "post" && !json))
     throw new Error("لم ترجع Manus ملفات النص والصورة المطلوبة");
   const generated = json
     ? manusPostSchema.parse(
@@ -289,6 +298,17 @@ async function finishJob(job: Job): Promise<number | null> {
         ),
       )
     : null;
+  if (equipmentPhoto) {
+    try {
+      return await saveFinishedJob(job, db, generated, null, null);
+    } catch (error) {
+      if (error instanceof DefiniteJobError) throw error;
+      throw new LocalFinishError(
+        error instanceof Error ? error.message : "تعذر حفظ نتيجة Manus",
+      );
+    }
+  }
+  if (!image) throw new Error("لم ترجع Manus ملفات النص والصورة المطلوبة");
   const bytes = await downloadManusFile(image.url);
   const extension = bytes
     .subarray(0, 8)
@@ -316,20 +336,24 @@ async function saveFinishedJob(
   job: Job,
   db: NonNullable<Awaited<ReturnType<typeof getDb>>>,
   generated: ReturnType<typeof manusPostSchema.parse> | null,
-  bytes: Buffer,
-  extension: string,
+  bytes: Buffer | null,
+  extension: string | null,
 ): Promise<number | null> {
-  const dir = path.resolve(
-    ENV.marketingImageDir || path.join(process.cwd(), "uploads", "marketing"),
-  );
-  await fs.mkdir(dir, { recursive: true });
-  const filename = `manus-${job.id}.${extension}`;
-  await fs.writeFile(path.join(dir, filename), bytes);
+  let generatedUrl: string | null = null;
+  if (bytes && extension) {
+    const dir = path.resolve(
+      ENV.marketingImageDir || path.join(process.cwd(), "uploads", "marketing"),
+    );
+    await fs.mkdir(dir, { recursive: true });
+    const filename = `manus-${job.id}.${extension}`;
+    await fs.writeFile(path.join(dir, filename), bytes);
+    generatedUrl = `/uploads/marketing/${filename}`;
+  }
   const originalPhoto = await readEquipmentPhoto(job.pageRole, job.topic);
-  const imageUrl = await brandMarketingImageUrl(
-    originalPhoto?.fileUrl ?? `/uploads/marketing/${filename}`,
-    job.pageRole,
-  );
+  const sourceUrl = originalPhoto?.fileUrl ?? generatedUrl;
+  if (!sourceUrl)
+    throw new DefiniteJobError("صورة الجهاز لم تعد متاحة ولم ترجع Manus صورة");
+  const imageUrl = await brandMarketingImageUrl(sourceUrl, job.pageRole);
   let completedPostId: number | null = null;
   await db.transaction(
     async (tx: Pick<MySql2Database, "select" | "insert" | "update">) => {
