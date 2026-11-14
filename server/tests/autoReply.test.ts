@@ -417,6 +417,34 @@ describe("channel policy", () => {
       ),
     ).toBe(false);
   });
+  it("keeps the media id of a WhatsApp voice note", () => {
+    const [voice] = parseMetaEvents({
+      object: "whatsapp_business_account",
+      entry: [
+        {
+          id: "987",
+          changes: [
+            {
+              field: "messages",
+              value: {
+                metadata: { phone_number_id: "789" },
+                messages: [
+                  {
+                    id: "voice-1",
+                    from: "201000000000",
+                    timestamp: String(Math.floor(Date.now() / 1000)),
+                    type: "audio",
+                    audio: { id: "media-1" },
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      ],
+    });
+    expect(voice).toMatchObject({ mediaId: "media-1", unsupported: true });
+  });
   it("ignores WhatsApp reactions entirely", () => {
     expect(
       parseMetaEvents({

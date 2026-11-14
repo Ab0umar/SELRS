@@ -360,6 +360,97 @@ export async function sendCommentPrivateReply(
     throw new ProviderError("META_MISSING_MESSAGE_ID", false, true);
   return result.message_id;
 }
+const voiceMaxBytes = 5 * 1024 * 1024;
+const voiceMaxSeconds = 120;
+// Duration of an Ogg Opus file: last page granule position minus pre-skip, at 48 kHz.
+export function oggOpusSeconds(audio: Buffer) {
+  const head = audio.indexOf("OpusHead");
+  const last = audio.lastIndexOf("OggS");
+  if (head < 0 || last < 0 || last + 14 > audio.length) return null;
+  const preSkip = audio.readUInt16LE(head + 10);
+  const granule = Number(audio.readBigUInt64LE(last + 6));
+  if (!Number.isFinite(granule) || granule <= preSkip) return null;
+  return (granule - preSkip) / 48000;
+}
+// Audio is fetched with the channel token, sent to Gemini once and never stored.
+export async function transcribeVoice(
+  mediaId: string,
+  accountId: string,
+  model: string,
+) {
+  if (!process.env.AUTO_REPLY_GEMINI_KEY)
+    throw new ProviderError("GEMINI_NOT_CONFIGURED");
+  const media = await graphRequest(
+    "whatsapp",
+    encodeURIComponent(mediaId),
+    undefined,
+    accountId,
+  );
+  const url = typeof media.url === "string" ? media.url : "";
+  const mime =
+    typeof media.mime_type === "string" ? media.mime_type.split(";")[0] : "";
+  if (!/^https:\/\//.test(url) || !/^audio\/[\w.+-]+$/.test(mime))
+    throw new ProviderError("VOICE_MEDIA_INVALID");
+  if (Number(media.file_size) > voiceMaxBytes)
+    throw new ProviderError("VOICE_TOO_LARGE");
+  let audio: Buffer;
+  try {
+    const response = await fetch(url, {
+      headers: {
+        Authorization: `Bearer ${channelCredentials("whatsapp", accountId).token}`,
+      },
+      signal: AbortSignal.timeout(15_000),
+    });
+    if (!response.ok) throw new Error("download");
+    audio = Buffer.from(await response.arrayBuffer());
+  } catch {
+    throw new ProviderError("VOICE_DOWNLOAD_FAILED");
+  }
+  if (audio.length > voiceMaxBytes) throw new ProviderError("VOICE_TOO_LARGE");
+  const seconds = oggOpusSeconds(audio);
+  if (seconds === null || seconds > voiceMaxSeconds)
+    throw new ProviderError("VOICE_TOO_LONG");
+  let response: Response;
+  try {
+    response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
+      {
+        method: "POST",
+        signal: AbortSignal.timeout(30_000),
+        headers: {
+          "Content-Type": "application/json",
+          "x-goog-api-key": process.env.AUTO_REPLY_GEMINI_KEY,
+        },
+        body: JSON.stringify({
+          contents: [
+            {
+              role: "user",
+              parts: [
+                {
+                  text: "Transcribe this customer voice note word for word in the language spoken. Return only the transcript, with no commentary.",
+                },
+                { inline_data: { mime_type: mime, data: audio.toString("base64") } },
+              ],
+            },
+          ],
+          generationConfig: { maxOutputTokens: 2048 },
+        }),
+      },
+    );
+  } catch {
+    throw new ProviderError("VOICE_TRANSCRIPTION_FAILED");
+  }
+  if (!response.ok) throw new ProviderError("VOICE_TRANSCRIPTION_FAILED");
+  const data = await response.json().catch(() => null);
+  const transcript = (data?.candidates?.[0]?.content?.parts ?? [])
+    .filter((p: { text?: string; thought?: boolean }) => !p.thought)
+    .map((p: { text?: string }) => p.text ?? "")
+    .join("")
+    .trim()
+    .slice(0, 6000);
+  if (!transcript) throw new ProviderError("VOICE_TRANSCRIPTION_EMPTY");
+  return transcript;
+}
 export const generatedSchema = z.object({
   text: z.string().trim().max(2000),
   handoff: z.boolean(),

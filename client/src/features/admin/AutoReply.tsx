@@ -2018,6 +2018,11 @@ function Settings({
                     }
                   />
                 </Field>
+                <Check
+                  label="تفريغ الرسائل الصوتية على واتساب نصيًا عبر Google Gemini (حتى دقيقتين و5 ميجا)"
+                  checked={config.voiceTranscription}
+                  onChange={(v) => update("voiceTranscription", v)}
+                />
                 <Field label="رابط الحجز الإلكتروني (https، اتركه فارغًا لإيقافه)">
                   <Input
                     type="url"

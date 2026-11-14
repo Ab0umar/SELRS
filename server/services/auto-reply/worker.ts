@@ -21,6 +21,7 @@ import {
   purgeExpiredConversations,
   currentKnowledgeSourceCondition,
   recordSentMessage,
+  recordTranscript,
   requeueJob,
   claimHandoffNotifications,
 } from "./store";
@@ -41,6 +42,7 @@ import {
   sendCommentPrivateReply,
   checkMetaConnection,
   isTransientCheckFailure,
+  transcribeVoice,
 } from "./providers";
 import {
   englishFirst,
@@ -49,6 +51,7 @@ import {
   safetyDecision,
   isPriceQuestion,
   replyInEnglish,
+  unsupportedAcknowledgement,
   withinReplyWindow,
 } from "./policy";
 
@@ -379,6 +382,40 @@ export async function runAutoReplyTick() {
         .where(eq(messages.id, job.inboundId ?? -1));
       if (!inbound) throw new ProviderError("INBOUND_MISSING");
       const context = await conversationContext(c.id);
+      if (inbound.mediaId) {
+        let transcript: string | null = null;
+        try {
+          transcript = await transcribeVoice(
+            inbound.mediaId,
+            c.accountId,
+            config.model,
+          );
+        } catch (error) {
+          if (!(error instanceof ProviderError)) throw error;
+        }
+        await recordTranscript(
+          inbound.id,
+          transcript ? `🎤 ${transcript}` : "[رسالة صوتية لم تُفرّغ]",
+        );
+        inbound.body = transcript ? `🎤 ${transcript}` : inbound.body;
+        inbound.mediaId = null;
+        if (!transcript) {
+          // Too long, too large or not transcribed: the same acknowledgement as other non-text messages.
+          body = unsupportedAcknowledgement(
+            replyInEnglish("", context.firstText),
+          );
+          handoff = true;
+          reason = "unsupported_message";
+        }
+      }
+    }
+    if (job.kind === "auto" && !body) {
+      const [inbound] = await db
+        .select()
+        .from(messages)
+        .where(eq(messages.id, job.inboundId ?? -1));
+      if (!inbound) throw new ProviderError("INBOUND_MISSING");
+      const context = await conversationContext(c.id);
       if (
         !inWorkingHours(config) &&
         !safetyDecision(inbound.body) &&
@@ -595,7 +632,11 @@ export async function runAutoReplyTick() {
       if (handoff)
         await tx
           .update(conversations)
-          .set({ status: "human", humanReason: reason ?? "needs_review" })
+          .set({
+            status: "human",
+            // A queued handoff (acknowledgement, safety) keeps the reason set at ingest.
+            humanReason: reason ?? fresh.humanReason ?? "needs_review",
+          })
           .where(eq(conversations.id, c.id));
       await tx
         .update(jobs)
