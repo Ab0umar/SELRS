@@ -470,6 +470,12 @@ export function AppTopNav({
       },
       {
         type: "link",
+        icon: MessageCircle,
+        label: "واتساب",
+        path: "/admin-hub/whatsapp-inbox",
+      },
+      {
+        type: "link",
         icon: Settings,
         label: "الإدارة",
         path: "/admin-hub",
