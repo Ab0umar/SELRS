@@ -52,7 +52,6 @@ import {
   autoReplyContacts as contacts,
 } from "../../drizzle/autoReply";
 import { autoReplySettingsSchema } from "../../shared/auto-reply";
-import { services as catalogServices } from "../../drizzle/schema";
 import {
   conversationContext,
   ingestEvents,
@@ -729,68 +728,7 @@ describe.skipIf(!testUrl)(
       });
       expect(network).not.toHaveBeenCalled();
     });
-    it("imports only the services-page catalog, keeps approval explicit and does not duplicate imports", async () => {
-      await db.insert(catalogServices).values([
-        {
-          id: "center-service",
-          code: "fixture-center",
-          name: "خدمة المركز",
-          serviceType: "exam",
-          price: "120.00",
-          locationType: "center",
-          isActive: true,
-        },
-        {
-          id: "zero-service",
-          code: "fixture-zero",
-          name: "خدمة بلا سعر معتمد",
-          serviceType: "exam",
-          price: "0",
-          locationType: "center",
-          isActive: true,
-        },
-        {
-          id: "inactive-service",
-          code: "fixture-inactive",
-          name: "خدمة متوقفة",
-          serviceType: "exam",
-          price: "50",
-          locationType: "center",
-          isActive: false,
-        },
-        {
-          id: "external-service",
-          code: "fixture-external",
-          name: "خدمة خارجية",
-          serviceType: "exam",
-          price: "50",
-          locationType: "external",
-          isActive: true,
-        },
-      ]);
-      await db.insert(knowledge).values({
-        kind: "service",
-        title: "فحص من مصدر قديم",
-        content: "معلومة قديمة",
-        source: "tests:legacy",
-        keywords: "",
-        approved: false,
-      });
-      const caller = autoReplyRouter.createCaller(makeCallerAs("admin"));
-      expect(await caller.importCatalog()).toEqual({ count: 2 });
-      expect(await caller.importCatalog()).toEqual({ count: 0 });
-      const visible = await caller.knowledge();
-      expect(visible.map((row) => row.source).sort()).toEqual([
-        "services:center-service",
-        "services:zero-service",
-      ]);
-      expect(visible.every((row) => !row.approved)).toBe(true);
-      expect(
-        visible.find((row) => row.source === "services:zero-service")?.content,
-      ).toContain("السعر غير معتمد للنشر");
-      expect(await db.select().from(knowledge)).toHaveLength(3);
-    });
-    it("excludes legacy test knowledge even if previously approved and refuses reapproval", async () => {
+    it("excludes legacy test knowledge even if previously approved", async () => {
       await db.insert(knowledge).values({
         kind: "service",
         title: "عنوان قديم",
@@ -799,9 +737,7 @@ describe.skipIf(!testUrl)(
         keywords: "عنوان",
         approved: true,
       });
-      const [legacy] = await db.select().from(knowledge);
       const caller = autoReplyRouter.createCaller(makeCallerAs("admin"));
-      expect(await caller.knowledge()).toEqual([]);
       const fetcher = vi.fn();
       vi.stubGlobal("fetch", fetcher);
       expect(
@@ -812,16 +748,6 @@ describe.skipIf(!testUrl)(
         model: null,
       });
       expect(fetcher).not.toHaveBeenCalled();
-      await expect(
-        caller.saveKnowledge({
-          id: legacy.id,
-          kind: "service",
-          title: legacy.title,
-          content: legacy.content,
-          keywords: "عنوان",
-          approved: true,
-        }),
-      ).rejects.toMatchObject({ code: "BAD_REQUEST" });
     });
     it("persists enabled and disabled administrator instructions without replacing legacy style", async () => {
       const config = autoReplySettingsSchema.parse({
@@ -837,27 +763,6 @@ describe.skipIf(!testUrl)(
         instructions: config.instructions,
         sendingEnabled: false,
       });
-    });
-    it("allows manual service and price knowledge independently of the catalog import", async () => {
-      const caller = autoReplyRouter.createCaller(makeCallerAs("admin"));
-      const values = {
-        title: "معلومة إدارة",
-        content: "محتوى للمراجعة",
-        keywords: "",
-        approved: false,
-      };
-      for (const kind of ["service", "price"] as const)
-        await caller.saveKnowledge({ ...values, kind });
-      await caller.saveKnowledge({ ...values, kind: "faq" });
-      const rows = await caller.knowledge();
-      expect(rows.map((row) => row.kind).sort()).toEqual([
-        "faq",
-        "price",
-        "service",
-      ]);
-      expect(rows.every((row) => row.source === null && !row.approved)).toBe(
-        true,
-      );
     });
     it("stores inbound messages with sending disabled by default", async () => {
       await ingestEvents([event()]);
@@ -1497,6 +1402,20 @@ describe.skipIf(!testUrl)(
         errorCode: null,
       });
       expect((await db.select().from(jobs))[0].state).toBe("sent");
+    });
+    it("sends the current message once, not again as history", async () => {
+      await enable();
+      await ingestEvents([event()]);
+      const network = mockNetwork();
+      await runAutoReplyTick();
+      const gemini = network.mock.calls.find(([url]) =>
+        String(url).includes("generativelanguage"),
+      );
+      const input = JSON.parse(
+        JSON.parse(String((gemini as unknown as [string, RequestInit])[1].body))
+          .contents[0].parts[0].text,
+      );
+      expect(input).toEqual({ history: [], message: "عنوان الفرع" });
     });
     it("treats a staff-started conversation as having a closed reply window", async () => {
       await enable();

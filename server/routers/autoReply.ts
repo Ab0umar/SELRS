@@ -27,7 +27,6 @@ import {
   autoReplyChannels,
   autoReplySettingsSchema,
   settingsForTarget,
-  knowledgeSchema,
   isAutoReplyEnabled,
   supportsGeminiSampling,
   teachingSchema,
@@ -39,7 +38,6 @@ import {
   autoReplyKnowledge as knowledge,
   autoReplySettings as settingsTable,
 } from "../../drizzle/autoReply";
-import { services } from "../../drizzle/schema";
 import {
   conversationContext,
   getAutoReplyDb,
@@ -201,6 +199,12 @@ export const autoReplyRouter = router({
               ),
       );
       const count = await db.transaction(async (tx) => {
+        // Settings row first, the same lock order as every other auto-reply write.
+        await tx
+          .select()
+          .from(settingsTable)
+          .where(eq(settingsTable.id, 1))
+          .for("update");
         const selected = await tx
           .select({ id: conversations.id })
           .from(conversations)
@@ -566,113 +570,6 @@ export const autoReplyRouter = router({
       );
       return result;
     }),
-  knowledge: autoReplyAdminProcedure.query(async () =>
-    (await getAutoReplyDb())
-      .select()
-      .from(knowledge)
-      .where(currentKnowledgeSourceCondition())
-      .orderBy(desc(knowledge.updatedAt))
-      .limit(2000),
-  ),
-  saveKnowledge: autoReplyAdminProcedure
-    .input(knowledgeSchema.extend({ id: recordId.optional() }))
-    .mutation(async ({ input, ctx }) => {
-      if (input.id) {
-        const db = await getAutoReplyDb();
-        const [existing] = await db
-          .select({ source: knowledge.source })
-          .from(knowledge)
-          .where(eq(knowledge.id, input.id));
-        if (existing?.source?.startsWith("tests:"))
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message:
-              "مصدر الخدمات هو صفحة خدمات المركز فقط؛ لا يمكن اعتماد فحوص من المصدر القديم",
-          });
-      }
-      if (input.kind === "booking") {
-        const links = input.content.match(/https:\/\/[^\s]+/g) ?? [];
-        if (!links.length)
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: "أدخل رابط حجز معتمد يبدأ بـ https://",
-          });
-      }
-      const { id, ...values } = input;
-      await withKnowledgeUpdate(async (tx) => {
-        if (id)
-          await tx
-            .update(knowledge)
-            .set({ ...values, updatedBy: ctx.user.id })
-            .where(eq(knowledge.id, id));
-        else
-          await tx
-            .insert(knowledge)
-            .values({ ...values, updatedBy: ctx.user.id });
-      });
-      await logAuditEvent(
-        ctx.user.id,
-        "AUTO_REPLY_KNOWLEDGE",
-        "auto_reply",
-        id ?? 0,
-        { approved: input.approved, kind: input.kind },
-      );
-      return { ok: true };
-    }),
-  deleteKnowledge: autoReplyAdminProcedure
-    .input(recordId)
-    .mutation(async ({ input, ctx }) => {
-      await withKnowledgeUpdate(async (tx) =>
-        tx.delete(knowledge).where(eq(knowledge.id, input)),
-      );
-      await logAuditEvent(
-        ctx.user.id,
-        "AUTO_REPLY_KNOWLEDGE_DELETE",
-        "auto_reply",
-        input,
-      );
-      return { ok: true };
-    }),
-  importCatalog: autoReplyAdminProcedure.mutation(async ({ ctx }) => {
-    const db = await getAutoReplyDb();
-    const [catalog, present] = await Promise.all([
-      db
-        .select()
-        .from(services)
-        .where(
-          and(eq(services.isActive, true), eq(services.locationType, "center")),
-        )
-        .limit(1000),
-      db.select({ source: knowledge.source }).from(knowledge),
-    ]);
-    const sources = new Set(present.map((k) => k.source));
-    const candidates = catalog
-      .map((s) => ({
-        source: `services:${s.id}`,
-        title: s.name,
-        content: `${s.name}${Number(s.price) > 0 ? `: السعر المسجل ${s.price} جنيه مصري` : ": السعر غير معتمد للنشر"}`,
-        kind: "service",
-        keywords: `${s.code} ${s.category ?? ""}`,
-      }))
-      .filter((c) => !sources.has(c.source));
-    // Catalog prices are drafts until an administrator approves them for customer replies.
-    if (candidates.length)
-      await db.insert(knowledge).values(
-        candidates.map((c) => ({
-          ...c,
-          approved: false,
-          updatedBy: ctx.user.id,
-        })),
-      );
-    await logAuditEvent(
-      ctx.user.id,
-      "AUTO_REPLY_IMPORT_CATALOG",
-      "auto_reply",
-      0,
-      { count: candidates.length },
-    );
-    return { count: candidates.length };
-  }),
   test: autoReplyAdminProcedure
     .input(
       z.object({

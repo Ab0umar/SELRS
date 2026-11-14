@@ -414,7 +414,8 @@ export async function runAutoReplyTick() {
             accountId: c.accountId,
             text: inbound.body,
             firstText: context.firstText,
-            context: context.rows,
+            // The current message is sent separately, not again as history.
+            context: context.rows.filter((row) => row.id !== inbound.id),
             settings: config,
             knowledge: approved,
           },
