@@ -13,6 +13,7 @@ import {
   historyTimestamp,
   contactTimestamp,
   parseCoexistenceChanges,
+  historySchema,
   lifecycleEventName,
   isRoutineLifecycleEvent,
 } from "../services/auto-reply/coexistence-sync";
@@ -194,6 +195,44 @@ describe("Coexistence trust boundaries", () => {
       expect(lifecycleEventName(value)).toBe("UNKNOWN");
       expect(isRoutineLifecycleEvent(lifecycleEventName(value))).toBe(false);
     }
+  });
+  it("accepts history for username customers and history payloads that carry only media", () => {
+    expect(historySchema.parse({ messages: [{ id: "m" }] }).history).toEqual(
+      [],
+    );
+    const message = { id: "m1", timestamp: "1700000000", type: "text" };
+    const [chunk] = historySchema.parse({
+      history: [
+        {
+          threads: [
+            {
+              context: { user_id: "EG.123" },
+              messages: [
+                { ...message, from_user_id: "EG.123" },
+                { ...message, id: "m2", from: "201000000000" },
+              ],
+            },
+            {
+              id: "201111111111",
+              context: { user_id: "EG.456" },
+              messages: [{ ...message, id: "m3", from_user_id: "EG.456" }],
+            },
+            { messages: [{ ...message, id: "m4" }] },
+          ],
+        },
+      ],
+    }).history;
+    expect(chunk.threads?.map((thread) => thread.id)).toEqual([
+      "EG.123",
+      "201111111111",
+    ]);
+    expect(chunk.threads?.[0].messages.map((m) => m.from)).toEqual([
+      "EG.123",
+      "201000000000",
+    ]);
+    expect(chunk.threads?.[1].messages[0].from).toBe("201111111111");
+    // A queued batch is parsed again when it is processed.
+    expect(historySchema.parse({ history: [chunk] }).history[0]).toEqual(chunk);
   });
   it("rejects future or invalid history timestamps", () => {
     expect(() => historyTimestamp("NaN")).toThrow();

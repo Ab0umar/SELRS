@@ -25,7 +25,7 @@ import {
 import { initiateCoexistenceSync } from "./coexistence";
 
 const id = z.string().min(1).max(255);
-const historySchema = z.object({
+export const historySchema = z.object({
   history: z
     .array(
       z.object({
@@ -39,26 +39,60 @@ const historySchema = z.object({
         errors: z.array(z.object({ code: z.number() })).optional(),
         threads: z
           .array(
-            z.object({
-              id,
-              messages: z
-                .array(
-                  z.object({
-                    id,
-                    from: id,
-                    timestamp: z.string().regex(/^\d+$/),
-                    type: z.string(),
-                    text: z.object({ body: z.string().max(20_000) }).optional(),
-                  }),
-                )
-                .max(10000),
-            }),
+            z
+              .object({
+                // A customer who uses a username has no phone here, only a user id.
+                id: id.optional(),
+                context: z.object({ user_id: id.optional() }).optional(),
+                messages: z
+                  .array(
+                    z.object({
+                      id,
+                      from: id.optional(),
+                      from_user_id: id.optional(),
+                      timestamp: z.string().regex(/^\d+$/),
+                      type: z.string(),
+                      text: z
+                        .object({ body: z.string().max(20_000) })
+                        .optional(),
+                    }),
+                  )
+                  .max(10000),
+              })
+              .transform((thread) => {
+                const participant = thread.id ?? thread.context?.user_id;
+                return {
+                  id: participant,
+                  messages: thread.messages.map(
+                    ({ from, from_user_id, ...message }) => ({
+                      ...message,
+                      // Normalised so a customer message always carries the thread id.
+                      from:
+                        participant &&
+                        [thread.id, thread.context?.user_id].includes(
+                          from ?? from_user_id,
+                        )
+                          ? participant
+                          : (from ?? "business"),
+                    }),
+                  ),
+                };
+              }),
           )
           .max(10000)
-          .optional(),
+          .optional()
+          // A thread with no identity cannot be matched to a conversation.
+          .transform((threads) =>
+            threads?.filter(
+              (thread): thread is typeof thread & { id: string } =>
+                Boolean(thread.id),
+            ),
+          ),
       }),
     )
-    .max(1000),
+    .max(1000)
+    // Media from the history arrives without a `history` list; there is nothing to import.
+    .default([]),
 });
 const contactsSchema = z.object({
   state_sync: z
