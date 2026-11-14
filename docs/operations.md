@@ -29,6 +29,26 @@ Known operational risk: cache invalidation after MSSQL sync is non-blocking, so 
 invalidation can leave stale `patientPageStates` until the next sync or an admin reset
 (see `data-policy.md`).
 
+## Marketing generation
+
+The Facebook scheduler starts with the server and checks again every five minutes. Full
+rules, error codes, and the jobs-list buttons are in `docs/ai-workspace.md`.
+
+- A start that fails before the job is accepted waits 5 minutes, then 30 minutes, then
+  2 hours. The failure after that 2-hour wait stops the page until the next Cairo day.
+  The counter is in memory. A server restart clears it and the next check can try at once.
+- A Manus job that ended `failed` is retried once that Cairo day, except when the error
+  starts with «انقطع بدء مهمة Manus قبل استلام رقمها». That text means the process died
+  during start; a Manus task may already exist. `uncertain` jobs are not retried.
+- A `starting` row with no Manus task id becomes `failed` after 10 minutes. An `uncertain`
+  row with a task id is polled for 6 hours. On «مهام التوليد» (dashboard and drafts),
+  «إعادة فحص المهمة الآن» polls immediately and «إيقاف المهمة» marks the job failed so the
+  draft can take a new image. Abandon asks for confirmation. Both actions are admin-only
+  (`marketing.resolveGenerationJob`).
+- Central (Gemini/Grok) jobs have no `failed` state. They stay `uncertain` and store
+  `ai_marketing_jobs.error_code`. The server log line is
+  `[marketing] central draft ended uncertain` plus the error name and that code.
+
 ## Database backup and restore
 
 ```powershell
@@ -158,6 +178,33 @@ sends per IP in 15 minutes.
 
 Paid leave for attendance is a separate change. See `docs/ATTENDANCE_SYNC.md` (Paid leave).
 It needs `drizzle/0110_attendance_paid_leave.sql` so `attendance_leaves.type` accepts `paid`.
+
+## Auto-reply channel check
+
+Page: `/ai/replies`. Worker: `AUTO_REPLY_WORKER_ENABLED=true`, loop in
+`startAutoReplyWorker` (`server/services/auto-reply/worker.ts`). Full behavior:
+`docs/auto-reply-setup.md`.
+
+- Apply `drizzle/0113_auto_reply_provider_indexes.sql` with `pnpm db:migrate` before
+  relying on `provider_id` lookups. The runner ignores `ER_DUP_KEYNAME` on a statement
+  that already exists, then records the file name so it does not run again.
+- A network error, HTTP 429, HTTP 5xx, Meta codes 1 and 2, and the retryable Meta rate
+  codes leave `auto_reply_connections.checkOk` and `checkedAt` unchanged. A credential
+  failure such as `META_190` sets `checkOk` false.
+- The hourly pass rechecks a row only when its fingerprint matches the current env and
+  `checkedAt` is at least 6 hours old. A job on an open conversation can recheck sooner:
+  `CHECK_NOT_OK` waits 5 minutes between inline checks; `CHECK_EXPIRED` (older than 24
+  hours) does not. A transient inline result retries the job as
+  `CONNECTION_CHECK_TRANSIENT` (three attempts, then the conversation moves to staff).
+- Saving settings while sending stays on requeues auto jobs and keeps a staff reply's
+  text. Turning sending off cancels `pending`, `retry`, and `generating` jobs with
+  `SETTINGS_CHANGED`. A knowledge save requeues even when sending is off; turning
+  sending back on then cancels that queue.
+- A conversation moved to staff because a job ended `failed` or `unknown` stays there
+  until someone turns the bot back on for that conversation. The next customer message
+  reopens only `staff_reply` and `external_staff_reply`.
+- Internal failures log `[auto-reply] INTERNAL_ERROR` with job id, error name, driver
+  code, and stack frames. The log line does not include `error.message`.
 
 ## Incident response
 

@@ -135,6 +135,7 @@ describe.skipIf(!testUrl)(
         "0106_auto_reply_coexistence.sql",
         "0107_auto_reply_targets.sql",
         "0108_auto_reply_teaching.sql",
+        "0113_auto_reply_provider_indexes.sql",
       ]) {
         const migration = await readFile(
           new URL(`../../drizzle/${file}`, import.meta.url),
@@ -536,7 +537,7 @@ describe.skipIf(!testUrl)(
         }
       },
     );
-    it("saves free-form Teach AI content with a page target and cancels stale proposals", async () => {
+    it("saves free-form Teach AI content with a page target and requeues stale proposals", async () => {
       await enablePages();
       await ingestEvents([pageEvent("456")]);
       const caller = autoReplyRouter.createCaller(makeCallerAs("admin"));
@@ -552,7 +553,10 @@ describe.skipIf(!testUrl)(
         approved: true,
       });
       expect((await readSettings()).knowledgeMode).toBe("teach_ai");
-      expect((await db.select().from(jobs))[0].state).toBe("cancelled");
+      expect((await db.select().from(jobs))[0]).toMatchObject({
+        state: "pending",
+        body: null,
+      });
     });
     it("clears AI context without deleting messages or changing staff takeover", async () => {
       await enablePages();
@@ -1148,7 +1152,10 @@ describe.skipIf(!testUrl)(
           );
         release();
         await running;
-        expect((await db.select().from(jobs))[0].state).toBe("cancelled");
+        // Sending stopped cancels; a knowledge change requeues for a fresh answer.
+        expect((await db.select().from(jobs))[0].state).toBe(
+          change === "kill_switch" ? "cancelled" : "pending",
+        );
         expect(
           (await db.select().from(messages)).filter(
             (m) => m.direction === "bot",
@@ -1156,6 +1163,130 @@ describe.skipIf(!testUrl)(
         ).toHaveLength(0);
       },
     );
+    it("keeps a staff reply and requeues auto replies when settings are saved with sending on", async () => {
+      const config = await enable();
+      await ingestEvents([event()]);
+      const [c] = await db.select().from(conversations);
+      const [auto] = await db.select().from(jobs);
+      await db
+        .update(jobs)
+        .set({ state: "generating", claim: "x", body: "old", leaseUntil: new Date() })
+        .where(eq(jobs.id, auto.id));
+      await db.insert(jobs).values({
+        conversationId: c.id,
+        requestKey: hash("manual-fixture"),
+        kind: "manual",
+        body: "رد الموظف",
+        revision: c.revision,
+      });
+      await saveSettings({ ...config, style: "أسلوب جديد" }, 1);
+      const rows = await db.select().from(jobs).orderBy(jobs.id);
+      expect(rows[0]).toMatchObject({
+        state: "pending",
+        body: null,
+        claim: null,
+        leaseUntil: null,
+      });
+      expect(rows[0].requestKey).not.toBe(auto.requestKey);
+      expect(rows[1]).toMatchObject({ state: "pending", body: "رد الموظف" });
+      await saveSettings({ ...config, sendingEnabled: false }, 1);
+      expect(
+        (await db.select().from(jobs)).map((job) => job.state),
+      ).toEqual(["cancelled", "cancelled"]);
+    });
+    it("requeues an auto reply with a new key on a knowledge save", async () => {
+      await enable();
+      await ingestEvents([event()]);
+      const [before] = await db.select().from(jobs);
+      await db.update(jobs).set({ state: "retry", body: "old" });
+      await withKnowledgeUpdate(async () => undefined);
+      const [after] = await db.select().from(jobs);
+      expect(after).toMatchObject({ state: "retry", body: null });
+      expect(after.requestKey).not.toBe(before.requestKey);
+    });
+    it("retries the local send spacing without using an attempt", async () => {
+      await enable();
+      await ingestEvents([event()]);
+      await db.update(connections).set({ lastSentAt: new Date() });
+      mockNetwork();
+      await runAutoReplyTick();
+      expect((await db.select().from(jobs))[0]).toMatchObject({
+        state: "retry",
+        errorCode: "LOCAL_RATE_LIMIT",
+        attempts: 0,
+      });
+    });
+    it("keeps a verified channel when its re-check fails transiently", async () => {
+      await enable();
+      const checkedAt = new Date(Date.now() - 25 * 3600_000);
+      await db.update(connections).set({ checkedAt });
+      await ingestEvents([event()]);
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(async () => Response.json({}, { status: 503 })),
+      );
+      await runAutoReplyTick();
+      expect((await db.select().from(jobs))[0]).toMatchObject({
+        state: "retry",
+        errorCode: "CONNECTION_CHECK_TRANSIENT",
+      });
+      const [row] = await db.select().from(connections);
+      expect(row.checkOk).toBe(true);
+      expect(row.checkedAt?.getTime()).toBe(checkedAt.getTime());
+      expect((await db.select().from(conversations))[0].status).toBe("open");
+    });
+    it("recovers a failed channel through an inline re-check", async () => {
+      await enable();
+      await db.update(connections).set({
+        checkOk: false,
+        errorCode: "META_190",
+        checkedAt: new Date(Date.now() - 10 * 60_000),
+      });
+      await ingestEvents([event()]);
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(async (url: string) =>
+          url.includes("generativelanguage")
+            ? Response.json({
+                candidates: [
+                  {
+                    finishReason: "STOP",
+                    content: {
+                      parts: [
+                        {
+                          text: JSON.stringify({
+                            text: "العنوان المعتمد للاختبار",
+                            handoff: false,
+                            sourceIds: [1],
+                          }),
+                        },
+                      ],
+                    },
+                  },
+                ],
+              })
+            : url.includes("/phone_numbers")
+              ? Response.json({ data: [{ id: "789" }] })
+              : url.includes("/subscribed_apps")
+                ? Response.json({
+                    data: [{ whatsapp_business_api_data: { id: "123" } }],
+                  })
+                : url.includes("/messages")
+                  ? Response.json({ messages: [{ id: "sent-1" }] })
+                  : Response.json({
+                      id: "789",
+                      is_on_biz_app: true,
+                      platform_type: "CLOUD_API",
+                    }),
+        ),
+      );
+      await runAutoReplyTick();
+      expect((await db.select().from(connections))[0]).toMatchObject({
+        checkOk: true,
+        errorCode: null,
+      });
+      expect((await db.select().from(jobs))[0].state).toBe("sent");
+    });
     it("hands off an interrupted send without ever sending it again", async () => {
       await enable();
       await ingestEvents([event()]);

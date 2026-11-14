@@ -31,10 +31,19 @@ import {
   marketingPosts,
   marketingSettings,
   marketingLogs,
+  marketingGenerationJobs,
 } from "../../../drizzle/schema";
 import { pickUnpublishedTopic, type PostDay } from "./topicRotation";
 import { publishedMarketingTopics } from "./topicHistory";
-import { startManusGeneration } from "./manusGeneration.service";
+import {
+  ORPHANED_START_ERROR,
+  startManusGeneration,
+} from "./manusGeneration.service";
+import {
+  clearMarketingStartFailures,
+  marketingStartAllowed,
+  recordMarketingStartFailure,
+} from "./schedulerBackoff";
 import { getMarketingPageTarget, type MarketingPageRole } from "./page.service";
 import type { MarketingPageTarget } from "./page.service";
 
@@ -106,6 +115,22 @@ async function log(
     if (!db) return;
     await db.insert(marketingLogs).values({ postId, action, status, message });
   } catch {}
+}
+
+async function definitelyFailedJob(id: string) {
+  const db = await getDb();
+  if (!db) return false;
+  const [job] = await db
+    .select({
+      state: marketingGenerationJobs.state,
+      error: marketingGenerationJobs.error,
+    })
+    .from(marketingGenerationJobs)
+    .where(eq(marketingGenerationJobs.id, id));
+  return (
+    job?.state === "failed" &&
+    !String(job.error ?? "").startsWith(ORPHANED_START_ERROR)
+  );
 }
 
 // ─── Public: compute next scheduled time ─────────────────────────────────────
@@ -230,12 +255,18 @@ export async function runScheduledPost(
       timeZone: "Africa/Cairo",
     });
     const { createHash } = await import("node:crypto");
-    const requestId = createHash("sha256")
-      .update(`marketing:${today}:${day}:${pageRole}`)
-      .digest("hex")
-      .slice(0, 32);
-    const id = `${requestId.slice(0, 8)}-${requestId.slice(8, 12)}-4${requestId.slice(13, 16)}-a${requestId.slice(17, 20)}-${requestId.slice(20, 32)}`;
-    const claim = await claimMarketingSchedule(id, pageRole);
+    const scheduleId = (seed: string) => {
+      const hash = createHash("sha256").update(seed).digest("hex").slice(0, 32);
+      return `${hash.slice(0, 8)}-${hash.slice(8, 12)}-4${hash.slice(13, 16)}-a${hash.slice(17, 20)}-${hash.slice(20, 32)}`;
+    };
+    const seed = `marketing:${today}:${day}:${pageRole}`;
+    let id = scheduleId(seed);
+    let claim = await claimMarketingSchedule(id, pageRole);
+    // One automatic second attempt when the day's job definitely failed.
+    if (!claim.claimed && (await definitelyFailedJob(id))) {
+      id = scheduleId(`${seed}:retry`);
+      claim = await claimMarketingSchedule(id, pageRole);
+    }
     if (!claim.claimed) {
       return {
         ok: true,
@@ -333,7 +364,10 @@ async function checkDueMarketingPosts() {
         if (!target) continue;
         const day = getDueMarketingSlot(target);
         if (!day) continue;
+        if (!marketingStartAllowed(pageRole)) continue;
         const result = await runScheduledPost(day, pageRole);
+        if (result.ok) clearMarketingStartFailures(pageRole);
+        else recordMarketingStartFailure(pageRole);
         if (!result.ok)
           await log(
             null,
