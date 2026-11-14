@@ -77,6 +77,9 @@ export function createAiManagementRouter(store: AiManagementStore) {
       },
       grokModels: { text: GROK_TEXT_MODEL, image: GROK_IMAGE_MODEL },
     })),
+    todayUsage: adminProcedure.query(() =>
+      managementOperation(() => store.todayUsage()),
+    ),
     profiles: adminProcedure.query(() =>
       managementOperation(() => store.listProfiles()),
     ),

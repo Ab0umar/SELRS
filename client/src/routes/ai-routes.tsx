@@ -40,8 +40,6 @@ const pages = [
   { path: "/ai/marketing/brand", content: <BrandLibrary /> },
   { path: "/ai/marketing/settings", content: <MarketingSettings /> },
   { path: "/ai/marketing/whatsapp", content: <WhatsAppCampaigns /> },
-  { path: ROUTES.aiSettings, content: <AiManagement view="settings" /> },
-  { path: ROUTES.aiExperiments, content: <AiManagement view="experiments" /> },
   { path: ROUTES.aiUsage, content: <AiManagement view="usage" /> },
 ];
 

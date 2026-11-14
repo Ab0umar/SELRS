@@ -1,8 +1,8 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { randomUUID } from "node:crypto";
-import { aiManagementRouter } from "../routers/aiManagement";
+import { aiManagementRouter, createAiManagementRouter } from "../routers/aiManagement";
 import { makeCallerAs } from "./helpers/auth";
-import { profileSchema } from "../services/ai/managementStore";
+import { profileSchema, type AiManagementStore } from "../services/ai/managementStore";
 
 afterEach(() => vi.unstubAllEnvs());
 describe("AI management boundaries", () => {
@@ -32,6 +32,17 @@ describe("AI management boundaries", () => {
     { provider: "manus", model: "gemini-3.8-flash" },
   ])("rejects cross-provider model configuration %j", variant => {
     expect(profileSchema.safeParse({ workload: "marketing.text", enabled: false, dailyRequests: 20, dailyTokens: 100000, maxConcurrent: 2, ...variant }).success).toBe(false);
+  });
+
+  it("reads today's use per workload for admins only, and only while management is on", async () => {
+    const rows = [{ workload: "reply.live", requests: 3, tokens: 1200 }];
+    const store = { todayUsage: vi.fn(async () => rows) };
+    const router = createAiManagementRouter(store as unknown as AiManagementStore);
+    await expect(router.createCaller(makeCallerAs("doctor")).todayUsage()).rejects.toMatchObject({ code: "FORBIDDEN" });
+    vi.stubEnv("AI_CORE_MANAGEMENT_ENABLED", "false");
+    await expect(router.createCaller(makeCallerAs("admin")).todayUsage()).rejects.toMatchObject({ code: "PRECONDITION_FAILED" });
+    vi.stubEnv("AI_CORE_MANAGEMENT_ENABLED", "true");
+    await expect(router.createCaller(makeCallerAs("admin")).todayUsage()).resolves.toEqual(rows);
   });
 
   it("does not introduce a clinical medical workload", async () => {

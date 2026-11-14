@@ -368,6 +368,25 @@ export class AiManagementStore {
     });
   }
 
+  /** Today's use per workload, counted the same way the daily budget check counts it. */
+  todayUsage() {
+    return this.connection(async (connection) => {
+      const [rows] = await connection.execute<RowDataPacket[]>(
+        "SELECT workload,COUNT(*) AS requests,COALESCE(SUM(GREATEST(reserved_tokens,input_tokens+output_tokens)),0) AS tokens FROM ai_core_usage WHERE budget_day=? GROUP BY workload",
+        [budgetDay()],
+      );
+      return z
+        .array(
+          z.object({
+            workload: z.string(),
+            requests: z.coerce.number(),
+            tokens: z.coerce.number(),
+          }),
+        )
+        .parse(rows);
+    });
+  }
+
   listUsage() {
     return this.connection(async (connection) => {
       const [rows] = await connection.query<RowDataPacket[]>(

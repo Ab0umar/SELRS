@@ -186,10 +186,8 @@ export const adminNavGroups: NavGroup[] = [
     groupPath: "/ai",
     navKey: "ai",
     items: [
-      { icon: LayoutDashboard, label: "نظرة عامة", path: "/ai", roles: ["admin"] },
-      { icon: Settings, label: "المزوّدون والحدود", path: "/ai/settings", roles: ["admin"] },
-      { icon: FlaskConical, label: "تجارب الاتصال", path: "/ai/experiments", roles: ["admin"] },
-      { icon: History, label: "سجل الاستخدام", path: "/ai/usage", roles: ["admin"] },
+      { icon: LayoutDashboard, label: "الخدمات", path: "/ai", roles: ["admin"] },
+      { icon: History, label: "سجل الطلبات", path: "/ai/usage", roles: ["admin"] },
     ],
   },
   {
