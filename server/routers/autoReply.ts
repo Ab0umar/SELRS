@@ -65,6 +65,7 @@ import {
 } from "../services/auto-reply/providers";
 import { inWorkingHours } from "../services/auto-reply/policy";
 import { whatsappContactAudience } from "../services/auto-reply/recipients";
+import { clearLifecycleRecheck } from "../services/auto-reply/coexistence-sync";
 import { autoReplyMetrics } from "../services/auto-reply/metrics";
 import {
   logAuditEvent,
@@ -528,6 +529,8 @@ export const autoReplyRouter = router({
           ...values,
         })
         .onDuplicateKeyUpdate({ set: values });
+      if (ok && input.channel === "whatsapp")
+        await clearLifecycleRecheck(input.accountId);
       return { ok, errorCode };
     }),
   conversations: autoReplyInboxRead

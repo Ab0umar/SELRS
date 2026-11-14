@@ -13,6 +13,8 @@ import {
   historyTimestamp,
   contactTimestamp,
   parseCoexistenceChanges,
+  lifecycleEventName,
+  isRoutineLifecycleEvent,
 } from "../services/auto-reply/coexistence-sync";
 import {
   assertCustomerServicePhone,
@@ -167,6 +169,30 @@ describe("Coexistence trust boundaries", () => {
     expect(
       parseCoexistenceChanges({ ...body, object: "page" }, "123", "456"),
     ).toEqual([]);
+  });
+  it("locks on lifecycle events except the ones Meta sends after a successful link", () => {
+    expect(lifecycleEventName({ event: "PARTNER_ADDED" })).toBe(
+      "PARTNER_ADDED",
+    );
+    expect(isRoutineLifecycleEvent("PARTNER_ADDED")).toBe(true);
+    expect(isRoutineLifecycleEvent("PARTNER_APP_INSTALLED")).toBe(true);
+    expect(isRoutineLifecycleEvent("ACCOUNT_RECONNECTED")).toBe(true);
+    for (const event of [
+      "PARTNER_REMOVED",
+      "DISABLED_UPDATE",
+      "ACCOUNT_OFFBOARDED",
+    ])
+      expect(isRoutineLifecycleEvent(event)).toBe(false);
+    // A missing or odd name is never treated as routine, and is not echoed to the log.
+    for (const value of [
+      {},
+      null,
+      { event: 5 },
+      { event: "partner added <x>" },
+    ]) {
+      expect(lifecycleEventName(value)).toBe("UNKNOWN");
+      expect(isRoutineLifecycleEvent(lifecycleEventName(value))).toBe(false);
+    }
   });
   it("rejects future or invalid history timestamps", () => {
     expect(() => historyTimestamp("NaN")).toThrow();

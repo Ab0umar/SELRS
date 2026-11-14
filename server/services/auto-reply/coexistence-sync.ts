@@ -89,6 +89,41 @@ const envelope = z.object({
     )
     .default([]),
 });
+const ROUTINE_LIFECYCLE_EVENTS = [
+  "PARTNER_ADDED",
+  "PARTNER_APP_INSTALLED",
+  "ACCOUNT_RECONNECTED",
+];
+/** The `event` name of an account_update value, or "UNKNOWN" when it is not a plain name. */
+export function lifecycleEventName(value: unknown) {
+  const parsed = z
+    .object({ event: z.string().regex(/^[A-Z_]{1,64}$/) })
+    .safeParse(value);
+  return parsed.success ? parsed.data.event : "UNKNOWN";
+}
+export function isRoutineLifecycleEvent(name: string) {
+  return ROUTINE_LIFECYCLE_EVENTS.includes(name);
+}
+/** After a successful connection check, lifts the recheck flag from the current link. */
+export async function clearLifecycleRecheck(accountId: string) {
+  const credentials = readCoexistenceCredentials();
+  if (!credentials || credentials.phoneId !== accountId) return;
+  const db = await getAutoReplyDb();
+  await db.transaction(async (tx) => {
+    const [attempt] = await tx
+      .select()
+      .from(attempts)
+      .where(eq(attempts.id, credentials.attemptId))
+      .for("update");
+    if (attempt?.details.errorCode !== "ACCOUNT_LIFECYCLE_RECHECK_REQUIRED")
+      return;
+    const { errorCode: _cleared, ...details } = attempt.details;
+    await tx
+      .update(attempts)
+      .set({ details, updatedAt: new Date() })
+      .where(eq(attempts.id, attempt.id));
+  });
+}
 export function parseCoexistenceChanges(
   body: unknown,
   phoneId: string,
@@ -375,8 +410,18 @@ export async function processCoexistenceQueue() {
               });
           }
           details.contacts = "receiving";
+        } else if (isRoutineLifecycleEvent(lifecycleEventName(payload))) {
+          // Meta confirms every successful link with one of these; nothing to recheck.
+          console.info(
+            "[auto-reply] ACCOUNT_LIFECYCLE_EVENT",
+            lifecycleEventName(payload),
+          );
         } else {
-          // Unknown lifecycle events fail closed; an administrator must recheck access.
+          // Other lifecycle events fail closed; an administrator must recheck access.
+          console.warn(
+            "[auto-reply] ACCOUNT_LIFECYCLE_RECHECK_REQUIRED",
+            lifecycleEventName(payload),
+          );
           await tx
             .update(settings)
             .set({
