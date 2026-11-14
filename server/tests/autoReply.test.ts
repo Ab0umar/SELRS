@@ -594,6 +594,41 @@ describe("channel policy", () => {
     const guarded = await proposeReply(args, generate("الباقة بـ 999"));
     expect(guarded.reason).toBe("output_guard");
   });
+  it("lets the model send the configured booking link and nothing else", async () => {
+    const generate = vi.fn(async () => ({
+      reply: {
+        text: "تقدر تحجز من هنا: https://selrs.cc/book",
+        handoff: false,
+        sourceIds: [-1000],
+      },
+      usage: { inputTokens: 1, outputTokens: 1, model: "fixture" },
+      finishReason: "STOP",
+    }));
+    const args = {
+      channel: "messenger" as const,
+      text: "عايز احجز موعد",
+      context: [],
+      knowledge: [],
+    };
+    const booked = await proposeReply(
+      {
+        ...args,
+        settings: autoReplySettingsSchema.parse({
+          bookingUrl: "https://selrs.cc/book",
+        }),
+      },
+      generate,
+    );
+    expect(booked).toMatchObject({ handoff: false, sourceIds: [-1000] });
+    const without = await proposeReply(
+      { ...args, settings: autoReplySettingsSchema.parse({}) },
+      generate,
+    );
+    expect(without.handoff).toBe(true);
+    expect(() =>
+      autoReplySettingsSchema.parse({ bookingUrl: "http://selrs.cc/book" }),
+    ).toThrow();
+  });
   it("falls back to the first message's language only when the current one has no letters", () => {
     expect(replyInEnglish("???", "Hello")).toBe(true);
     expect(replyInEnglish("عنوان", "Hello")).toBe(false);

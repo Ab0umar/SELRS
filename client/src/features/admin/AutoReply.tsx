@@ -2018,6 +2018,14 @@ function Settings({
                     }
                   />
                 </Field>
+                <Field label="رابط الحجز الإلكتروني (https، اتركه فارغًا لإيقافه)">
+                  <Input
+                    type="url"
+                    dir="ltr"
+                    value={config.bookingUrl}
+                    onChange={(e) => update("bookingUrl", e.target.value.trim())}
+                  />
+                </Field>
                 <Field label="أقصى ردود آلية في الساعة لكل محادثة">
                   <Input
                     type="number"

@@ -150,6 +150,18 @@ export const autoReplySettingsSchema = z.object({
   // 0 resumes automation on the next customer message after a staff reply.
   staffReplyPauseMinutes: z.number().int().min(0).max(1440).default(0),
   maxAutoRepliesPerHour: z.number().int().min(1).max(200).default(20),
+  // Offered to the model as an approved fact; the bot never touches bookings itself.
+  bookingUrl: z
+    .union([
+      z.literal(""),
+      z
+        .string()
+        .trim()
+        .max(500)
+        .url()
+        .regex(/^https:\/\/\S+$/, "رابط الحجز لازم يبدأ بـ https://"),
+    ])
+    .default(""),
   style: z
     .string()
     .trim()
