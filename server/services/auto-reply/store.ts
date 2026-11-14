@@ -6,6 +6,7 @@ import {
   inArray,
   isNull,
   lt,
+  notInArray,
   notLike,
   or,
   sql,
@@ -257,7 +258,9 @@ export async function ingestEvents(batch: InboundEvent[]) {
           lastActivityAt: new Date(),
           ...(!event.humanEcho && !stale ? { lastInboundAt: event.at } : {}),
           revision: nextRevision,
-          ...(resumeAutomation ? { status: "open", humanReason: null } : {}),
+          ...(resumeAutomation
+            ? { status: "open", humanReason: null, handoffNotifiedAt: null }
+            : {}),
           ...(pause
             ? {
                 status: "human",
@@ -517,6 +520,7 @@ export async function setConversationStatus(
       .set({
         status,
         humanReason: status === "human" ? "staff_takeover" : null,
+        ...(status === "human" ? {} : { handoffNotifiedAt: null }),
         revision: c.revision + 1,
       })
       .where(eq(conversations.id, conversationId));
@@ -643,6 +647,52 @@ export async function purgeExpiredConversations() {
           inArray(jobs.state, ["sent", "failed", "unknown", "cancelled"]),
         ),
       );
+  });
+}
+const silentHandoffReasons = [
+  "staff_takeover",
+  "staff_reply",
+  "external_staff_reply",
+];
+// Claims conversations that moved to staff and were not announced yet; each is returned once.
+export async function claimHandoffNotifications(limit = 20) {
+  const db = await getAutoReplyDb();
+  return db.transaction(async (tx) => {
+    await tx
+      .select()
+      .from(settingsTable)
+      .where(eq(settingsTable.id, 1))
+      .for("update");
+    const pending = await tx
+      .select({
+        id: conversations.id,
+        channel: conversations.channel,
+        humanReason: conversations.humanReason,
+      })
+      .from(conversations)
+      .where(
+        and(
+          eq(conversations.status, "human"),
+          isNull(conversations.handoffNotifiedAt),
+          or(
+            isNull(conversations.humanReason),
+            notInArray(conversations.humanReason, silentHandoffReasons),
+          ),
+        ),
+      )
+      .limit(limit)
+      .for("update");
+    if (pending.length)
+      await tx
+        .update(conversations)
+        .set({ handoffNotifiedAt: new Date() })
+        .where(
+          inArray(
+            conversations.id,
+            pending.map((row) => row.id),
+          ),
+        );
+    return pending;
   });
 }
 export async function conversationContext(conversationId: number) {

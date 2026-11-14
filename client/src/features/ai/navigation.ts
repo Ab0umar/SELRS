@@ -131,6 +131,7 @@ export function aiSubmoduleFor(location: string): AiSubmodule {
 export function aiPermissionPath(path: string): string {
   if (path.startsWith("/ai/marketing/")) return path.replace(/^\/ai/, "");
   if (path === ROUTES.aiReplies) return "/admin-hub/auto-reply";
+  if (path === ROUTES.aiInbox) return "/admin-hub/auto-reply-inbox";
   if (path === ROUTES.aiMedical) return "/admin-hub/medical-assistant";
   if (path === ROUTES.aiMarketing) return "/marketing";
   if (path === ROUTES.aiWhatsApp) return "/marketing/whatsapp";

@@ -497,6 +497,62 @@ export default function AutoReply() {
   );
 }
 
+// Conversations only, for reception staff: no settings, teaching or connections.
+export function AutoReplyInbox() {
+  const context = trpc.autoReply.inboxContext.useQuery(undefined, {
+    refetchInterval: 30_000,
+  });
+  const [scope, setScope] = useState("whatsapp");
+  return (
+    <main className="auto-reply" dir="rtl">
+      <header className="ar-header">
+        <div>
+          <h1>محادثات الرد الآلي</h1>
+          <p>واتساب وماسنجر وتعليقات الصفحة</p>
+        </div>
+      </header>
+      {context.isLoading ? (
+        <p role="status">جارٍ تحميل المحادثات…</p>
+      ) : context.error ? (
+        <ErrorState
+          message={context.error.message}
+          retry={() => void context.refetch()}
+        />
+      ) : (
+        context.data && (
+          <>
+            <nav className="ar-scope-tabs" aria-label="جهة المحادثات">
+              {[
+                { id: "whatsapp", label: "واتساب" },
+                ...context.data.pages.slice(0, 2).map((page, index) => ({
+                  id: page.accountId,
+                  label: index === 0 ? "صفحة المركز" : "صفحة العيادة",
+                })),
+              ].map(({ id, label }) => (
+                <Button
+                  key={id}
+                  variant={scope === id ? "default" : "outline"}
+                  aria-pressed={scope === id}
+                  onClick={() => setScope(id)}
+                >
+                  {label}
+                </Button>
+              ))}
+            </nav>
+            <Inbox
+              key={scope}
+              scope={scope}
+              sendingEnabled={context.data.sendingEnabled}
+              pages={context.data.pages}
+              canSuggest={false}
+            />
+          </>
+        )
+      )}
+    </main>
+  );
+}
+
 function ReplyAssistantSelect({
   data,
   disabled,
@@ -626,10 +682,12 @@ function Inbox({
   sendingEnabled,
   pages,
   scope,
+  canSuggest = true,
 }: {
   sendingEnabled: boolean;
   pages: FacebookPages;
   scope: string;
+  canSuggest?: boolean;
 }) {
   const [channel, setChannel] = useState(
     scope === "whatsapp" ? "whatsapp" : "messenger",
@@ -637,7 +695,13 @@ function Inbox({
   const accountId = scope === "whatsapp" ? "" : scope;
   const [status, setStatus] = useState("");
   const [page, setPage] = useState(1);
-  const [selected, setSelected] = useState<number | null>(null);
+  // A handoff notification links here with ?conversation=<id>.
+  const [selected, setSelected] = useState<number | null>(() => {
+    const linked = Number(
+      new URLSearchParams(window.location.search).get("conversation"),
+    );
+    return Number.isSafeInteger(linked) && linked > 0 ? linked : null;
+  });
   const query = trpc.autoReply.conversations.useQuery(
     {
       channel: channel ? (channel as AutoReplyChannel) : undefined,
@@ -771,6 +835,7 @@ function Inbox({
                   id={selected}
                   sendingEnabled={sendingEnabled}
                   pages={pages}
+                  canSuggest={canSuggest}
                 />
               </div>
             </DialogContent>
@@ -784,10 +849,12 @@ function Conversation({
   id,
   sendingEnabled,
   pages,
+  canSuggest,
 }: {
   id: number;
   sendingEnabled: boolean;
   pages: FacebookPages;
+  canSuggest: boolean;
 }) {
   const query = trpc.autoReply.conversation.useQuery(id, {
     refetchInterval: 5000,
@@ -946,21 +1013,23 @@ function Conversation({
           >
             {send.isPending ? "جارٍ إضافة الرد…" : "إرسال رد الموظف"}
           </Button>
-          <Button
-            type="button"
-            variant="outline"
-            disabled={!latest || test.isPending}
-            onClick={() =>
-              latest &&
-              test.mutate({
-                channel: c.channel,
-                conversationId: id,
-                text: latest.body,
-              })
-            }
-          >
-            {test.isPending ? "جارٍ اقتراح الرد…" : "اقتراح رد دون إرسال"}
-          </Button>
+          {canSuggest && (
+            <Button
+              type="button"
+              variant="outline"
+              disabled={!latest || test.isPending}
+              onClick={() =>
+                latest &&
+                test.mutate({
+                  channel: c.channel,
+                  conversationId: id,
+                  text: latest.body,
+                })
+              }
+            >
+              {test.isPending ? "جارٍ اقتراح الرد…" : "اقتراح رد دون إرسال"}
+            </Button>
+          )}
         </div>
         {!sendingEnabled && <p role="status">الإرسال متوقف بالمفتاح العام.</p>}
       </form>

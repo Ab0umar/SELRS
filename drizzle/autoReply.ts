@@ -110,6 +110,8 @@ export const autoReplyConversations = mysqlTable(
       .$defaultFn(() => new Date())
       .notNull(),
     revision: int("revision").default(0).notNull(),
+    // Set once staff are told about a handoff; cleared when the conversation leaves `human`.
+    handoffNotifiedAt: autoReplyTime("handoff_notified_at"),
   },
   (t) => [
     uniqueIndex("ar_conversation_identity").on(t.identityHash),

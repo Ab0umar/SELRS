@@ -9,6 +9,11 @@ import { legacyAiRoutes } from "../features/ai/navigation";
 const AiOverview = lazy(() => import("../features/ai/AiOverview"));
 const AiManagement = lazy(() => import("../features/admin/AiManagement"));
 const AutoReply = lazy(() => import("../features/admin/AutoReply"));
+const AutoReplyInbox = lazy(() =>
+  import("../features/admin/AutoReply").then((module) => ({
+    default: module.AutoReplyInbox,
+  })),
+);
 const MedicalAssistant = lazy(
   () => import("../features/admin/MedicalAssistant"),
 );
@@ -50,6 +55,12 @@ function AiPage({ children }: { children: ReactNode }) {
 
 export const AiRoutes = (
   <>
+    {/* Reception works here with the inbox page permission; the full module stays admin-only. */}
+    <Route path={ROUTES.aiInbox}>
+      <ProtectedRoute requiredRoles={["admin", "reception"]}>
+        <AutoReplyInbox />
+      </ProtectedRoute>
+    </Route>
     {pages.map(({ path, content }) => (
       <Route key={path} path={path}>
         <AiPage>{content}</AiPage>

@@ -22,7 +22,11 @@ import {
   currentKnowledgeSourceCondition,
   recordSentMessage,
   requeueJob,
+  claimHandoffNotifications,
 } from "./store";
+import { pushAppNotification } from "../../_core/appNotifications";
+import { channelLabels } from "../../../shared/auto-reply";
+import { ROUTES } from "../../../shared/routes";
 import { isRecipientAllowed } from "./recipients";
 import {
   channelCredentials,
@@ -684,6 +688,36 @@ export async function runAutoReplyTick() {
     });
   }
 }
+const handoffReasonLabels: Record<string, string> = {
+  human_requested: "العميل طلب موظف",
+  clinical: "سؤال طبي",
+  untrusted_instruction: "محاولة تغيير تعليمات البوت",
+  unsupported_message: "رسالة غير نصية",
+  missing_information: "المعلومة غير متاحة",
+  needs_review: "الرد يحتاج مراجعة",
+  output_guard: "الرد يحتاج مراجعة",
+  personal_information: "بيانات شخصية في تعليق",
+  rate_limited: "تجاوز حد الردود الآلية",
+  outside_hours: "خارج مواعيد العمل",
+};
+// Channel, reason and a link only: customer text never goes into a push payload.
+export async function notifyHandoffs() {
+  for (const row of await claimHandoffNotifications()) {
+    const reason = row.humanReason ?? "needs_review";
+    await pushAppNotification({
+      title: "محادثة تحتاج موظف",
+      message: `${channelLabels[row.channel] ?? row.channel} · ${handoffReasonLabels[reason] ?? reason}`,
+      kind: "warning",
+      targetRoles: ["admin", "reception"],
+      source: "auto_reply",
+      entityType: "auto_reply_conversation",
+      entityId: row.id,
+      meta: { path: `${ROUTES.aiInbox}?conversation=${row.id}` },
+    }).catch(() => {
+      console.warn("[auto-reply] HANDOFF_NOTIFICATION_FAILED", { id: row.id });
+    });
+  }
+}
 export function startAutoReplyWorker() {
   if (process.env.AUTO_REPLY_WORKER_ENABLED !== "true") return;
   let busy = false;
@@ -712,6 +746,7 @@ export function startAutoReplyWorker() {
         lastConnectionCheck = Date.now();
       }
       await runAutoReplyTick();
+      await notifyHandoffs();
       if (Date.now() - lastPurge > 3600_000) {
         await purgeExpiredConversations();
         lastPurge = Date.now();
