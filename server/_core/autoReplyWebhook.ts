@@ -1,5 +1,5 @@
 import express, { type Express } from "express";
-import {ingestConfirmationReceipts} from "../services/whatsappConfirmations";
+import { ingestConfirmationReceipts } from "../services/whatsappConfirmations";
 import { enqueueCoexistenceChanges } from "../services/auto-reply/coexistence-sync";
 import { rateLimit } from "express-rate-limit";
 import { z, ZodError } from "zod";
@@ -13,9 +13,25 @@ import {
   recordDeliveryReceipts,
 } from "../services/auto-reply/store";
 
+/** Field paths and issue codes only; never the values Meta sent. */
+function schemaIssues(error: ZodError) {
+  return error.issues
+    .slice(0, 5)
+    .map((issue) => `${issue.path.join(".")}:${issue.code}`)
+    .join(" ");
+}
 export async function ingestAutoReplyPayload(body: unknown) {
   await ingestConfirmationReceipts(body);
-  await enqueueCoexistenceChanges(body);
+  try {
+    await enqueueCoexistenceChanges(body);
+  } catch (error) {
+    // An odd sync chunk must not drop the customer messages in the same delivery.
+    if (!(error instanceof ZodError)) throw error;
+    console.warn(
+      "[auto-reply] COEXISTENCE_INVALID_SCHEMA",
+      schemaIssues(error),
+    );
+  }
   const events = parseMetaEvents(body);
   const receipts = parseDeliveryReceipts(body);
   await ingestEvents(events);
@@ -129,7 +145,10 @@ export function registerAutoReplyWebhook(app: Express) {
       } catch (error) {
         // A signed payload with an unexpected shape will not improve on redelivery.
         if (error instanceof ZodError) {
-          console.warn("[auto-reply] WEBHOOK_INVALID_SCHEMA");
+          console.warn(
+            "[auto-reply] WEBHOOK_INVALID_SCHEMA",
+            schemaIssues(error),
+          );
           logWebhookDiagnostic("invalid_schema", payload);
           res.sendStatus(200);
           return;

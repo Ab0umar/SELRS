@@ -3,6 +3,7 @@ import {
   autoReplySettingsSchema,
   isAutoReplyRecipientAllowed,
 } from "../../shared/auto-reply";
+import { recipientDecision } from "../services/auto-reply/recipients";
 
 describe("WhatsApp reply recipients", () => {
   it.each([
@@ -74,5 +75,29 @@ describe("WhatsApp reply recipients", () => {
         "201000000000",
       ),
     ).toBe(true);
+  });
+  it("separates an unusable contact list from an excluded recipient", async () => {
+    // No linked phone is configured here, so the contact list cannot be read.
+    const db = {} as Parameters<typeof recipientDecision>[0];
+    const to = {
+      channel: "whatsapp" as const,
+      accountId: "1",
+      participantId: "201000000000",
+    };
+    const settings = (mode: string, phones: string[] = []) =>
+      autoReplySettingsSchema.parse({ whatsappRecipients: { mode, phones } });
+    expect(await recipientDecision(db, settings("except_contacts"), to)).toBe(
+      "unavailable",
+    );
+    expect(await recipientDecision(db, settings("all"), to)).toBe("allowed");
+    expect(await recipientDecision(db, settings("include"), to)).toBe(
+      "excluded",
+    );
+    expect(
+      await recipientDecision(db, settings("except_contacts"), {
+        ...to,
+        channel: "messenger",
+      }),
+    ).toBe("allowed");
   });
 });

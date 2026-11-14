@@ -76,6 +76,39 @@ export async function whatsappContactAudience(
   return { available: true, syncId: attempt.id, phones };
 }
 
+/** "unavailable" means the phone contact list cannot be trusted yet, so nobody can be judged. */
+export async function recipientDecision(
+  db: RecipientDatabase,
+  settings: AutoReplySettings,
+  recipient: {
+    channel: AutoReplyChannel;
+    accountId: string;
+    participantId: string;
+  },
+): Promise<"allowed" | "excluded" | "unavailable"> {
+  if (
+    recipient.channel !== "whatsapp" ||
+    settings.whatsappRecipients.mode !== "except_contacts"
+  )
+    return isAutoReplyRecipientAllowed(
+      settings,
+      recipient.channel,
+      recipient.participantId,
+    )
+      ? "allowed"
+      : "excluded";
+  const audience = await whatsappContactAudience(db, recipient.accountId);
+  if (
+    !audience.available ||
+    audience.syncId !== settings.whatsappRecipients.confirmedContactSync
+  )
+    return "unavailable";
+  const phone = normalizeAutoReplyPhone(recipient.participantId);
+  return /^[1-9]\d{7,14}$/.test(phone) && !audience.phones.has(phone)
+    ? "allowed"
+    : "excluded";
+}
+
 export async function isRecipientAllowed(
   db: RecipientDatabase,
   settings: AutoReplySettings,
@@ -85,21 +118,5 @@ export async function isRecipientAllowed(
     participantId: string;
   },
 ) {
-  if (
-    recipient.channel !== "whatsapp" ||
-    settings.whatsappRecipients.mode !== "except_contacts"
-  )
-    return isAutoReplyRecipientAllowed(
-      settings,
-      recipient.channel,
-      recipient.participantId,
-    );
-  const audience = await whatsappContactAudience(db, recipient.accountId);
-  const phone = normalizeAutoReplyPhone(recipient.participantId);
-  return (
-    audience.available &&
-    audience.syncId === settings.whatsappRecipients.confirmedContactSync &&
-    /^[1-9]\d{7,14}$/.test(phone) &&
-    !audience.phones.has(phone)
-  );
+  return (await recipientDecision(db, settings, recipient)) === "allowed";
 }

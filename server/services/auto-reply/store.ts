@@ -35,7 +35,7 @@ import {
   safetyDecision,
   unsupportedAcknowledgement,
 } from "./policy";
-import { isRecipientAllowed } from "./recipients";
+import { recipientDecision } from "./recipients";
 import type { InboundEvent, DeliveryReceipt } from "./events";
 
 type AutoReplyTransaction = Parameters<
@@ -216,8 +216,7 @@ export async function ingestEvents(batch: InboundEvent[]) {
       const requestedReason = event.humanEcho
         ? null
         : safetyDecision(event.text);
-      const pause =
-        event.humanEcho || unsupported || Boolean(requestedReason);
+      const pause = event.humanEcho || unsupported || Boolean(requestedReason);
       const staffReplyPause =
         current.status === "human" &&
         (current.humanReason === "external_staff_reply" ||
@@ -249,14 +248,18 @@ export async function ingestEvents(batch: InboundEvent[]) {
         config.handoffReopenHours > 0 &&
         now - current.lastActivityAt.getTime() >
           config.handoffReopenHours * 3600_000;
+      // Parked only because the contact list was not ready; every new message rechecks it.
+      const awaitingContacts =
+        current.status === "human" &&
+        current.humanReason === "contacts_unavailable";
       const reopenable =
         !event.humanEcho &&
-        ((staffReplyPause && staffPauseOver) || idleHandoff);
+        ((staffReplyPause && staffPauseOver) ||
+          idleHandoff ||
+          awaitingContacts);
       const resumeAutomation = !pause && reopenable && !stale;
       const acknowledge =
-        unsupported &&
-        !event.humanEcho &&
-        event.channel !== "facebook_comment";
+        unsupported && !event.humanEcho && event.channel !== "facebook_comment";
       if (stale && !pause) continue;
       const nextRevision = current.revision + 1;
       await tx
@@ -272,7 +275,10 @@ export async function ingestEvents(batch: InboundEvent[]) {
             ? {
                 status: "human",
                 humanReason: event.humanEcho
-                  ? current.status === "human" && !staffReplyPause
+                  ? current.status === "human" &&
+                    !staffReplyPause &&
+                    // A staff reply to a parked chat starts the normal staff-reply pause.
+                    !awaitingContacts
                     ? current.humanReason
                     : "external_staff_reply"
                   : (requestedReason ?? "unsupported_message"),
@@ -287,17 +293,40 @@ export async function ingestEvents(batch: InboundEvent[]) {
           and(
             eq(jobs.conversationId, conversationId),
             eq(jobs.kind, "auto"),
-            inArray(jobs.state, ["pending", "retry", "generating", "suggested"]),
+            inArray(jobs.state, [
+              "pending",
+              "retry",
+              "generating",
+              "suggested",
+            ]),
           ),
         );
-      if (
+      const eligible =
         !stale &&
         !event.humanEcho &&
         (!pause || Boolean(requestedReason) || acknowledge) &&
         (current.status === "open" || reopenable) &&
         config.sendingEnabled &&
-        isAutoReplyEnabled(config, event.channel, event.accountId) &&
-        (await isRecipientAllowed(tx, config, event)) &&
+        isAutoReplyEnabled(config, event.channel, event.accountId);
+      const recipient = eligible
+        ? await recipientDecision(tx, config, event)
+        : "excluded";
+      if (recipient === "unavailable" && !pause) {
+        // Staff must see the message; the bot cannot tell a customer from a saved contact.
+        await tx
+          .update(conversations)
+          .set({
+            status: "human",
+            humanReason: "contacts_unavailable",
+            handoffNotifiedAt: awaitingContacts
+              ? current.handoffNotifiedAt
+              : null,
+          })
+          .where(eq(conversations.id, conversationId));
+        continue;
+      }
+      if (
+        recipient === "allowed" &&
         !(await nestedCommentOutsideBotThread(tx, event))
       ) {
         const [recent] = await tx
