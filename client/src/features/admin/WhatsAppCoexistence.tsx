@@ -7,7 +7,7 @@ import {
   type SignupAssets,
 } from "./whatsapp-signup";
 
-const states: Record<string, string> = {
+export const states: Record<string, string> = {
   not_started: "لم يبدأ الربط",
   created: "المحاولة جاهزة لفتح نافذة Meta",
   exchanging: "جارٍ تبادل الكود",

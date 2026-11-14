@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,13 +20,25 @@ import {
   supportsGeminiSampling,
   settingsForTarget,
   isAutoReplyEnabled,
+  defaultAutoReplySettings,
+  handoffReopenPresets,
+  presetChoices,
+  presetCustomLabels,
+  presetLabel,
+  replyLengthPresets,
+  staffReplyPausePresets,
+  type SettingPreset,
+  knowledgeImportHeaders,
   type AutoReplyChannel,
   type AutoReplySettings,
 } from "../../../../shared/auto-reply";
 import type { inferRouterOutputs } from "@trpc/server";
 import type { autoReplyRouter } from "../../../../server/routers/autoReply";
 import "./AutoReply.css";
-import { WhatsAppCoexistence } from "./WhatsAppCoexistence";
+import {
+  WhatsAppCoexistence,
+  states as coexistenceStates,
+} from "./WhatsAppCoexistence";
 import AssistantModelSelect from "@/features/ai/AssistantModelSelect";
 
 function ChannelTabs({
@@ -301,7 +313,7 @@ function ChannelSelect({
   );
 }
 
-type ChannelTab = "inbox" | "reply" | "connect";
+type ChannelTab = "inbox" | "reply" | "connect" | "knowledge";
 type View =
   | { kind: "board" }
   | { kind: "conversations" }
@@ -380,12 +392,13 @@ export default function AutoReply() {
   });
   const go = (next: View) => {
     // الرد and الربط share one settings form, so moving between them keeps the draft.
+    const formTabs: ChannelTab[] = ["reply", "connect"];
     const keepsForm =
       view.kind === "channel" &&
       next.kind === "channel" &&
       view.scope === next.scope &&
-      view.tab !== "inbox" &&
-      next.tab !== "inbox";
+      formTabs.includes(view.tab) &&
+      formTabs.includes(next.tab);
     if (!keepsForm) {
       if (!canLeaveSettings()) return;
       setSettingsDirty(false);
@@ -520,6 +533,7 @@ export default function AutoReply() {
                       ["inbox", "المحادثات"],
                       ["reply", "الرد"],
                       ["connect", "الربط"],
+                      ["knowledge", "معلومات المركز"],
                     ] as [ChannelTab, string][]
                   ).map(([id, label]) => (
                     <button
@@ -547,36 +561,48 @@ export default function AutoReply() {
                     }
                   />
                 )}
-                {view.tab !== "inbox" && (
-                  <Settings
-                    key={`${view.scope}:${data.config.model}:${data.config.engine}`}
-                    data={data}
-                    scope={view.scope}
-                    onDirtyChange={setSettingsDirty}
-                    view={view.tab === "connect" ? "settings" : "reply"}
-                  />
-                )}
-                {view.tab === "reply" && (
-                  <Knowledge
-                    key={view.scope}
-                    pages={data.pages}
-                    scope={view.scope}
-                  />
+                {(view.tab === "reply" || view.tab === "connect") && (
+                  <div hidden={view.tab !== "reply"}>
+                    <Settings
+                      key={`${view.scope}:${data.config.model}:${data.config.engine}`}
+                      data={data}
+                      scope={view.scope}
+                      onDirtyChange={setSettingsDirty}
+                      onOpenKnowledge={() => go({ ...view, tab: "knowledge" })}
+                    />
+                  </div>
                 )}
                 {view.tab === "connect" && (
-                  <>
-                    <Metrics key={`m:${view.scope}`} scope={view.scope} />
-                    <Activity
-                      key={`a:${view.scope}`}
-                      pages={data.pages}
-                      scope={view.scope}
-                    />
-                  </>
+                  <Connection
+                    key={view.scope}
+                    data={data}
+                    scope={view.scope}
+                    onOpenInbox={() => go({ ...view, tab: "inbox" })}
+                  />
+                )}
+                {view.tab === "knowledge" && (
+                  <Knowledge
+                    key={view.scope}
+                    data={data}
+                    pages={data.pages}
+                    scope={view.scope}
+                    aside={
+                      <aside className="ar-try" aria-label="جرّب سؤال">
+                        <InternalTest
+                          compact
+                          scope={view.scope}
+                          pages={data.pages}
+                          activeEngine={data.config.engine}
+                          onPendingChange={setPreviewPending}
+                        />
+                      </aside>
+                    }
+                  />
                 )}
               </>
             )}
             {view.kind === "shared" && view.part === "knowledge" && (
-              <Knowledge pages={data.pages} scope="all" />
+              <Knowledge data={data} pages={data.pages} scope="all" />
             )}
             {view.kind === "shared" && view.part === "settings" && (
               <>
@@ -593,7 +619,6 @@ export default function AutoReply() {
                   data={data}
                   scope="all"
                   onDirtyChange={setSettingsDirty}
-                  view="reply"
                 />
               </>
             )}
@@ -1560,10 +1585,107 @@ function Conversation({
 }
 
 type KnowledgeRow = AutoReplyOutputs["teaching"][number];
-function Knowledge({ pages, scope }: { pages: FacebookPages; scope: string }) {
+const knowledgeTargets = (targetPage: string | null, pages: FacebookPages) =>
+  !targetPage || targetPage === "all"
+    ? "الكل"
+    : targetPage === "whatsapp"
+      ? "واتساب"
+      : targetPage === "facebook"
+        ? "الصفحتان فقط"
+        : targetPage
+            .split(",")
+            .map((target) =>
+              target === "whatsapp" ? "واتساب" : pageLabel(target, pages),
+            )
+            .join("، ");
+function Switch({
+  checked,
+  label,
+  disabled,
+  onChange,
+}: {
+  checked: boolean;
+  label: string;
+  disabled?: boolean;
+  onChange: (checked: boolean) => void;
+}) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      className="ar-switch"
+      aria-checked={checked}
+      aria-label={label}
+      disabled={disabled}
+      onClick={() => onChange(!checked)}
+    />
+  );
+}
+type KnowledgeItem =
+  | { key: string; store: "style"; title: string; text: string }
+  | {
+      key: string;
+      store: "rule";
+      index: number;
+      title: string;
+      text: string;
+      enabled: boolean;
+      targetPage: string;
+    }
+  | { key: string; store: "info"; row: KnowledgeRow }
+  | {
+      key: string;
+      store: "legacy";
+      row: AutoReplyOutputs["legacyKnowledge"]["rows"][number];
+    };
+// Instructions have no title field, so a rule's first line is its title.
+const splitRule = (text: string) => {
+  const [first, ...rest] = text.split("\n");
+  return { title: first.trim(), text: rest.join("\n").trim() };
+};
+const joinRule = (title: string, text: string) =>
+  text.trim() ? `${title.trim()}\n${text.trim()}` : title.trim();
+const scopedStyle = (config: AutoReplySettings, scope: string) =>
+  scope === "all"
+    ? config.style
+    : settingsForTarget(
+        config,
+        scope === "whatsapp" ? "whatsapp" : "messenger",
+        scope,
+      ).style;
+const withStyle = (
+  config: AutoReplySettings,
+  scope: string,
+  style: string,
+): AutoReplySettings =>
+  scope === "all"
+    ? { ...config, style }
+    : {
+        ...config,
+        targets: {
+          ...config.targets,
+          [scope]: { ...config.targets[scope], style },
+        },
+      };
+const ruleTooLong =
+  "النص أطول من 1000 حرف، فما ينفعش يتطبق في كل رد. اقفل «يتطبق في كل رد» أو قصّره.";
+function Knowledge({
+  data,
+  pages,
+  scope,
+  aside,
+}: {
+  data: SettingsData;
+  pages: FacebookPages;
+  scope: string;
+  aside?: ReactNode;
+}) {
   const target = scope;
+  const config = parsedConfig(data);
   const query = trpc.autoReply.teaching.useQuery();
-  const [editing, setEditing] = useState<KnowledgeRow | "new" | null>(null);
+  const legacy = trpc.autoReply.legacyKnowledge.useQuery();
+  const [editing, setEditing] = useState<KnowledgeItem | "new" | null>(null);
+  const [importing, setImporting] = useState(false);
   const [search, setSearch] = useState("");
   const [contentStatus, setContentStatus] = useState("all");
   const utils = trpc.useUtils();
@@ -1578,331 +1700,816 @@ function Knowledge({ pages, scope }: { pages: FacebookPages; scope: string }) {
     },
     onError: (error) => toast.error(error.message),
   });
-  const remove = trpc.autoReply.deleteTeaching.useMutation({
-    onSuccess: () => utils.autoReply.teaching.invalidate(),
-    onError: (e) => toast.error(e.message),
-  });
-  return (
-    <section className="ar-panel ar-teaching">
-      <div className="ar-section-heading">
-        <div>
-          <h2>Teach AI</h2>
-          <p className="ar-muted">
-            مكتبة المعلومات التي يعتمد عليها المساعد في الرد.
-          </p>
-        </div>
-        <Button
-          onClick={() => {
-            setWebsiteDraft(null);
-            setEditing("new");
-          }}
-        >
-          إضافة نص للتعليم
-        </Button>
-      </div>
-      <p>
-        {scope === "all"
-          ? "المحتوى المشترك يُستخدم في الجهات المحددة له. تقدر تختار أكثر من جهة لكل نص."
-          : "هنا المحتوى الخاص بهذه الجهة. المساعد يستخدمه مع المحتوى المشترك المفعّل لها."}
-      </p>
-      {editing !== null && (
-        <Dialog
-          open
-          onOpenChange={(open) => {
-            if (!open) setEditing(null);
-          }}
-        >
-          <DialogContent
-            dir="rtl"
-            className="auto-reply ar-teach-dialog"
-            onInteractOutside={(event) => event.preventDefault()}
-          >
-            <DialogHeader>
-              <DialogTitle>
-                {editing === "new"
-                  ? "إضافة محتوى إلى Teach AI"
-                  : "تعديل محتوى Teach AI"}
-              </DialogTitle>
-              <DialogDescription>
-                اكتب النص كما تريد أن يفهمه المساعد، ثم حدد أين يُستخدم.
-              </DialogDescription>
-            </DialogHeader>
-            <KnowledgeEditor
-              key={editing === "new" ? "new" : editing.id}
-              row={editing === "new" ? undefined : editing}
-              pages={pages}
-              websiteDraft={websiteDraft}
-              target={target}
-              close={() => setEditing(null)}
-            />
-          </DialogContent>
-        </Dialog>
-      )}
-      <details>
-        <summary>المواقع كمصدر للمعلومات</summary>
-        <p>
-          أضف رابط صفحة عامة، راجع النص المستخرج ثم احفظه. صفحات تسجيل الدخول
-          والمحتوى الخاص لا تُقرأ.
-        </p>
-        <form
-          className="ar-toolbar"
-          onSubmit={(event) => {
-            event.preventDefault();
-            website.mutate({ url: websiteUrl });
-          }}
-        >
-          <Field label="رابط الموقع">
-            <Input
-              type="url"
-              dir="ltr"
-              required
-              value={websiteUrl}
-              onChange={(event) => setWebsiteUrl(event.target.value)}
-              placeholder="https://example.com/about"
-              maxLength={2048}
-            />
-          </Field>
-          <Button disabled={website.isPending}>
-            {website.isPending ? "جارٍ قراءة الموقع…" : "قراءة ومعاينة الموقع"}
-          </Button>
-        </form>
-      </details>
-      <div className="ar-library-filters">
-        <Field label="بحث في Teach AI">
-          <Input value={search} onChange={(e) => setSearch(e.target.value)} />
-        </Field>
-        <Field label="حالة المحتوى">
-          <select
-            className="ar-select"
-            value={contentStatus}
-            onChange={(event) => setContentStatus(event.target.value)}
-          >
-            <option value="all">كل النصوص ({query.data?.length ?? 0})</option>
-            <option value="active">المفعّلة</option>
-            <option value="paused">المتوقفة</option>
-          </select>
-        </Field>
-      </div>
-      {query.isLoading && <p role="status">جارٍ تحميل محتوى Teach AI…</p>}
-      {query.error && (
-        <ErrorState
-          message={query.error.message}
-          retry={() => void query.refetch()}
-        />
-      )}
-      {query.data?.length === 0 && (
-        <p>
-          لم تضف نصوصًا بعد. اضغط «إضافة نص للتعليم» واكتب المعلومات التي تريد
-          أن يرد منها المساعد.
-        </p>
-      )}
-      <div className="ar-knowledge-list">
-        {query.data
-          ?.filter(
-            (k) =>
-              belongsToTarget(k.targetPage, target) &&
-              `${k.title} ${k.content}`.includes(search) &&
-              (contentStatus === "all" ||
-                (contentStatus === "active" ? k.approved : !k.approved)),
-          )
-          .map((k) => (
-            <article key={k.id} className="ar-knowledge-row ar-teaching-card">
-              <div>
-                <strong>{k.title}</strong>
-                <p className="ar-content-status">
-                  {k.kind === "website" ? "محتوى موقع" : "نص تعليمي"} ·{" "}
-                  {k.approved ? "مفعّل" : "متوقف"}
-                </p>
-                <p className="ar-prewrap">
-                  {k.content.length > 350
-                    ? `${k.content.slice(0, 350)}…`
-                    : k.content}
-                </p>
-                <p>
-                  يُستخدم في:{" "}
-                  {!k.targetPage || k.targetPage === "all"
-                    ? "الكل"
-                    : k.targetPage === "whatsapp"
-                      ? "واتساب"
-                      : k.targetPage === "facebook"
-                        ? "الصفحتان فقط"
-                        : k.targetPage
-                            .split(",")
-                            .map((target) =>
-                              target === "whatsapp"
-                                ? "واتساب"
-                                : pageLabel(target, pages),
-                            )
-                            .join("، ")}
-                </p>
-                <small>
-                  {k.sourceUrl && (
-                    <>
-                      <bdi>{k.sourceUrl}</bdi> ·{" "}
-                    </>
-                  )}
-                  آخر تعديل: {time(k.updatedAt)}
-                </small>
-              </div>
-              <div className="ar-toolbar">
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setWebsiteDraft(null);
-                    setEditing(k);
-                  }}
-                >
-                  فتح وتعديل
-                </Button>
-                <Button
-                  variant="outline"
-                  disabled={remove.isPending}
-                  onClick={() => {
-                    if (window.confirm(`حذف «${k.title}» من Teach AI؟`))
-                      remove.mutate(k.id);
-                  }}
-                >
-                  حذف
-                </Button>
-              </div>
-            </article>
-          ))}
-      </div>
-      {!!query.data?.length &&
-        !query.data.some(
-          (k) =>
-            belongsToTarget(k.targetPage, target) &&
-            `${k.title} ${k.content}`.includes(search) &&
-            (contentStatus === "all" ||
-              (contentStatus === "active" ? k.approved : !k.approved)),
-        ) && (
-          <p role="status" className="ar-notice">
-            لا توجد نصوص مطابقة. غيّر البحث أو حالة المحتوى.
-          </p>
-        )}
-    </section>
-  );
-}
-function KnowledgeEditor({
-  row,
-  close,
-  pages,
-  websiteDraft,
-  target,
-}: {
-  row?: KnowledgeRow;
-  close: () => void;
-  pages: FacebookPages;
-  websiteDraft: AutoReplyOutputs["previewWebsite"] | null;
-  target: string;
-}) {
-  const [targetPage, setTargetPage] = useState(row?.targetPage ?? target);
-  const [title, setTitle] = useState(row?.title ?? websiteDraft?.title ?? "");
-  const [content, setContent] = useState(
-    row?.content ?? websiteDraft?.content ?? "",
-  );
-  const [approved, setApproved] = useState(row?.approved ?? !websiteDraft);
-  const utils = trpc.useUtils();
-  const save = trpc.autoReply.saveTeaching.useMutation({
+  const toggle = trpc.autoReply.saveTeaching.useMutation({
     onSuccess: async () => {
       await utils.autoReply.teaching.invalidate();
       await utils.autoReply.settings.invalidate();
-      close();
-      toast.success("حُفظ محتوى Teach AI");
     },
-    onError: (e) => toast.error(e.message),
+    onError: (e) => toast.error(`ما اتغيرتش حالة المعلومة: ${e.message}`),
   });
+  const saveSettings = trpc.autoReply.saveSettings.useMutation();
+  const [ruleBusy, setRuleBusy] = useState(false);
+  const toggleRule = async (index: number, enabled: boolean) => {
+    setRuleBusy(true);
+    try {
+      const fresh = parsedConfig(await utils.autoReply.settings.fetch());
+      await saveSettings.mutateAsync({
+        ...fresh,
+        instructions: fresh.instructions.map((item, i) =>
+          i === index ? { ...item, enabled } : item,
+        ),
+      });
+      await utils.autoReply.invalidate();
+    } catch (error) {
+      toast.error(`ما اتغيرتش حالة القاعدة: ${(error as Error).message}`);
+    } finally {
+      setRuleBusy(false);
+    }
+  };
+  const mode = legacy.data?.mode ?? config.knowledgeMode;
+  const items: KnowledgeItem[] = [
+    {
+      key: "style",
+      store: "style",
+      title: "أسلوب الرد",
+      text: scopedStyle(config, scope),
+    },
+    ...config.instructions.flatMap((instruction, index) =>
+      belongsToTarget(instruction.targetPage, target)
+        ? [
+            {
+              key: `rule:${index}`,
+              store: "rule" as const,
+              index,
+              ...splitRule(instruction.text),
+              enabled: instruction.enabled,
+              targetPage: instruction.targetPage ?? "all",
+            },
+          ]
+        : [],
+    ),
+    ...(query.data ?? [])
+      .filter((row) => belongsToTarget(row.targetPage, target))
+      .map((row) => ({ key: `info:${row.id}`, store: "info" as const, row })),
+    ...(legacy.data?.rows ?? [])
+      .filter((row) => belongsToTarget(row.targetPage, target))
+      .map((row) => ({
+        key: `legacy:${row.id}`,
+        store: "legacy" as const,
+        row,
+      })),
+  ];
+  const view = (item: KnowledgeItem) => {
+    if (item.store === "style")
+      return {
+        title: item.title,
+        text: item.text,
+        every: true,
+        enabled: !!item.text.trim(),
+        reach: item.text.trim()
+          ? "بيتبعت مع كل رد"
+          : "فاضي، مفيش أسلوب بيتبعت",
+        reaches: !!item.text.trim(),
+        target: scope,
+      };
+    if (item.store === "rule")
+      return {
+        title: item.title,
+        text: item.text,
+        every: true,
+        enabled: item.enabled,
+        reach: item.enabled ? "بيتبعت مع كل رد" : "متوقفة، مش بتوصل للبوت",
+        reaches: item.enabled,
+        target: item.targetPage,
+      };
+    const row = item.row;
+    const oldKind = item.store === "legacy" && mode === "teach_ai";
+    return {
+      title: row.title,
+      text: row.content,
+      every: false,
+      enabled: row.approved,
+      reach: oldKind
+        ? `مش بتوصل للبوت: نوع قديم («${row.kind}») والمركز شغّال على وضع Teach AI، فالنوع ده مش بيتبعت. تغيير الوضع محتاج المبرمج.`
+        : !row.approved
+          ? "متوقفة، مش بتوصل للبوت"
+          : "بتوصل للبوت لما السؤال يخصها",
+      reaches: !oldKind && row.approved,
+      target: row.targetPage ?? "all",
+    };
+  };
+  const rows = items.filter((item) => {
+    const v = view(item);
+    return (
+      `${v.title} ${v.text}`.includes(search) &&
+      (contentStatus === "all" ||
+        (contentStatus === "active"
+          ? v.enabled
+          : contentStatus === "paused"
+            ? !v.enabled
+            : !v.reaches))
+    );
+  });
+  const blocked = items.filter((item) => !view(item).reaches).length;
   return (
-    <form
-      className="ar-editor"
-      onSubmit={(e) => {
-        e.preventDefault();
-        save.mutate({
+    <div className={aside ? "ar-know" : undefined}>
+      <section className="ar-panel ar-teaching" aria-labelledby="ar-know-title">
+        <h2 id="ar-know-title">اللي البوت يعرفه</h2>
+        <p className="ar-muted">
+          لو لازم يتطبق في كل رد فهو قاعدة؛ لو حاجة العملاء بيسألوا عنها فهو
+          معلومة.
+        </p>
+        <div className="ar-know-bar">
+          <Input
+            type="search"
+            aria-label="دوّر في اللي البوت يعرفه"
+            placeholder="دوّر"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+          <select
+            className="ar-select"
+            aria-label="الحالة"
+            value={contentStatus}
+            onChange={(event) => setContentStatus(event.target.value)}
+          >
+            <option value="all">الكل ({count(items.length)})</option>
+            <option value="active">المفعّلة</option>
+            <option value="paused">المتوقفة</option>
+            <option value="blocked">مش بتوصل للبوت ({count(blocked)})</option>
+          </select>
+          <Button
+            onClick={() => {
+              setWebsiteDraft(null);
+              setEditing("new");
+            }}
+          >
+            إضافة
+          </Button>
+          <Button variant="outline" onClick={() => setImporting(true)}>
+            استيراد من ملف
+          </Button>
+        </div>
+        {editing !== null && (
+          <Dialog
+            open
+            onOpenChange={(open) => {
+              if (!open) setEditing(null);
+            }}
+          >
+            <DialogContent
+              dir="rtl"
+              className="auto-reply ar-teach-dialog"
+              onInteractOutside={(event) => event.preventDefault()}
+            >
+              <DialogHeader>
+                <DialogTitle>{editing === "new" ? "إضافة" : "تعديل"}</DialogTitle>
+                <DialogDescription>
+                  القاعدة بتتبعت مع كل رد، لحد 1000 حرف. المعلومة بتتبعت لما
+                  السؤال يخصها، لحد 30000 حرف.
+                </DialogDescription>
+              </DialogHeader>
+              <KnowledgeEditor
+                key={editing === "new" ? "new" : editing.key}
+                item={editing === "new" ? undefined : editing}
+                pages={pages}
+                scope={scope}
+                websiteDraft={websiteDraft}
+                close={() => setEditing(null)}
+              />
+            </DialogContent>
+          </Dialog>
+        )}
+        {importing && (
+          <ImportDialog pages={pages} close={() => setImporting(false)} />
+        )}
+        {(query.isLoading || legacy.isLoading) && (
+          <p role="status">جارٍ تحميل المعلومات…</p>
+        )}
+        {query.error && (
+          <ErrorState
+            message={`تعذر تحميل المعلومات: ${query.error.message}`}
+            retry={() => void query.refetch()}
+          />
+        )}
+        {legacy.error && (
+          <ErrorState
+            message={`تعذر تحميل المعلومات القديمة: ${legacy.error.message}`}
+            retry={() => void legacy.refetch()}
+          />
+        )}
+        <ul className="ar-entries">
+          {rows.map((item) => {
+            const v = view(item);
+            return (
+              <li key={item.key} className="ar-entry" data-reaches={v.reaches}>
+                <div>
+                  <h3>{v.title || "من غير عنوان"}</h3>
+                  <p className="ar-muted ar-entry-line" dir="auto">
+                    {v.text.split("\n").find((line) => line.trim()) ??
+                      (item.store === "style" ? "فاضي" : "")}
+                  </p>
+                  <p className="ar-entry-meta">
+                    {v.every ? "يتطبق في كل رد" : "معلومة"} · بتتستخدم في:{" "}
+                    {knowledgeTargets(v.target, pages)}
+                  </p>
+                  <p
+                    className={
+                      v.reaches ? "ar-entry-meta" : "ar-entry-meta ar-blocked"
+                    }
+                  >
+                    {v.reach}
+                  </p>
+                </div>
+                {(item.store === "rule" || item.store === "info") && (
+                  <Switch
+                    checked={v.enabled}
+                    label={`تفعيل «${v.title}»`}
+                    disabled={
+                      item.store === "rule"
+                        ? ruleBusy
+                        : toggle.isPending &&
+                          toggle.variables?.id === item.row.id
+                    }
+                    onChange={(enabled) =>
+                      item.store === "rule"
+                        ? void toggleRule(item.index, enabled)
+                        : toggle.mutate({
+                            id: item.row.id,
+                            title: item.row.title,
+                            content: item.row.content,
+                            targetPage: item.row.targetPage ?? "all",
+                            sourceUrl: item.row.sourceUrl ?? undefined,
+                            enabled,
+                          })
+                    }
+                  />
+                )}
+                {item.store !== "legacy" && (
+                  <Button
+                    variant="outline"
+                    aria-label={`تعديل «${v.title}»`}
+                    onClick={() => {
+                      setWebsiteDraft(null);
+                      setEditing(item);
+                    }}
+                  >
+                    تعديل
+                  </Button>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+        {items.length > 1 && rows.length === 0 && (
+          <p role="status" className="ar-notice">
+            مفيش حاجة مطابقة. غيّر البحث أو الحالة.
+          </p>
+        )}
+        <details className="ar-disclosure">
+          <summary>مواقع البوت يقرا منها</summary>
+          <p>
+            أضف رابط صفحة عامة، راجع النص المستخرج ثم احفظه. صفحات تسجيل الدخول
+            والمحتوى الخاص لا تُقرأ.
+          </p>
+          <form
+            className="ar-toolbar"
+            onSubmit={(event) => {
+              event.preventDefault();
+              website.mutate({ url: websiteUrl });
+            }}
+          >
+            <Field label="رابط الموقع">
+              <Input
+                type="url"
+                dir="ltr"
+                required
+                value={websiteUrl}
+                onChange={(event) => setWebsiteUrl(event.target.value)}
+                placeholder="https://example.com/about"
+                maxLength={2048}
+              />
+            </Field>
+            <Button disabled={website.isPending}>
+              {website.isPending
+                ? "جارٍ قراءة الموقع…"
+                : "قراءة ومعاينة الموقع"}
+            </Button>
+          </form>
+        </details>
+      </section>
+      {aside}
+    </div>
+  );
+}
+function KnowledgeEditor({
+  item,
+  close,
+  pages,
+  scope,
+  websiteDraft,
+}: {
+  item?: KnowledgeItem;
+  close: () => void;
+  pages: FacebookPages;
+  scope: string;
+  websiteDraft: AutoReplyOutputs["previewWebsite"] | null;
+}) {
+  const row = item?.store === "info" ? item.row : undefined;
+  const isStyle = item?.store === "style";
+  const [targetPage, setTargetPage] = useState(
+    item?.store === "rule" ? item.targetPage : (row?.targetPage ?? scope),
+  );
+  const [title, setTitle] = useState(
+    item?.store === "rule"
+      ? item.title
+      : (row?.title ?? websiteDraft?.title ?? ""),
+  );
+  const [content, setContent] = useState(
+    item?.store === "rule" || item?.store === "style"
+      ? item.text
+      : (row?.content ?? websiteDraft?.content ?? ""),
+  );
+  const [every, setEvery] = useState(
+    item?.store === "rule" || isStyle,
+  );
+  const [approved, setApproved] = useState(
+    item?.store === "rule"
+      ? item.enabled
+      : (row?.approved ?? !websiteDraft),
+  );
+  const [busy, setBusy] = useState(false);
+  const utils = trpc.useUtils();
+  const saveTeaching = trpc.autoReply.saveTeaching.useMutation();
+  const deleteTeaching = trpc.autoReply.deleteTeaching.useMutation();
+  const saveSettings = trpc.autoReply.saveSettings.useMutation();
+  const composed = joinRule(title || content.split("\n")[0] || "", title ? content : content.split("\n").slice(1).join("\n"));
+  const limit = isStyle ? 3000 : every ? 1000 : 30000;
+  const length = isStyle ? content.length : every ? composed.length : content.length;
+  const tooLong = length > limit;
+  const editConfig = async (
+    change: (config: AutoReplySettings) => AutoReplySettings,
+  ) => {
+    const fresh = parsedConfig(await utils.autoReply.settings.fetch());
+    const next = autoReplySettingsSchema.safeParse(change(fresh));
+    if (!next.success) throw new Error(next.error.issues[0].message);
+    await saveSettings.mutateAsync(next.data);
+  };
+  const submit = async () => {
+    if (tooLong) {
+      toast.error(isStyle ? "أسلوب الرد لحد 3000 حرف." : every ? ruleTooLong : "النص لحد 30000 حرف.");
+      return;
+    }
+    setBusy(true);
+    try {
+      if (isStyle) {
+        await editConfig((c) => withStyle(c, scope, content.trim()));
+      } else if (every) {
+        const rule = { text: composed, enabled: approved, targetPage };
+        await editConfig((c) => ({
+          ...c,
+          instructions:
+            item?.store === "rule"
+              ? c.instructions.map((r, i) => (i === item.index ? rule : r))
+              : [...c.instructions, rule],
+        }));
+        // Moved from information: the new rule is saved before the entry is removed.
+        if (row) await deleteTeaching.mutateAsync(row.id);
+      } else {
+        await saveTeaching.mutateAsync({
           id: row?.id,
-          title: title.trim() || content.trim().split("\n")[0].slice(0, 100),
+          title: (title.trim() || content.trim().split("\n")[0]).slice(0, 255),
           content,
           enabled: approved,
           sourceUrl: row?.sourceUrl ?? websiteDraft?.url,
           targetPage,
         });
+        if (item?.store === "rule")
+          await editConfig((c) => ({
+            ...c,
+            instructions: c.instructions.filter((_, i) => i !== item.index),
+          }));
+      }
+      await utils.autoReply.invalidate();
+      toast.success("اتحفظ");
+      close();
+    } catch (error) {
+      toast.error((error as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  };
+  const remove = async () => {
+    if (!item || isStyle) return;
+    if (!window.confirm(`حذف «${title || "من غير عنوان"}» نهائيًا؟`)) return;
+    setBusy(true);
+    try {
+      if (item.store === "rule")
+        await editConfig((c) => ({
+          ...c,
+          instructions: c.instructions.filter((_, i) => i !== item.index),
+        }));
+      else if (row) await deleteTeaching.mutateAsync(row.id);
+      await utils.autoReply.invalidate();
+      close();
+    } catch (error) {
+      toast.error((error as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <form
+      className="ar-editor"
+      onSubmit={(e) => {
+        e.preventDefault();
+        void submit();
       }}
     >
-      <ReplyTargetSelect
-        value={targetPage}
-        onChange={setTargetPage}
-        pages={pages}
-        disabled={save.isPending}
-      />
-      <Field label="اسم المحتوى (اختياري)">
-        <Input
-          value={title}
-          maxLength={255}
-          onChange={(e) => setTitle(e.target.value)}
-        />
-      </Field>
-      <Field label="النص الذي يتعلم منه المساعد">
+      {!isStyle && (
+        <>
+          <Check
+            label="يتطبق في كل رد"
+            checked={every}
+            disabled={busy}
+            onChange={setEvery}
+          />
+          <ReplyTargetSelect
+            value={targetPage}
+            onChange={setTargetPage}
+            pages={pages}
+            disabled={busy}
+          />
+          <Field label="العنوان">
+            <Input
+              value={title}
+              maxLength={255}
+              onChange={(e) => setTitle(e.target.value)}
+            />
+          </Field>
+        </>
+      )}
+      <Field label={isStyle ? "أسلوب الرد" : "النص"}>
         <Textarea
-          aria-label="النص الذي يتعلم منه المساعد"
+          aria-label={isStyle ? "أسلوب الرد" : "النص"}
           value={content}
-          maxLength={30000}
-          required
-          rows={12}
+          maxLength={isStyle ? 3000 : 30000}
+          required={!isStyle}
+          rows={isStyle ? 6 : 12}
           onChange={(e) => setContent(e.target.value)}
         />
       </Field>
-      <p>
-        {content.length.toLocaleString("ar-EG")} / ٣٠٬٠٠٠ حرف. اكتب الخدمات
-        والأسعار والمواعيد وأمثلة لطريقة الرد في نفس النص.
+      <p role={tooLong ? "alert" : undefined} className={tooLong ? "ar-blocked" : undefined}>
+        {length.toLocaleString("ar-EG")} / {limit.toLocaleString("ar-EG")} حرف
+        {every && !isStyle && " (مع العنوان)"}.{" "}
+        {tooLong && !isStyle && every && ruleTooLong}
       </p>
+      {every && !isStyle && row?.sourceUrl && (
+        <p className="ar-muted">رابط الموقع مش بيتحفظ مع القواعد.</p>
+      )}
       {websiteDraft?.truncated && (
         <p role="status">
           النص المستخرج طويل؛ تعرض المعاينة أول ٣٠٬٠٠٠ حرف. راجعه قبل التفعيل.
         </p>
       )}
-      <Check
-        label="استخدام هذا المحتوى في الردود"
-        checked={approved}
-        onChange={setApproved}
-      />
+      {!isStyle && (
+        <Check label="مفعّل" checked={approved} disabled={busy} onChange={setApproved} />
+      )}
       <div className="ar-toolbar">
-        <Button disabled={save.isPending || !content.trim() || !targetPage}>
-          حفظ المحتوى
+        <Button disabled={busy || tooLong || (!isStyle && !content.trim()) || !targetPage}>
+          {busy ? "جارٍ الحفظ…" : "حفظ"}
         </Button>
         <Button type="button" variant="outline" onClick={close}>
           إلغاء
         </Button>
+        {item && !isStyle && (
+          <Button
+            type="button"
+            variant="outline"
+            className="ar-danger"
+            disabled={busy}
+            onClick={() => void remove()}
+          >
+            حذف
+          </Button>
+        )}
       </div>
     </form>
   );
 }
-
+function ImportDialog({
+  close,
+}: {
+  pages: FacebookPages;
+  close: () => void;
+}) {
+  const [file, setFile] = useState<{ fileName: string; data: string } | null>(
+    null,
+  );
+  const [readError, setReadError] = useState("");
+  const utils = trpc.useUtils();
+  const preview = trpc.autoReply.importKnowledge.useMutation();
+  const commit = trpc.autoReply.importKnowledge.useMutation({
+    onSuccess: async (result) => {
+      await utils.autoReply.invalidate();
+      toast.success(
+        `اتضاف ${count(result.knowledge)} معلومة و${count(result.instructions)} قاعدة`,
+      );
+      close();
+    },
+    onError: (e) => toast.error(e.message),
+  });
+  const template = () => {
+    const blob = new Blob([`﻿${knowledgeImportHeaders.join(",")}\n`], {
+      type: "text/csv;charset=utf-8",
+    });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "bot-knowledge-template.csv";
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+  const result = preview.data;
+  const adds = result ? result.knowledge + result.instructions : 0;
+  return (
+    <Dialog open onOpenChange={(open) => !open && close()}>
+      <DialogContent dir="rtl" className="auto-reply ar-teach-dialog">
+        <DialogHeader>
+          <DialogTitle>استيراد من ملف</DialogTitle>
+          <DialogDescription>
+            CSV بترميز UTF-8 أو xlsx، لحد 2 ميجا و500 صف. الاستيراد بيضيف بس:
+            مش بيمسح ولا بيغيّر حاجة موجودة.
+          </DialogDescription>
+        </DialogHeader>
+        <p>
+          الأعمدة بالترتيب، وأول صف هو العناوين:{" "}
+          {knowledgeImportHeaders.join("، ")}. «يتطبق في كل رد» و«مفعّل»: نعم أو
+          لا. القناة: الكل أو واتساب أو صفحة المركز أو صفحة العيادة، وتقدر تجمع
+          بـ « + » زي «واتساب + صفحة المركز».
+        </p>
+        <Button type="button" variant="outline" onClick={template}>
+          تنزيل ملف فاضي بالعناوين
+        </Button>
+        <Field label="الملف">
+          <Input
+            type="file"
+            accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            onChange={(event) => {
+              const picked = event.target.files?.[0];
+              preview.reset();
+              setFile(null);
+              setReadError("");
+              if (!picked) return;
+              if (picked.size > 2_000_000) {
+                setReadError("الملف أكبر من 2 ميجا.");
+                return;
+              }
+              const reader = new FileReader();
+              reader.onload = () => {
+                const data = String(reader.result).split(",")[1] ?? "";
+                const next = { fileName: picked.name, data };
+                setFile(next);
+                preview.mutate({ ...next, confirm: false });
+              };
+              reader.onerror = () => setReadError("تعذر قراءة الملف من الجهاز.");
+              reader.readAsDataURL(picked);
+            }}
+          />
+        </Field>
+        {readError && <p role="alert">{readError}</p>}
+        {preview.isPending && <p role="status">جارٍ مراجعة الملف…</p>}
+        {preview.error && (
+          <ErrorState message={`الملف ما اتقبلش: ${preview.error.message}`} />
+        )}
+        {result && (
+          <div role="status">
+            <p>
+              هيتضاف {count(result.knowledge)} معلومة و
+              {count(result.instructions)} قاعدة في كل رد.
+            </p>
+            {result.skipped.length > 0 && (
+              <>
+                <h3>صفوف متسابة لأنها موجودة ({count(result.skipped.length)})</h3>
+                <ul className="ar-sources">
+                  {result.skipped.map((r) => (
+                    <li key={r.row}>
+                      صف {count(r.row)}: {r.reason}
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )}
+            {result.rejected.length > 0 && (
+              <>
+                <h3>صفوف مرفوضة ({count(result.rejected.length)})</h3>
+                <ul className="ar-sources">
+                  {result.rejected.map((r) => (
+                    <li key={r.row}>
+                      صف {count(r.row)}: {r.reason}
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )}
+          </div>
+        )}
+        <div className="ar-toolbar">
+          <Button
+            disabled={!file || !result || adds === 0 || commit.isPending}
+            onClick={() => file && commit.mutate({ ...file, confirm: true })}
+          >
+            {commit.isPending ? "جارٍ الحفظ…" : `أكّد وأضف ${count(adds)}`}
+          </Button>
+          <Button type="button" variant="outline" onClick={close}>
+            إلغاء
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+function unsavedText(changes: number) {
+  if (changes === 0) return "كل التعديلات محفوظة";
+  if (changes === 1) return "عندك تعديل واحد لم يُحفظ";
+  if (changes === 2) return "عندك تعديلان لم يُحفظا";
+  if (changes <= 10) return `عندك ${count(changes)} تعديلات لم تُحفظ`;
+  return `عندك ${count(changes)} تعديلًا لم يُحفظ`;
+}
+// Counts the settings that differ as this screen shows them, not raw JSON keys.
+function changeCount(
+  saved: AutoReplySettings,
+  draft: AutoReplySettings,
+  scope: string,
+  recipientsChanged: boolean,
+) {
+  const shown = (config: AutoReplySettings) =>
+    scope === "all"
+      ? config
+      : settingsForTarget(
+          config,
+          scope === "whatsapp" ? "whatsapp" : "messenger",
+          scope,
+        );
+  const before = shown(saved);
+  const after = shown(draft);
+  return (
+    (Object.keys(after) as (keyof AutoReplySettings)[]).filter(
+      (key) =>
+        key !== "targets" &&
+        key !== "whatsappRecipients" &&
+        JSON.stringify(before[key]) !== JSON.stringify(after[key]),
+    ).length + (recipientsChanged ? 1 : 0)
+  );
+}
+function Question({
+  title,
+  summary,
+  open,
+  advanced = false,
+  onToggle,
+  children,
+}: {
+  title: string;
+  summary: string;
+  open: boolean;
+  advanced?: boolean;
+  onToggle: () => void;
+  children: ReactNode;
+}) {
+  const id = useId();
+  return (
+    <div className={advanced ? "ar-q ar-q-advanced" : "ar-q"}>
+      <h2>
+        <button
+          type="button"
+          className="ar-q-head"
+          aria-expanded={open}
+          aria-controls={id}
+          onClick={onToggle}
+        >
+          <span className="ar-q-title">{title}</span>
+          <span className="ar-q-now">{summary}</span>
+          <span className="ar-q-edit" aria-hidden="true">
+            {open ? "قفل" : advanced ? "فتح" : "تعديل"}
+          </span>
+        </button>
+      </h2>
+      <div id={id} className="ar-q-body" hidden={!open}>
+        {children}
+      </div>
+    </div>
+  );
+}
+function Row({
+  title,
+  help,
+  stack = false,
+  children,
+}: {
+  title: string;
+  help?: ReactNode;
+  stack?: boolean;
+  children: ReactNode;
+}) {
+  const id = useId();
+  return (
+    <div className={stack ? "ar-row ar-row-stack" : "ar-row"}>
+      <div>
+        <h3 id={id}>{title}</h3>
+        {help && <p className="ar-muted">{help}</p>}
+      </div>
+      <div className="ar-row-control" role="group" aria-labelledby={id}>
+        {children}
+      </div>
+    </div>
+  );
+}
+function PresetSelect({
+  label,
+  value,
+  presets,
+  custom,
+  onChange,
+}: {
+  label: string;
+  value: number;
+  presets: readonly SettingPreset[];
+  custom: (value: number) => string;
+  onChange: (value: number) => void;
+}) {
+  return (
+    <select
+      className="ar-select"
+      aria-label={label}
+      value={value}
+      onChange={(e) => onChange(Number(e.target.value))}
+    >
+      {presetChoices(presets, value, custom).map((choice) => (
+        <option key={choice.value} value={choice.value}>
+          {choice.label}
+        </option>
+      ))}
+    </select>
+  );
+}
+const recipientModes = [
+  ["all", "الكل"],
+  ["except_contacts", "الكل ما عدا جهات اتصال الموبايل"],
+  ["include", "أرقام محددة فقط"],
+  ["exclude", "الكل ما عدا أرقام محددة"],
+] as const;
+const splitPhones = (draft: string) =>
+  draft
+    .split(/[\n,،;؛]+/)
+    .map((phone) => phone.trim())
+    .filter(Boolean);
+const days = [
+  "الأحد",
+  "الاثنين",
+  "الثلاثاء",
+  "الأربعاء",
+  "الخميس",
+  "الجمعة",
+  "السبت",
+];
 function Settings({
   data,
-  view,
   scope,
   onDirtyChange,
+  onOpenKnowledge,
 }: {
   data: AutoReplyOutputs["settings"];
-  view: "settings" | "reply";
   scope: string;
   onDirtyChange: (dirty: boolean) => void;
+  onOpenKnowledge?: () => void;
 }) {
-  const section = view === "settings" ? "connections" : view;
   const target = scope;
-  const [storedConfig, setStoredConfig] = useState<AutoReplySettings>(() =>
-    autoReplySettingsSchema.parse(data.config),
-  );
+  const saved = autoReplySettingsSchema.parse(data.config);
+  const [storedConfig, setStoredConfig] = useState<AutoReplySettings>(saved);
   const [recipientDraft, setRecipientDraft] = useState(
     storedConfig.whatsappRecipients.phones.join("\n"),
   );
+  const recipientsChanged =
+    JSON.stringify(storedConfig.whatsappRecipients) !==
+      JSON.stringify(saved.whatsappRecipients) ||
+    recipientDraft !== storedConfig.whatsappRecipients.phones.join("\n");
+  const dirty =
+    JSON.stringify(storedConfig) !== JSON.stringify(saved) || recipientsChanged;
+  const changes = dirty
+    ? Math.max(1, changeCount(saved, storedConfig, scope, recipientsChanged))
+    : 0;
   useEffect(() => {
-    onDirtyChange(
-      JSON.stringify(storedConfig) !==
-        JSON.stringify(autoReplySettingsSchema.parse(data.config)) ||
-        recipientDraft !== storedConfig.whatsappRecipients.phones.join("\n"),
-    );
-  }, [storedConfig, recipientDraft, data.config, onDirtyChange]);
+    onDirtyChange(dirty);
+  }, [dirty, onDirtyChange]);
   useEffect(() => () => onDirtyChange(false), [onDirtyChange]);
+  const [open, setOpen] = useState<Set<string>>(() => new Set(["when"]));
+  const toggleOpen = (id: string) =>
+    setOpen((current) => {
+      const next = new Set(current);
+      if (!next.delete(id)) next.add(id);
+      return next;
+    });
   const config =
     scope === "all"
       ? storedConfig
@@ -1970,7 +2577,7 @@ function Settings({
   const phoneContacts = trpc.autoReply.whatsappContactAudience.useQuery(
     undefined,
     {
-      enabled: scope === "whatsapp" && view === "reply",
+      enabled: scope === "whatsapp",
       refetchInterval: 5000,
       retry: false,
     },
@@ -1995,121 +2602,88 @@ function Settings({
     },
     onError: (e) => toast.error(e.message),
   });
-  const check = trpc.autoReply.checkConnection.useMutation({
-    onSuccess: async (r) => {
-      await utils.autoReply.settings.invalidate();
-      if (r.ok) toast.success("نجح فحص الوصول للأصل لدى Meta");
-      else toast.error(`فشل الفحص: ${autoReplyErrorLabel(r.errorCode ?? "META_CHECK_FAILED")}`);
-    },
-    onError: (e) => toast.error(e.message),
-  });
   const update = <K extends keyof AutoReplySettings>(
     key: K,
     value: AutoReplySettings[K],
   ) => setConfig((c) => ({ ...c, [key]: value }));
+  // Shared by every channel; the per-target copy in setConfig would drop them.
+  const updateShared = <K extends keyof AutoReplySettings>(
+    key: K,
+    value: AutoReplySettings[K],
+  ) => setStoredConfig((base) => ({ ...base, [key]: value }));
+  const shared = scope === "all" ? undefined : "مشترك لكل القنوات.";
+  const discard = () => {
+    setStoredConfig(saved);
+    setRecipientDraft(saved.whatsappRecipients.phones.join("\n"));
+    setStopDraft(settingsForTarget(saved, scope === "whatsapp" ? "whatsapp" : "messenger", scope).stopSequences.join("\n"));
+  };
+  const channelEnabled =
+    scope === "all"
+      ? null
+      : scope === "whatsapp"
+        ? config.channels.whatsapp
+        : (["messenger", "facebook_comment"] as const).some(
+            (c) => config.channels[c] && config.facebookPages[scope]?.[c],
+          );
+  const scopedInstructions = config.instructions.filter(
+    (instruction) =>
+      instruction.enabled && belongsToTarget(instruction.targetPage, target),
+  ).length;
+  const recipientMode = config.whatsappRecipients.mode;
+  const contactsConfirmed =
+    !!phoneContacts.data?.available &&
+    config.whatsappRecipients.confirmedContactSync ===
+      phoneContacts.data.syncId;
+  const defaults = defaultAutoReplySettings;
+  const changedAdvanced = [
+    config.historyMessageLimit !== defaults.historyMessageLimit &&
+      `يفتكر ${count(config.historyMessageLimit)} رسالة`,
+    (config.temperature !== defaults.temperature ||
+      config.topP !== defaults.topP ||
+      config.topK !== defaults.topK ||
+      config.maxOutputTokens !== defaults.maxOutputTokens ||
+      config.stopSequences.length > 0) &&
+      "إعدادات التوليد متغيّرة",
+  ].filter(Boolean);
+  const summaries = {
+    when: [
+      channelEnabled === false && "الرد الآلي مقفول هنا",
+      config.replyMode === "suggest" ? "يقترح وموظف يوافق" : "يرد لوحده",
+      config.hoursEnabled
+        ? `في مواعيد العمل بس (${count(config.hours.length)} فترة)`
+        : "طول اليوم",
+    ],
+    who: [
+      recipientModes.find(([mode]) => mode === recipientMode)?.[1],
+      ["include", "exclude"].includes(recipientMode) &&
+        `${count(splitPhones(recipientDraft).length)} رقم`,
+      recipientMode === "except_contacts" &&
+        !contactsConfirmed &&
+        "محتاج تأكيدك",
+    ],
+    how: [
+      config.style.trim() ? "أسلوب مكتوب" : "من غير أسلوب محدد",
+      `${count(scopedInstructions)} قاعدة في كل رد`,
+      `الرد ${presetLabel(replyLengthPresets, config.maxReplyChars, presetCustomLabels.replyLength)}`,
+      config.bookingUrl && "فيه رابط حجز",
+      (scope === "all" || scope === "whatsapp") &&
+        (config.voiceTranscription ? "بيرد على الصوت" : "ما بيردش على الصوت"),
+    ],
+    handoff: [
+      `بعد ${count(config.maxAutoRepliesPerHour)} رد في الساعة`,
+      `ترجع للبوت: ${presetLabel(handoffReopenPresets, config.handoffReopenHours, presetCustomLabels.handoffReopen)}`,
+      `بعد رد الموظف: ${presetLabel(staffReplyPausePresets, config.staffReplyPauseMinutes, presetCustomLabels.staffReplyPause)}`,
+    ],
+    advanced: changedAdvanced.length
+      ? [...changedAdvanced, `احتفاظ ${count(config.retentionDays)} يوم`]
+      : [
+          `على الوضع الافتراضي · احتفاظ ${count(config.retentionDays)} يوم. غيّرها بس لو عارف تأثيرها.`,
+        ],
+  };
+  const line = (parts: (string | false | null | undefined)[]) =>
+    parts.filter(Boolean).join(" · ");
   return (
-    <section className="ar-panel ar-settings" data-view={view}>
-      <div hidden={section !== "connections"}>
-        <h2>الربط الرسمي بالقنوات</h2>
-        <p className="ar-muted">
-          راجع اتصال كل قناة، ثم حدد أين يعمل الرد الآلي.
-        </p>
-        <details className="ar-connection-help">
-          <summary>تعليمات الربط ومتطلبات واتساب</summary>
-          <p>
-            أضف الأسرار في بيئة السيرفر. هذه الشاشة لا تستقبل المفاتيح ولا تعرض
-            قيمها. نجاح فحص الوصول لا يثبت اكتمال مراجعة التطبيق أو صلاحية إرسال
-            كل أنواع الرسائل.
-          </p>
-          <p className="ar-notice">
-            رقم تأكيد الحجوزات منفصل ويستمر بالربط الحالي. رقم خدمة العملاء
-            يحتاج WhatsApp Business App Coexistence عبر Embedded Signup حتى
-            يستمر على الموبايل. يجب التحقق من أهلية الرقم واستقبال حدث رد من
-            الهاتف قبل تشغيل الرد الآلي.
-          </p>
-        </details>
-        <div className="ar-connection-list">
-          {data.channels
-            .filter((c) =>
-              scope === "whatsapp"
-                ? c.channel === "whatsapp"
-                : c.accountId === scope,
-            )
-            .map((c) => (
-              <article
-                key={`${c.channel}:${c.accountId}:${c.label}`}
-                className="ar-knowledge-row ar-connection-card"
-              >
-                <div>
-                  <h3>
-                    {channelLabels[c.channel]} · {c.label}
-                  </h3>
-                  <p>
-                    {c.configured
-                      ? "متغيرات الربط مضبوطة"
-                      : "إعداد السيرفر غير مكتمل"}{" "}
-                    ·{" "}
-                    {c.checkFresh
-                      ? "نجح فحص الوصول خلال آخر 24 ساعة"
-                      : "يحتاج فحص وصول حديثًا"}
-                  </p>
-                  <details className="ar-connection-diagnostics">
-                    <summary>تفاصيل الاتصال</summary>
-                    <p>
-                      معرّف الأصل: <bdi>{c.accountId || "غير مضبوط"}</bdi>
-                    </p>
-                    <p>
-                      آخر فحص: {time(c.checkedAt)} · آخر Webhook مطابق:{" "}
-                      {time(c.lastWebhookAt)}
-                    </p>
-                    {c.channel === "whatsapp" && (
-                      <p>
-                        آخر رد مرصود من الموبايل: {time(c.lastMobileEchoAt)}. رد
-                        الموظف يوقف البوت على المحادثة.
-                      </p>
-                    )}
-                  </details>
-                  {c.errorCode && (
-                    <p role="status">
-                      نتيجة الفحص: <span>{autoReplyErrorLabel(c.errorCode)}</span>
-                    </p>
-                  )}
-                </div>
-                <Button
-                  variant="outline"
-                  disabled={!c.configured || check.isPending}
-                  onClick={() =>
-                    check.mutate({ channel: c.channel, accountId: c.accountId })
-                  }
-                >
-                  فحص الوصول لدى Meta
-                </Button>
-              </article>
-            ))}
-        </div>
-        <details className="ar-settings-group" hidden={scope !== "whatsapp"}>
-          <summary>إدارة ربط واتساب مع الموبايل</summary>
-          <WhatsAppCoexistence />
-        </details>
-        <details>
-          <summary>مسار Webhook والصلاحيات المطلوبة</summary>
-          <p dir="ltr" className="ar-prewrap">
-            {window.location.origin}/webhook/auto-reply/meta
-          </p>
-          <p>
-            WhatsApp: whatsapp_business_messaging وwhatsapp_business_management.
-            ماسنجر: pages_messaging. التعليقات: pages_read_engagement
-            وpages_read_user_content وpages_manage_engagement. الاشتراك:
-            pages_manage_metadata. راجع Advanced Access وApp Review وBusiness
-            Verification حسب استخدام التطبيق والأصول.
-          </p>
-          <p>
-            اشترك في messages وsmb_message_echoes لواتساب، وmessages
-            وmessage_echoes وfeed للصفحة. دليل الإعداد داخل المستودع:
-            docs/auto-reply-setup.md.
-          </p>
-        </details>
-      </div>
+    <section className="ar-settings">
       <form
         onSubmit={(e) => {
           e.preventDefault();
@@ -2120,10 +2694,7 @@ function Settings({
               phones: ["include", "exclude"].includes(
                 storedConfig.whatsappRecipients.mode,
               )
-                ? recipientDraft
-                    .split(/[\n,،;؛]+/)
-                    .map((phone) => phone.trim())
-                    .filter(Boolean)
+                ? splitPhones(recipientDraft)
                 : storedConfig.whatsappRecipients.phones,
             },
           });
@@ -2136,734 +2707,993 @@ function Settings({
           save.mutate(parsed.data);
         }}
       >
-        <details
-          className="ar-settings-group"
-          open
-          hidden={section !== "reply"}
+        <Question
+          title="البوت يرد إمتى؟"
+          summary={line(summaries.when)}
+          open={open.has("when")}
+          onToggle={() => toggleOpen("when")}
         >
-          <summary>تشغيل القنوات والصفحات</summary>
-          <h2>الإرسال وأسلوب الرد</h2>
-          <Check
-            label="السماح بالإرسال العام (يشمل الرد اليدوي)"
-            disabled={scope !== "all"}
-            checked={config.sendingEnabled}
-            onChange={(v) => update("sendingEnabled", v)}
-          />
-          {scope !== "all" && (
-            <p className="ar-muted">
-              المفتاح العام يُضبط من «المشترك». الاختيارات التالية تخص هذه الجهة
-              فقط.
-            </p>
-          )}
-          {scope !== "all" && (
-            <Field label="طريقة الرد على هذه الجهة">
-              <select
-                value={config.replyMode}
-                onChange={(e) =>
-                  update("replyMode", e.target.value as "auto" | "suggest")
-                }
-              >
-                <option value="auto">يرسل الرد تلقائيًا</option>
-                <option value="suggest">يقترح الرد وموظف يعتمده</option>
-              </select>
-            </Field>
-          )}
-          {autoReplyChannels
-            .filter((c) =>
-              scope === "whatsapp"
-                ? c === "whatsapp"
-                : scope === "all"
-                  ? false
-                  : c !== "whatsapp",
-            )
-            .map((c) => (
-              <Check
-                key={c}
-                label={`تشغيل الرد الآلي على ${channelLabels[c]}`}
-                checked={
-                  scope === "whatsapp"
-                    ? config.channels[c]
-                    : (config.facebookPages[scope]?.[
-                        c as "messenger" | "facebook_comment"
-                      ] ?? false)
-                }
-                onChange={(v) =>
-                  setStoredConfig((base) =>
-                    scope === "whatsapp"
-                      ? { ...base, channels: { ...base.channels, whatsapp: v } }
-                      : {
-                          ...base,
-                          channels: {
-                            ...base.channels,
-                            [c]:
-                              v ||
-                              Object.entries(base.facebookPages).some(
-                                ([id, flags]) =>
-                                  id !== scope &&
-                                  flags[c as "messenger" | "facebook_comment"],
-                              ),
-                          },
-                          facebookPages: {
-                            ...base.facebookPages,
-                            [scope]: {
-                              ...(base.facebookPages[scope] ?? {
-                                messenger: false,
-                                facebook_comment: false,
-                              }),
-                              [c]: v,
-                            },
-                          },
-                        },
-                  )
-                }
+          {scope === "all" ? (
+            <Row
+              title="السماح بالإرسال العام"
+              help="يشمل الرد اليدوي من الموظفين. لو اتقفل، مفيش رسالة بتتبعت لأي عميل."
+            >
+              <Switch
+                label="السماح بالإرسال العام"
+                checked={config.sendingEnabled}
+                onChange={(v) => update("sendingEnabled", v)}
               />
-            ))}
-          {scope === "whatsapp" && (
-            <fieldset className="ar-editor" disabled={save.isPending}>
-              <legend>مين يوصله الرد الآلي؟</legend>
-              <p className="ar-muted">
-                الاختيار يخص الرد الآلي على واتساب. احفظ الإعدادات لتطبيقه على
-                الرسائل الجديدة.
-              </p>
+            </Row>
+          ) : (
+            autoReplyChannels
+              .filter((c) =>
+                scope === "whatsapp" ? c === "whatsapp" : c !== "whatsapp",
+              )
+              .map((c) => (
+                <Row
+                  key={c}
+                  title={`الرد الآلي على ${channelLabels[c]}`}
+                  help={
+                    config.sendingEnabled
+                      ? undefined
+                      : "الإرسال العام متوقف، فمفيش رد هيتبعت حتى لو المفتاح ده شغّال."
+                  }
+                >
+                  <Switch
+                    label={`تشغيل الرد الآلي على ${channelLabels[c]}`}
+                    checked={
+                      scope === "whatsapp"
+                        ? config.channels[c]
+                        : (config.facebookPages[scope]?.[
+                            c as "messenger" | "facebook_comment"
+                          ] ?? false)
+                    }
+                    onChange={(v) =>
+                      setStoredConfig((base) =>
+                        scope === "whatsapp"
+                          ? {
+                              ...base,
+                              channels: { ...base.channels, whatsapp: v },
+                            }
+                          : {
+                              ...base,
+                              channels: {
+                                ...base.channels,
+                                [c]:
+                                  v ||
+                                  Object.entries(base.facebookPages).some(
+                                    ([id, flags]) =>
+                                      id !== scope &&
+                                      flags[
+                                        c as "messenger" | "facebook_comment"
+                                      ],
+                                  ),
+                              },
+                              facebookPages: {
+                                ...base.facebookPages,
+                                [scope]: {
+                                  ...(base.facebookPages[scope] ?? {
+                                    messenger: false,
+                                    facebook_comment: false,
+                                  }),
+                                  [c]: v,
+                                },
+                              },
+                            },
+                      )
+                    }
+                  />
+                </Row>
+              ))
+          )}
+          <Row
+            title="طريقة الرد"
+            help="في الاقتراح، مفيش رسالة بتتبعت من غير موافقة موظف."
+          >
+            <div className="ar-seg">
               {(
                 [
-                  ["all", "الجميع"],
-                  ["except_contacts", "الجميع باستثناء جهات اتصال هاتفي"],
-                  ["include", "أرقام محددة فقط"],
-                  ["exclude", "الجميع باستثناء أرقام محددة"],
+                  ["auto", "يرد لوحده"],
+                  ["suggest", "يقترح وموظف يوافق"],
                 ] as const
               ).map(([mode, label]) => (
-                <label className="ar-check" key={mode}>
-                  <input
-                    type="radio"
-                    name="whatsapp-recipients"
-                    value={mode}
-                    checked={config.whatsappRecipients.mode === mode}
-                    onChange={() =>
-                      update("whatsappRecipients", {
-                        ...config.whatsappRecipients,
-                        mode,
-                      })
-                    }
-                  />
-                  <span>{label}</span>
-                </label>
+                <button
+                  key={mode}
+                  type="button"
+                  aria-pressed={config.replyMode === mode}
+                  onClick={() => update("replyMode", mode)}
+                >
+                  {label}
+                </button>
               ))}
-              {config.whatsappRecipients.mode === "except_contacts" && (
-                <div className="space-y-3">
-                  <p>
-                    يستثني جهات اتصال WhatsApp Business المُزامنة من الهاتف
-                    المرتبط بهذا الرقم. لا يعتمد على سجل المحادثات أو قائمة
-                    المرضى.
-                  </p>
-                  {phoneContacts.isLoading ? (
-                    <p role="status">جارٍ التحقق من مزامنة جهات الاتصال…</p>
-                  ) : phoneContacts.isError ? (
-                    <ErrorState
-                      message="تعذر تحديث حالة جهات الاتصال. أعد المحاولة قبل تأكيد اكتمال المزامنة."
-                      retry={() => void phoneContacts.refetch()}
-                    />
-                  ) : phoneContacts.data?.available ? (
-                    <>
-                      <p role="status">
-                        جهات الاتصال المُزامنة: {phoneContacts.data.count}.
-                      </p>
-                      <Check
-                        label="راجعت عدد جهات الاتصال وأؤكد اكتمال مشاركتها من الهاتف"
-                        checked={
-                          config.whatsappRecipients.confirmedContactSync ===
-                          phoneContacts.data.syncId
-                        }
-                        onChange={(confirmed) =>
-                          update("whatsappRecipients", {
-                            ...config.whatsappRecipients,
-                            confirmedContactSync: confirmed
-                              ? phoneContacts.data!.syncId
-                              : null,
-                          })
-                        }
-                      />
-                    </>
-                  ) : (
-                    <p role="status">
-                      جهات الاتصال غير جاهزة أو المزامنة لم تنتهِ. راجع «الربط
-                      والفحص ← إدارة ربط واتساب مع الموبايل».
-                    </p>
-                  )}
-                  <p className="ar-muted">
-                    يتوقف الرد الآلي بهذا الاختيار حتى تصل جهات الاتصال وتؤكد
-                    اكتمالها وتحفظ الإعدادات. عند وصول تحديثات لجهات الاتصال،
-                    ينتظر معالجتها قبل الرد.
-                  </p>
-                </div>
+            </div>
+          </Row>
+          <Row
+            title="في مواعيد العمل بس"
+            help="خارجها بيبعت رسالة ثابتة بدل الرد. المواعيد بتوقيت القاهرة."
+          >
+            <Switch
+              label="في مواعيد العمل بس"
+              checked={config.hoursEnabled}
+              onChange={(v) => update("hoursEnabled", v)}
+            />
+          </Row>
+          {config.hoursEnabled && (
+            <>
+              {config.hours.length === 0 && (
+                <p role="status" className="ar-notice">
+                  مفيش فترات عمل. أضف فترة أو اقفل «في مواعيد العمل بس» قبل
+                  الحفظ.
+                </p>
               )}
-              {["include", "exclude"].includes(
-                config.whatsappRecipients.mode,
-              ) && (
-                <>
-                  <Field
-                    label={
-                      config.whatsappRecipients.mode === "include"
-                        ? "الأرقام المسموح لها بالرد"
-                        : "الأرقام المستثناة من الرد"
-                    }
-                  >
-                    <Textarea
-                      dir="ltr"
-                      rows={5}
-                      maxLength={32500}
-                      className="ar-recipient-phones"
-                      value={recipientDraft}
-                      aria-describedby="whatsapp-recipients-help"
-                      onChange={(event) => {
-                        setRecipientDraft(event.target.value);
-                      }}
+              {config.hours.map((h, i) => (
+                <div className="ar-hours" key={i}>
+                  <Field label="اليوم">
+                    <select
+                      className="ar-select"
+                      value={h.day}
+                      onChange={(e) =>
+                        update(
+                          "hours",
+                          config.hours.map((item, n) =>
+                            n === i
+                              ? { ...item, day: Number(e.target.value) }
+                              : item,
+                          ),
+                        )
+                      }
+                    >
+                      {days.map((d, n) => (
+                        <option key={n} value={n}>
+                          {d}
+                        </option>
+                      ))}
+                    </select>
+                  </Field>
+                  <Field label="من">
+                    <Input
+                      type="time"
+                      value={h.start}
+                      onChange={(e) =>
+                        update(
+                          "hours",
+                          config.hours.map((item, n) =>
+                            n === i ? { ...item, start: e.target.value } : item,
+                          ),
+                        )
+                      }
                     />
                   </Field>
-                  <p id="whatsapp-recipients-help" className="ar-muted">
-                    رقم في كل سطر أو افصل الأرقام بفاصلة، بحد أقصى 500 رقم.
-                    استخدم كود الدولة؛ الأرقام المصرية التي تبدأ بـ 01 تُحوّل
-                    تلقائيًا إلى 20.
-                  </p>
-                  {!recipientDraft
-                    .split(/[\n,،;؛]+/)
-                    .some((phone) => phone.trim()) && (
-                    <p role="status">
-                      {config.whatsappRecipients.mode === "include"
-                        ? "القائمة فارغة: لن يُرسل رد آلي لأي رقم."
-                        : "القائمة فارغة: الرد الآلي متاح للجميع."}
-                    </p>
-                  )}
-                </>
-              )}
-            </fieldset>
-          )}
-          <details className="ar-page-options" hidden>
-            <summary>تخصيص الرد لكل صفحة</summary>
-            <h3>تشغيل الرد لكل صفحة</h3>
-            <p>
-              مفتاح القناة العام يتحكم في الصفحتين. فعّل ماسنجر والتعليقات لكل
-              صفحة على حدة بعد فحص اتصالها.
-            </p>
-            {data.pages.map((p, i) => (
-              <fieldset key={`${p.accountId}:${i}`} className="ar-editor">
-                <legend>{p.label}</legend>
-                <p>
-                  معرّف الصفحة:{" "}
-                  <bdi>{p.accountId || "غير مضبوط على السيرفر"}</bdi>
-                </p>
-                {(["messenger", "facebook_comment"] as const).map((channel) => (
-                  <Check
-                    key={channel}
-                    label={`الرد الآلي على ${channelLabels[channel]} · ${p.label}`}
-                    disabled={!p.accountId || save.isPending}
-                    checked={
-                      config.facebookPages[p.accountId]?.[channel] ?? false
+                  <Field label="إلى">
+                    <Input
+                      type="time"
+                      value={h.end}
+                      onChange={(e) =>
+                        update(
+                          "hours",
+                          config.hours.map((item, n) =>
+                            n === i ? { ...item, end: e.target.value } : item,
+                          ),
+                        )
+                      }
+                    />
+                  </Field>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() =>
+                      update(
+                        "hours",
+                        config.hours.filter((_, n) => n !== i),
+                      )
                     }
-                    onChange={(value) =>
-                      update("facebookPages", {
-                        ...config.facebookPages,
-                        [p.accountId]: {
-                          ...(config.facebookPages[p.accountId] ?? {
-                            messenger: false,
-                            facebook_comment: false,
-                          }),
-                          [channel]: value,
-                        },
+                  >
+                    حذف الفترة {i + 1}
+                  </Button>
+                </div>
+              ))}
+              <Button
+                type="button"
+                variant="outline"
+                disabled={config.hours.length >= 28}
+                onClick={() =>
+                  update("hours", [
+                    ...config.hours,
+                    { day: 0, start: "09:00", end: "17:00" },
+                  ])
+                }
+              >
+                إضافة فترة عمل
+              </Button>
+              <p className="ar-muted">
+                الفترة اللي بتخلص قبل ما تبدأ بتكمل لليوم اللي بعده. المواعيد
+                مش بتتبعت للعميل إلا لو كتبتها في معلومات المركز.
+              </p>
+              <Field label="رسالة خارج المواعيد بالعربية">
+                <Textarea
+                  value={config.outsideMessage}
+                  maxLength={1000}
+                  onChange={(e) => update("outsideMessage", e.target.value)}
+                />
+              </Field>
+              <Field label="رسالة خارج المواعيد بالإنجليزية">
+                <Textarea
+                  dir="ltr"
+                  value={config.outsideMessageEn}
+                  maxLength={1000}
+                  onChange={(e) => update("outsideMessageEn", e.target.value)}
+                />
+              </Field>
+            </>
+          )}
+        </Question>
+        {scope === "whatsapp" && (
+          <Question
+            title="يرد على مين؟"
+            summary={line(summaries.who)}
+            open={open.has("who")}
+            onToggle={() => toggleOpen("who")}
+          >
+            <Row title="المستلمون">
+              <select
+                className="ar-select"
+                aria-label="المستلمون"
+                value={recipientMode}
+                disabled={save.isPending}
+                onChange={(e) =>
+                  update("whatsappRecipients", {
+                    ...config.whatsappRecipients,
+                    mode: e.target
+                      .value as AutoReplySettings["whatsappRecipients"]["mode"],
+                  })
+                }
+              >
+                {recipientModes.map(([mode, label]) => (
+                  <option key={mode} value={mode}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+            </Row>
+            {recipientMode === "except_contacts" && (
+              <Row
+                title="جهات الاتصال المُزامنة من الموبايل"
+                help="بيستثني جهات اتصال WhatsApp Business المُزامنة من الموبايل المربوط، مش سجل المحادثات ولا قايمة المرضى. البوت مش بيرد بالاختيار ده لحد ما تأكد القايمة وتحفظ."
+              >
+                {phoneContacts.isLoading ? (
+                  <p role="status">جارٍ التحقق من مزامنة جهات الاتصال…</p>
+                ) : phoneContacts.isError ? (
+                  <ErrorState
+                    message="تعذر تحديث حالة جهات الاتصال. أعد المحاولة قبل تأكيد اكتمال المزامنة."
+                    retry={() => void phoneContacts.refetch()}
+                  />
+                ) : phoneContacts.data?.available ? (
+                  <Check
+                    label={`راجعت العدد (${count(phoneContacts.data.count)} جهة) وأأكد إن المشاركة من الموبايل اكتملت`}
+                    checked={contactsConfirmed}
+                    onChange={(confirmed) =>
+                      update("whatsappRecipients", {
+                        ...config.whatsappRecipients,
+                        confirmedContactSync: confirmed
+                          ? phoneContacts.data!.syncId
+                          : null,
                       })
                     }
                   />
-                ))}
-              </fieldset>
-            ))}
-          </details>
-        </details>
-        <details
-          className="ar-settings-group"
-          hidden={section !== "reply"}
-        >
-          <summary>المساعد والذاكرة وحدود الرد</summary>
-          <div className="ar-form-grid">
-            <Field label="أقصى طول للرد بالحروف">
-              <Input
-                type="number"
-                min={100}
-                max={2000}
-                value={config.maxReplyChars}
-                onChange={(e) =>
-                  update("maxReplyChars", Number(e.target.value))
+                ) : (
+                  <p role="status">
+                    جهات الاتصال مش جاهزة أو المزامنة لسه ما خلصتش. راجع «الربط
+                    ← ربط الموبايل».
+                  </p>
+                )}
+              </Row>
+            )}
+            {["include", "exclude"].includes(recipientMode) && (
+              <Row
+                stack
+                title={
+                  recipientMode === "include"
+                    ? "الأرقام المسموح لها بالرد"
+                    : "الأرقام المستثناة من الرد"
                 }
-              />
-            </Field>
-            {scope === "all" && (
-              <Field label="الاحتفاظ بالمحادثات بالأيام (7–365)">
-                <Input
-                  type="number"
-                  min={7}
-                  max={365}
-                  value={config.retentionDays}
-                  onChange={(e) =>
-                    update("retentionDays", Number(e.target.value))
+                help="رقم في كل سطر أو افصل بفاصلة، لحد 500 رقم. الأرقام المصرية اللي بتبدأ بـ 01 بتتحوّل لـ 20."
+              >
+                <Textarea
+                  dir="ltr"
+                  rows={5}
+                  maxLength={32500}
+                  className="ar-recipient-phones"
+                  aria-label={
+                    recipientMode === "include"
+                      ? "الأرقام المسموح لها بالرد"
+                      : "الأرقام المستثناة من الرد"
                   }
+                  value={recipientDraft}
+                  onChange={(event) => setRecipientDraft(event.target.value)}
                 />
-              </Field>
+                {splitPhones(recipientDraft).length === 0 && (
+                  <p role="status">
+                    {recipientMode === "include"
+                      ? "القايمة فاضية: مفيش رد آلي هيتبعت لأي رقم."
+                      : "القايمة فاضية: الرد الآلي متاح للكل."}
+                  </p>
+                )}
+              </Row>
             )}
-            {scope === "all" && (
-              <>
-                <Field label="رجوع الرد الآلي بعد التحويل لموظف بالساعات (0 = لا يرجع)">
-                  <Input
-                    type="number"
-                    min={0}
-                    max={720}
-                    value={config.handoffReopenHours}
-                    onChange={(e) =>
-                      update("handoffReopenHours", Number(e.target.value))
-                    }
-                  />
-                </Field>
-                <Field label="إيقاف الرد الآلي بعد رد الموظف بالدقائق (0 = يرجع مع رسالة العميل التالية)">
-                  <Input
-                    type="number"
-                    min={0}
-                    max={1440}
-                    value={config.staffReplyPauseMinutes}
-                    onChange={(e) =>
-                      update("staffReplyPauseMinutes", Number(e.target.value))
-                    }
-                  />
-                </Field>
-                <Check
-                  label="تفريغ الرسائل الصوتية على واتساب نصيًا عبر Google Gemini (حتى دقيقتين و5 ميجا)"
-                  checked={config.voiceTranscription}
-                  onChange={(v) => update("voiceTranscription", v)}
-                />
-                <Field label="رابط الحجز الإلكتروني (https، اتركه فارغًا لإيقافه)">
-                  <Input
-                    type="url"
-                    dir="ltr"
-                    value={config.bookingUrl}
-                    onChange={(e) => update("bookingUrl", e.target.value.trim())}
-                  />
-                </Field>
-                <Field label="أقصى ردود آلية في الساعة لكل محادثة">
-                  <Input
-                    type="number"
-                    min={1}
-                    max={200}
-                    value={config.maxAutoRepliesPerHour}
-                    onChange={(e) =>
-                      update("maxAutoRepliesPerHour", Number(e.target.value))
-                    }
-                  />
-                </Field>
-              </>
+          </Question>
+        )}
+        <Question
+          title="يرد إزاي؟"
+          summary={line(summaries.how)}
+          open={open.has("how")}
+          onToggle={() => toggleOpen("how")}
+        >
+          <Row
+            title="الأسلوب والقواعد"
+            help={`اتنقلوا لـ «معلومات المركز ← اللي البوت يعرفه». ${count(scopedInstructions)} قاعدة مفعّلة هنا.`}
+          >
+            {onOpenKnowledge && (
+              <Button type="button" variant="outline" onClick={onOpenKnowledge}>
+                افتح اللي البوت يعرفه
+              </Button>
             )}
-          </div>
-          {models.isLoading && (
-            <p role="status">جارٍ تحميل الموديلات المتاحة لحسابك…</p>
-          )}
-          {models.error && (
-            <ErrorState
-              message={models.error.message}
-              retry={() => void models.refetch()}
+          </Row>
+          <Row
+            title="طول الرد"
+            help={`أقصى عدد حروف: ${count(config.maxReplyChars)}. الرد الأطول من كده بيتحوّل لموظف.`}
+          >
+            <PresetSelect
+              label="طول الرد"
+              value={config.maxReplyChars}
+              presets={replyLengthPresets}
+              custom={presetCustomLabels.replyLength}
+              onChange={(v) => update("maxReplyChars", v)}
             />
+          </Row>
+          <Row
+            title="رابط الحجز"
+            help={line([
+              "بيتبعت لما العميل يطلب حجز. فاضي = مفيش. لازم يبدأ بـ https.",
+              shared,
+            ])}
+          >
+            <Input
+              type="url"
+              dir="ltr"
+              placeholder="https://"
+              aria-label="رابط الحجز"
+              value={config.bookingUrl}
+              onChange={(e) => updateShared("bookingUrl", e.target.value.trim())}
+            />
+          </Row>
+          {(scope === "all" || scope === "whatsapp") && (
+            <Row
+              title="الرد على الرسائل الصوتية"
+              help={line([
+                "الصوت بيتبعت لـ Google Gemini عشان يتحوّل لنص، لحد دقيقتين و5 ميجا.",
+                shared,
+              ])}
+            >
+              <Switch
+                label="الرد على الرسائل الصوتية"
+                checked={config.voiceTranscription}
+                onChange={(v) => updateShared("voiceTranscription", v)}
+              />
+            </Row>
           )}
-          <p>
-            Gemini:{" "}
-            {data.geminiConfigured
-              ? "المفتاح مضبوط على السيرفر، استخدم الاختبار الداخلي للتحقق من الموديل"
-              : "المفتاح غير مضبوط على السيرفر"}
-            . لا يتاح للبوت تعديل بيانات المرضى أو الحجوزات.
-          </p>
-          <h2>AI Settings · ذاكرة المحادثة</h2>
-          <Field label="عدد الرسائل التي يتذكرها المساعد">
+        </Question>
+        <Question
+          title="يسيبها لموظف إمتى؟"
+          summary={line(summaries.handoff)}
+          open={open.has("handoff")}
+          onToggle={() => toggleOpen("handoff")}
+        >
+          <Row
+            title="أقصى ردود آلية في الساعة"
+            help={line(["لكل محادثة، من 1 لـ 200. بعدها بتتحوّل لموظف.", shared])}
+          >
             <Input
               type="number"
+              dir="ltr"
+              min={1}
+              max={200}
+              aria-label="أقصى ردود آلية في الساعة"
+              value={config.maxAutoRepliesPerHour}
+              onChange={(e) =>
+                updateShared("maxAutoRepliesPerHour", Number(e.target.value))
+              }
+            />
+          </Row>
+          <Row
+            title="ترجع للبوت بعد سكون"
+            help={line([
+              "بعد التحويل لموظف، المحادثة ترجع للبوت لو فضلت ساكتة المدة دي.",
+              shared,
+            ])}
+          >
+            <PresetSelect
+              label="ترجع للبوت بعد سكون"
+              value={config.handoffReopenHours}
+              presets={handoffReopenPresets}
+              custom={presetCustomLabels.handoffReopen}
+              onChange={(v) => updateShared("handoffReopenHours", v)}
+            />
+          </Row>
+          <Row
+            title="بعد ما موظف يرد"
+            help={line(["البوت يستنى قد إيه قبل ما يرد تاني.", shared])}
+          >
+            <PresetSelect
+              label="بعد ما موظف يرد"
+              value={config.staffReplyPauseMinutes}
+              presets={staffReplyPausePresets}
+              custom={presetCustomLabels.staffReplyPause}
+              onChange={(v) => updateShared("staffReplyPauseMinutes", v)}
+            />
+          </Row>
+        </Question>
+        <Question
+          advanced
+          title="إعدادات متقدمة"
+          summary={line(summaries.advanced)}
+          open={open.has("advanced")}
+          onToggle={() => toggleOpen("advanced")}
+        >
+          <Row
+            title="البوت يفتكر كام رسالة من المحادثة"
+            help="من 0 لـ 50 لكل محادثة. صفر يوقف إرسال التاريخ للموديل، والرسالة الجديدة بتتبعت عادي."
+          >
+            <Input
+              type="number"
+              dir="ltr"
               min={0}
               max={50}
+              aria-label="عدد الرسائل اللي البوت يفتكرها"
               value={config.historyMessageLimit}
               onChange={(event) =>
                 update("historyMessageLimit", Number(event.target.value))
               }
             />
-          </Field>
-          <p>
-            من ٠ إلى ٥٠ رسالة لكل محادثة. اختيار ٠ يوقف إرسال التاريخ للموديل،
-            مع بقاء الرسالة الجديدة.
-          </p>
-          <Button
-            type="button"
-            variant="outline"
-            disabled={clearHistory.isPending}
-            onClick={() => {
-              if (
-                window.confirm(
-                  scope === "all"
-                    ? "بدء سياق جديد لكل المحادثات؟ سجل الرسائل سيظل محفوظًا."
-                    : "بدء سياق جديد لمحادثات هذه الجهة فقط؟ سجل الرسائل سيظل محفوظًا.",
-                )
-              )
-                clearHistory.mutate({ targetPage: scope });
-            }}
+          </Row>
+          <Row
+            title="مسح سياق الذكاء الاصطناعي"
+            help="البوت يبدأ من غير ما يفتكر الرسائل القديمة. سجل الرسائل بيفضل محفوظ."
           >
-            مسح سياق الذكاء الاصطناعي
-          </Button>
-          <details>
-            <summary>AI Parameters · إعدادات التوليد</summary>
-            <p>
-              {samplingSupported
-                ? "غيّر القيم عند الحاجة؛ الإعدادات الافتراضية مناسبة للبدء."
-                : "الموديل الحالي لا يطبق temperature وtopP وtopK؛ يمكن ضبط حد المخرجات وعبارات التوقف."}
-            </p>
-            <div className="ar-form-grid">
-              <Field label="Temperature">
-                <Input
-                  type="number"
-                  min={0}
-                  max={2}
-                  step={0.1}
-                  disabled={!samplingSupported}
-                  value={config.temperature}
-                  onChange={(event) =>
-                    update("temperature", Number(event.target.value))
-                  }
-                />
-              </Field>
-              <Field label="topP">
-                <Input
-                  type="number"
-                  min={0.01}
-                  max={1}
-                  step={0.01}
-                  disabled={!samplingSupported}
-                  value={config.topP}
-                  onChange={(event) =>
-                    update("topP", Number(event.target.value))
-                  }
-                />
-              </Field>
-              <Field label="topK (اختياري)">
-                <Input
-                  type="number"
-                  min={1}
-                  max={100}
-                  disabled={
-                    !samplingSupported ||
-                    !models.data?.find((model) => model.id === config.model)
-                      ?.topK
-                  }
-                  value={config.topK ?? ""}
-                  placeholder="افتراضي الموديل"
-                  onChange={(event) =>
-                    update(
-                      "topK",
-                      event.target.value ? Number(event.target.value) : null,
-                    )
-                  }
-                />
-              </Field>
-              <Field label="maxOutputTokens">
-                <Input
-                  type="number"
-                  min={500}
-                  max={Math.min(
-                    8192,
-                    models.data?.find((model) => model.id === config.model)
-                      ?.outputTokenLimit ?? 8192,
-                  )}
-                  value={config.maxOutputTokens}
-                  onChange={(event) =>
-                    update("maxOutputTokens", Number(event.target.value))
-                  }
-                />
-              </Field>
-            </div>
-            <Field label="stopSequences (كل عبارة في سطر)">
-              <Textarea
-                aria-label="stopSequences (كل عبارة في سطر)"
-                rows={3}
-                value={stopDraft}
-                onChange={(event) => {
-                  setStopDraft(event.target.value);
-                  update(
-                    "stopSequences",
-                    event.target.value.split("\n").filter(Boolean),
-                  );
-                }}
-              />
-            </Field>
-            <p>
-              حتى ٥ عبارات توقف، و٤٠ حرفًا للعبارة. حد المخرجات يشمل توليد JSON
-              وقد يشمل التفكير؛ حد قليل جدًا قد يقطع الرد.
-            </p>
             <Button
               type="button"
               variant="outline"
+              disabled={clearHistory.isPending}
               onClick={() => {
-                setStopDraft("");
-                setConfig((current) => ({
-                  ...current,
-                  temperature: 0.2,
-                  topP: 0.95,
-                  topK: null,
-                  maxOutputTokens: 4096,
-                  stopSequences: [],
-                }));
+                if (
+                  window.confirm(
+                    scope === "all"
+                      ? "بدء سياق جديد لكل المحادثات؟ سجل الرسائل سيظل محفوظًا."
+                      : "بدء سياق جديد لمحادثات هذه الجهة فقط؟ سجل الرسائل سيظل محفوظًا.",
+                  )
+                )
+                  clearHistory.mutate({ targetPage: scope });
               }}
             >
-              استعادة إعدادات التوليد
+              مسح السياق
             </Button>
-          </details>
-        </details>
-        <details
-          className="ar-settings-group"
-          open
-          hidden={section !== "reply"}
-        >
-          <summary>أسلوب الرد والتعليمات الإضافية</summary>
-          <Field
-            label={
-              scope === "all" ? "أسلوب الرد الافتراضي" : "أسلوب الرد لهذه الجهة"
-            }
+          </Row>
+          <Row
+            title="الاحتفاظ بالمحادثات بالأيام"
+            help={line([
+              "من 7 لـ 365. الأقدم بيتمسح دوريًا، وبصمات الأحداث غير النصية بتفضل 90 يوم لمنع التكرار.",
+              shared,
+            ])}
           >
-            <Textarea
-              rows={3}
-              maxLength={3000}
-              value={config.style}
-              onChange={(e) => update("style", e.target.value)}
+            <Input
+              type="number"
+              dir="ltr"
+              min={7}
+              max={365}
+              aria-label="الاحتفاظ بالمحادثات بالأيام"
+              value={config.retentionDays}
+              onChange={(e) =>
+                updateShared("retentionDays", Number(e.target.value))
+              }
             />
-          </Field>
-          <h2>تعليمات إضافية للرد</h2>
-          <p>
-            أضف كل تعليمة في خانة مستقلة. تُطبّق التعليمات المفعّلة معًا، ولا
-            تتجاوز قواعد الخصوصية أو التحويل لموظف أو حظر التشخيص والعلاج.
+          </Row>
+          <h3 className="ar-subhead">إعدادات التوليد</h3>
+          <p className="ar-muted">
+            {samplingSupported
+              ? "القيم الافتراضية مناسبة للبدء. غيّرها بس لو عارف تأثيرها."
+              : "الموديل الحالي مش بيطبّق درجة التنويع ونطاق الاحتمالات وعدد الاختيارات. تقدر تضبط حد المخرجات وعبارات التوقف."}{" "}
+            Gemini:{" "}
+            {data.geminiConfigured
+              ? "المفتاح مضبوط على السيرفر."
+              : "المفتاح مش مضبوط على السيرفر."}
           </p>
-          <div className="ar-instruction-grid">
-            {config.instructions.map((instruction, index) => (
-              <fieldset
-                className="ar-editor"
-                key={index}
-                hidden={!belongsToTarget(instruction.targetPage, target)}
-              >
-                <legend>تعليمة {index + 1}</legend>
-                <ReplyTargetSelect
-                  label={`تطبيق التعليمة ${index + 1} على`}
-                  value={instruction.targetPage ?? "all"}
-                  pages={data.pages}
-                  disabled={save.isPending}
-                  onChange={(targetPage) =>
-                    update(
-                      "instructions",
-                      config.instructions.map((item, i) =>
-                        i === index ? { ...item, targetPage } : item,
-                      ),
-                    )
-                  }
-                />
-                <Field label={`نص التعليمة ${index + 1}`}>
-                  <Textarea
-                    aria-label={`نص التعليمة ${index + 1}`}
-                    rows={3}
-                    maxLength={1000}
-                    required
-                    value={instruction.text}
-                    disabled={save.isPending}
-                    onChange={(e) =>
-                      update(
-                        "instructions",
-                        config.instructions.map((item, i) =>
-                          i === index
-                            ? { ...item, text: e.target.value }
-                            : item,
-                        ),
-                      )
-                    }
-                  />
-                </Field>
-                <div className="ar-toolbar">
-                  <Check
-                    label={`تفعيل التعليمة ${index + 1}`}
-                    checked={instruction.enabled}
-                    disabled={save.isPending}
-                    onChange={(enabled) =>
-                      update(
-                        "instructions",
-                        config.instructions.map((item, i) =>
-                          i === index ? { ...item, enabled } : item,
-                        ),
-                      )
-                    }
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    disabled={save.isPending}
-                    aria-label={`حذف التعليمة ${index + 1}`}
-                    onClick={() =>
-                      update(
-                        "instructions",
-                        config.instructions.filter((_, i) => i !== index),
-                      )
-                    }
-                  >
-                    حذف التعليمة
-                  </Button>
-                </div>
-              </fieldset>
-            ))}
-          </div>
-          <Button
-            type="button"
-            variant="outline"
-            disabled={save.isPending || config.instructions.length >= 30}
-            onClick={() =>
-              update("instructions", [
-                ...config.instructions,
-                { text: "", enabled: true, targetPage: target },
-              ])
-            }
-          >
-            إضافة تعليمة
-          </Button>
-          <p>
-            حتى 30 تعليمة، و1000 حرف للواحدة وبحد أقصى 12000 حرف إجمالًا. اضغط
-            حفظ الإعدادات لتطبيق التغييرات.
-          </p>
-        </details>
-        <details
-          className="ar-settings-group"
-          open
-          hidden={section !== "reply"}
-        >
-          <summary>ساعات العمل والرد خارج المواعيد</summary>
-          <h2>ساعات العمل بتوقيت القاهرة</h2>
-          <Check
-            label="إرسال رسالة خارج المواعيد"
-            checked={config.hoursEnabled}
-            onChange={(v) => update("hoursEnabled", v)}
-          />
-          {config.hours.map((h, i) => (
-            <div className="ar-hours" key={i}>
-              <Field label="اليوم">
-                <select
-                  className="ar-select"
-                  value={h.day}
-                  onChange={(e) =>
-                    update(
-                      "hours",
-                      config.hours.map((item, n) =>
-                        n === i
-                          ? { ...item, day: Number(e.target.value) }
-                          : item,
-                      ),
-                    )
-                  }
-                >
-                  {[
-                    "الأحد",
-                    "الاثنين",
-                    "الثلاثاء",
-                    "الأربعاء",
-                    "الخميس",
-                    "الجمعة",
-                    "السبت",
-                  ].map((d, n) => (
-                    <option key={n} value={n}>
-                      {d}
-                    </option>
-                  ))}
-                </select>
-              </Field>
-              <Field label="من">
-                <Input
-                  type="time"
-                  value={h.start}
-                  onChange={(e) =>
-                    update(
-                      "hours",
-                      config.hours.map((item, n) =>
-                        n === i ? { ...item, start: e.target.value } : item,
-                      ),
-                    )
-                  }
-                />
-              </Field>
-              <Field label="إلى">
-                <Input
-                  type="time"
-                  value={h.end}
-                  onChange={(e) =>
-                    update(
-                      "hours",
-                      config.hours.map((item, n) =>
-                        n === i ? { ...item, end: e.target.value } : item,
-                      ),
-                    )
-                  }
-                />
-              </Field>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() =>
+          {models.isLoading && (
+            <p role="status">جارٍ تحميل الموديلات المتاحة لحسابك…</p>
+          )}
+          {models.error && (
+            <ErrorState
+              message={`تعذر تحميل حدود الموديلات: ${models.error.message}`}
+              retry={() => void models.refetch()}
+            />
+          )}
+          <div className="ar-form-grid">
+            <Field label="درجة التنويع (Temperature)">
+              <Input
+                type="number"
+                dir="ltr"
+                min={0}
+                max={2}
+                step={0.1}
+                disabled={!samplingSupported}
+                value={config.temperature}
+                onChange={(event) =>
+                  update("temperature", Number(event.target.value))
+                }
+              />
+            </Field>
+            <Field label="نطاق الاحتمالات (topP)">
+              <Input
+                type="number"
+                dir="ltr"
+                min={0.01}
+                max={1}
+                step={0.01}
+                disabled={!samplingSupported}
+                value={config.topP}
+                onChange={(event) => update("topP", Number(event.target.value))}
+              />
+            </Field>
+            <Field label="عدد الاختيارات، اختياري (topK)">
+              <Input
+                type="number"
+                dir="ltr"
+                min={1}
+                max={100}
+                disabled={
+                  !samplingSupported ||
+                  !models.data?.find((model) => model.id === config.model)
+                    ?.topK
+                }
+                value={config.topK ?? ""}
+                placeholder="افتراضي الموديل"
+                onChange={(event) =>
                   update(
-                    "hours",
-                    config.hours.filter((_, n) => n !== i),
+                    "topK",
+                    event.target.value ? Number(event.target.value) : null,
                   )
                 }
-              >
-                حذف الفترة {i + 1}
-              </Button>
-            </div>
-          ))}
+              />
+            </Field>
+            <Field label="حد مخرجات الموديل (maxOutputTokens)">
+              <Input
+                type="number"
+                dir="ltr"
+                min={500}
+                max={Math.min(
+                  8192,
+                  models.data?.find((model) => model.id === config.model)
+                    ?.outputTokenLimit ?? 8192,
+                )}
+                value={config.maxOutputTokens}
+                onChange={(event) =>
+                  update("maxOutputTokens", Number(event.target.value))
+                }
+              />
+            </Field>
+          </div>
+          <Field label="عبارات التوقف (stopSequences)، كل عبارة في سطر">
+            <Textarea
+              dir="ltr"
+              rows={3}
+              value={stopDraft}
+              onChange={(event) => {
+                setStopDraft(event.target.value);
+                update(
+                  "stopSequences",
+                  event.target.value.split("\n").filter(Boolean),
+                );
+              }}
+            />
+          </Field>
+          <p className="ar-muted">
+            لحد 5 عبارات، و40 حرف للعبارة. حد المخرجات بيشمل توليد JSON وممكن
+            يشمل التفكير؛ حد قليل جدًا ممكن يقطع الرد.
+          </p>
           <Button
             type="button"
             variant="outline"
-            disabled={config.hours.length >= 28}
-            onClick={() =>
-              update("hours", [
-                ...config.hours,
-                { day: 0, start: "09:00", end: "17:00" },
-              ])
-            }
+            onClick={() => {
+              setStopDraft("");
+              setConfig((current) => ({
+                ...current,
+                temperature: 0.2,
+                topP: 0.95,
+                topK: null,
+                maxOutputTokens: 4096,
+                stopSequences: [],
+              }));
+            }}
           >
-            إضافة فترة عمل للمراجعة
+            استعادة إعدادات التوليد
           </Button>
-          <p className="ar-muted">
-            الفترات التي تنتهي قبل بدايتها تمتد لليوم التالي. لا تُرسل هذه
-            المواعيد للعميل إلا إذا كتبتها في محتوى Teach AI المفعّل.
-          </p>
-          <Field label="رسالة خارج المواعيد بالعربية">
-            <Textarea
-              value={config.outsideMessage}
-              maxLength={1000}
-              onChange={(e) => update("outsideMessage", e.target.value)}
-            />
-          </Field>
-          <Field label="رسالة خارج المواعيد بالإنجليزية">
-            <Textarea
-              dir="ltr"
-              value={config.outsideMessageEn}
-              maxLength={1000}
-              onChange={(e) => update("outsideMessageEn", e.target.value)}
-            />
-          </Field>
-        </details>
-        <details hidden={section === "connections"}>
-          <summary>ملاحظات الحفظ والاحتفاظ بالرسائل</summary>
-          <p>
-            حفظ الإعدادات يلغي الردود المنتظرة حتى لا تُرسل وفق تعليمات قديمة.
-            الاحتفاظ يحذف المحتوى دوريًا؛ تبقى بصمات أحداث غير نصية 90 يومًا
-            لمنع التكرار.
-          </p>
-        </details>
-        <div className="ar-save-bar" hidden={section === "connections"}>
-          <span className="ar-muted">تُطبّق التغييرات بعد الحفظ.</span>
-          <Button disabled={save.isPending}>
-            {save.isPending ? "جارٍ الحفظ…" : "حفظ إعدادات الرد الآلي"}
-          </Button>
+        </Question>
+        <div className="ar-save-bar" data-dirty={dirty}>
+          <span role="status">
+            {unsavedText(changes)}
+            {dirty && (
+              <span className="ar-muted">
+                {" "}
+                · الحفظ بيلغي الردود المنتظرة عشان ما تتبعتش بالإعدادات القديمة.
+              </span>
+            )}
+          </span>
+          <span className="ar-toolbar">
+            <Button
+              type="button"
+              variant="outline"
+              disabled={!dirty || save.isPending}
+              onClick={discard}
+            >
+              تراجع
+            </Button>
+            <Button disabled={!dirty || save.isPending}>
+              {save.isPending ? "جارٍ الحفظ…" : "حفظ"}
+            </Button>
+          </span>
         </div>
       </form>
+    </section>
+  );
+}
+type CheckTone = "on" | "wait" | "off" | "idle";
+function CheckItem({
+  tone,
+  title,
+  children,
+  action,
+}: {
+  tone: CheckTone;
+  title: string;
+  children: ReactNode;
+  action?: ReactNode;
+}) {
+  return (
+    <article className="ar-check-item" data-tone={tone}>
+      <div>
+        <h3>
+          <span className={`ar-state ar-state-${tone}`}>{title}</span>
+        </h3>
+        <div className="ar-muted">{children}</div>
+      </div>
+      {action}
+    </article>
+  );
+}
+const failureText = (code: string) => {
+  const label = autoReplyErrorLabel(code);
+  return label === code ? "Meta أو السيرفر رفض الطلب." : label;
+};
+function Connection({
+  data,
+  scope,
+  onOpenInbox,
+}: {
+  data: SettingsData;
+  scope: string;
+  onOpenInbox: () => void;
+}) {
+  const utils = trpc.useUtils();
+  const phone = scope === "whatsapp";
+  const rows = data.channels.filter((c) =>
+    phone ? c.channel === "whatsapp" : c.accountId === scope,
+  );
+  const [panel, setPanel] = useState<
+    "phone" | "log" | "numbers" | "dev" | null
+  >(null);
+  const togglePanel = (next: NonNullable<typeof panel>) =>
+    setPanel((current) => (current === next ? null : next));
+  const check = trpc.autoReply.checkConnection.useMutation({
+    onSuccess: async (r) => {
+      await utils.autoReply.settings.invalidate();
+      if (r.ok) toast.success("نجح فحص الوصول لدى Meta");
+      else
+        toast.error(
+          `فشل الفحص: ${autoReplyErrorLabel(r.errorCode ?? "META_CHECK_FAILED")}`,
+        );
+    },
+    onError: (e) => toast.error(e.message),
+  });
+  const primary = trpc.autoReply.activity.useQuery(
+    phone
+      ? { channel: "whatsapp" }
+      : { channel: "messenger", accountId: scope },
+    { refetchInterval: 30_000 },
+  );
+  const comments = trpc.autoReply.activity.useQuery(
+    { channel: "facebook_comment", accountId: scope },
+    { refetchInterval: 30_000, enabled: !phone },
+  );
+  const activity = {
+    isLoading: primary.isLoading || (!phone && comments.isLoading),
+    error: primary.error ?? (phone ? null : comments.error),
+    refetch: () => Promise.all([primary.refetch(), comments.refetch()]),
+    data: [...(primary.data ?? []), ...(phone ? [] : (comments.data ?? []))]
+      .sort((a, b) => b.id - a.id),
+  };
+  const contacts = trpc.autoReply.whatsappContactAudience.useQuery(undefined, {
+    enabled: phone,
+    retry: false,
+    refetchInterval: 30_000,
+  });
+  const onboarding = trpc.autoReply.onboardingStatus.useQuery(undefined, {
+    enabled: phone,
+    retry: false,
+  });
+  const config = parsedConfig(data);
+  const latest = activity.data?.[0];
+  const prefix = (row: ChannelRow) =>
+    rows.length > 1 ? `${channelLabels[row.channel]}: ` : "";
+  const history = (onboarding.data?.details as { history?: string } | undefined)
+    ?.history;
+  const historyText = history
+    ? (coexistenceStates[
+        history === "not_started" ? "not_started_sync" : history
+      ] ?? "في انتظار التحقق")
+    : "لسه ما بدأش";
+  const needsConfirm =
+    config.whatsappRecipients.mode === "except_contacts" &&
+    !!contacts.data?.available &&
+    config.whatsappRecipients.confirmedContactSync !== contacts.data.syncId;
+  return (
+    <section className="ar-connect" aria-label="حالة الربط">
+      {rows.length === 0 && (
+        <p className="ar-notice">
+          القناة دي مش متعرّفة على السيرفر. ده محتاج المبرمج يضيفها.
+        </p>
+      )}
+      {rows.map((c) => {
+        const meta: [CheckTone, string, ReactNode] = !c.configured
+          ? [
+              "off",
+              "إعداد السيرفر غير مكتمل",
+              "متغيرات الربط ناقصة على السيرفر. ده محتاج المبرمج.",
+            ]
+          : c.errorCode
+            ? [
+                "off",
+                "فشل آخر فحص مع Meta",
+                <>
+                  {failureText(c.errorCode)} الكود:{" "}
+                  <bdi className="ar-code">{c.errorCode}</bdi> ·{" "}
+                  {time(c.checkedAt)}
+                </>,
+              ]
+            : c.checkFresh
+              ? [
+                  "on",
+                  "الاتصال بـ Meta سليم",
+                  `آخر فحص ناجح: ${time(c.checkedAt)}`,
+                ]
+              : c.checkedAt && !c.checkOk
+                ? [
+                    "wait",
+                    "الربط اتغيّر بعد آخر فحص",
+                    `آخر فحص: ${time(c.checkedAt)}. افحص تاني.`,
+                  ]
+                : c.checkedAt
+                  ? [
+                      "wait",
+                      "آخر فحص أقدم من يوم",
+                      `آخر فحص: ${time(c.checkedAt)}`,
+                    ]
+                  : ["wait", "لسه ما اتعملش فحص", "افحص الاتصال قبل التشغيل."];
+        return (
+          <div key={`${c.channel}:${c.accountId}:${c.label}`}>
+            <CheckItem
+              tone={meta[0]}
+              title={`${prefix(c)}${meta[1]}`}
+              action={
+                <Button
+                  variant="outline"
+                  disabled={!c.configured || check.isPending}
+                  onClick={() =>
+                    check.mutate({ channel: c.channel, accountId: c.accountId })
+                  }
+                >
+                  {check.isPending &&
+                  check.variables?.channel === c.channel &&
+                  check.variables.accountId === c.accountId
+                    ? "جارٍ الفحص…"
+                    : "افحص الآن"}
+                </Button>
+              }
+            >
+              {meta[2]}
+            </CheckItem>
+            <CheckItem
+              tone={c.lastWebhookAt ? "on" : "wait"}
+              title={`${prefix(c)}${c.lastWebhookAt ? "الرسائل بتوصل" : "لسه ما وصلش حدث من Meta"}`}
+              action={
+                <Button variant="outline" onClick={onOpenInbox}>
+                  المحادثات
+                </Button>
+              }
+            >
+              {c.lastWebhookAt
+                ? `آخر حدث وصل من Meta: ${time(c.lastWebhookAt)}`
+                : "لو العملاء بعتوا ومفيش حاجة وصلت، راجع اشتراك الـ Webhook في التفاصيل التقنية."}
+              {c.channel === "whatsapp" &&
+                c.lastMobileEchoAt &&
+                ` · آخر رد من الموبايل: ${time(c.lastMobileEchoAt)}`}
+            </CheckItem>
+          </div>
+        );
+      })}
+      {activity.isLoading ? (
+        <CheckItem tone="idle" title="آخر رد">
+          <span role="status">جارٍ تحميل آخر إرسال…</span>
+        </CheckItem>
+      ) : activity.error ? (
+        <CheckItem
+          tone="off"
+          title="تعذر تحميل سجل الإرسال"
+          action={
+            <Button variant="outline" onClick={() => void activity.refetch()}>
+              إعادة المحاولة
+            </Button>
+          }
+        >
+          {activity.error.message}
+        </CheckItem>
+      ) : !latest ? (
+        <CheckItem tone="idle" title="لسه مفيش ردود اتبعتت من هنا">
+          نتايج «جرّب سؤال» مش بتظهر هنا.
+        </CheckItem>
+      ) : (
+        <CheckItem
+          tone={
+            ["failed", "unknown"].includes(latest.state)
+              ? "off"
+              : ["sent", "delivered", "read"].includes(latest.state)
+                ? "on"
+                : "wait"
+          }
+          title={
+            ["failed", "unknown"].includes(latest.state)
+              ? "آخر رد ما اتبعتش"
+              : ["sent", "delivered", "read"].includes(latest.state)
+                ? "آخر رد اتبعت"
+                : `آخر رد: ${statusLabels[latest.state] ?? latest.state}`
+          }
+          action={
+            <Button
+              variant="outline"
+              aria-expanded={panel === "log"}
+              onClick={() => togglePanel("log")}
+            >
+              سجل الإرسال
+            </Button>
+          }
+        >
+          {statusLabels[latest.state] ?? latest.state} ·{" "}
+          {latest.kind === "auto" ? "رد آلي" : "رد موظف"} ·{" "}
+          {time(latest.updatedAt)}
+          {latest.errorCode && (
+            <>
+              <br />
+              {failureText(latest.errorCode)} كود Meta:{" "}
+              <bdi className="ar-code">{latest.errorCode}</bdi>
+            </>
+          )}
+        </CheckItem>
+      )}
+      {phone && (
+        <CheckItem
+          tone={
+            contacts.isError || onboarding.isError
+              ? "off"
+              : needsConfirm || !contacts.data?.available
+                ? "wait"
+                : "on"
+          }
+          title={
+            contacts.isError || onboarding.isError
+              ? "ربط الموبايل: تعذر تحميل الحالة"
+              : needsConfirm
+                ? "ربط الموبايل: جهات الاتصال محتاجة تأكيدك"
+                : contacts.data?.available
+                  ? "ربط الموبايل شغّال"
+                  : "ربط الموبايل: جهات الاتصال لسه ما وصلتش"
+          }
+          action={
+            <Button
+              variant="outline"
+              aria-expanded={panel === "phone"}
+              onClick={() => togglePanel("phone")}
+            >
+              إدارة الربط
+            </Button>
+          }
+        >
+          {contacts.isLoading
+            ? "جارٍ تحميل جهات الاتصال…"
+            : contacts.data?.available
+              ? `جهات الاتصال المُزامنة: ${count(contacts.data.count)}`
+              : "جهات الاتصال: مش جاهزة"}{" "}
+          · تاريخ المحادثات القديمة:{" "}
+          {onboarding.isLoading ? "جارٍ التحميل…" : historyText}
+          {needsConfirm && ". أكّد القايمة من «الرد ← يرد على مين؟»."}
+        </CheckItem>
+      )}
+      <div className="ar-toolbar ar-connect-links">
+        {(
+          [
+            ["log", "سجل الإرسال"],
+            ["numbers", "أرقام القناة"],
+            ["dev", "تفاصيل تقنية للمبرمج"],
+          ] as const
+        ).map(([id, label]) => (
+          <Button
+            key={id}
+            variant="outline"
+            aria-expanded={panel === id}
+            onClick={() => togglePanel(id)}
+          >
+            {label}
+          </Button>
+        ))}
+      </div>
+      {panel === "phone" && <WhatsAppCoexistence />}
+      {panel === "log" && <Activity pages={data.pages} scope={scope} />}
+      {panel === "numbers" && <Metrics scope={scope} />}
+      {panel === "dev" && (
+        <div className="ar-panel">
+          <h2>تفاصيل تقنية للمبرمج</h2>
+          <p>
+            الأسرار بتتضاف في بيئة السيرفر. الشاشة دي مش بتستقبل المفاتيح ولا
+            بتعرض قيمها. نجاح فحص الوصول مش بيثبت اكتمال مراجعة التطبيق أو
+            صلاحية إرسال كل أنواع الرسائل.
+          </p>
+          {phone && (
+            <p className="ar-notice">
+              رقم تأكيد الحجوزات منفصل ويستمر بالربط الحالي. رقم خدمة العملاء
+              يحتاج WhatsApp Business App Coexistence عبر Embedded Signup حتى
+              يستمر على الموبايل. يجب التحقق من أهلية الرقم واستقبال حدث رد من
+              الهاتف قبل تشغيل الرد الآلي.
+            </p>
+          )}
+          <h3>مسار Webhook</h3>
+          <p dir="ltr" className="ar-prewrap">
+            {window.location.origin}/webhook/auto-reply/meta
+          </p>
+          <h3>الصلاحيات المطلوبة</h3>
+          <p>
+            WhatsApp: whatsapp_business_messaging وwhatsapp_business_management.
+            ماسنجر: pages_messaging. التعليقات: pages_read_engagement
+            وpages_read_user_content وpages_manage_engagement. الاشتراك:
+            pages_manage_metadata. راجع Advanced Access وApp Review وBusiness
+            Verification حسب استخدام التطبيق والأصول.
+          </p>
+          <p>
+            اشترك في messages وsmb_message_echoes لواتساب، وmessages
+            وmessage_echoes وfeed للصفحة. دليل الإعداد داخل المستودع:
+            docs/auto-reply-setup.md.
+          </p>
+          <h3>الأصول</h3>
+          {rows.map((c) => (
+            <p key={`${c.channel}:${c.accountId}:${c.label}`}>
+              {channelLabels[c.channel]} · {c.label}: معرّف الأصل{" "}
+              <bdi>{c.accountId || "غير مضبوط"}</bdi> · آخر فحص:{" "}
+              {time(c.checkedAt)} · آخر Webhook مطابق: {time(c.lastWebhookAt)}
+              {c.errorCode && (
+                <>
+                  {" "}
+                  · نتيجة الفحص: <bdi>{c.errorCode}</bdi>
+                </>
+              )}
+            </p>
+          ))}
+        </div>
+      )}
     </section>
   );
 }
@@ -2901,11 +3731,13 @@ function InternalTest({
   activeEngine,
   onPendingChange,
   scope,
+  compact = false,
 }: {
   pages: FacebookPages;
   activeEngine: "current" | "central";
   onPendingChange: (pending: boolean) => void;
   scope: string;
+  compact?: boolean;
 }) {
   const capabilities = trpc.aiManagement.status.useQuery(undefined, {
     retry: false,
@@ -2945,12 +3777,24 @@ function InternalTest({
     onPendingChange(false);
   }, [test.data, test.error, onPendingChange]);
   return (
-    <section className="ar-panel">
-      <h2>اختبار داخلي دون إرسال للعملاء</h2>
-      <p>
-        يستخدم المعرفة المعتمدة والموديل المحدد. لا ينشئ محادثة حقيقية أو مهمة
-        إرسال. قد يستهلك رصيد المساعد المختار.
-      </p>
+    <section className={compact ? "ar-try-panel" : "ar-panel"}>
+      {compact ? (
+        <>
+          <h2>جرّب سؤال</h2>
+          <p className="ar-muted">
+            شوف البوت هيرد بإيه بالمعلومات المفعّلة، من غير إرسال لأي عميل. ممكن
+            يستهلك رصيد المساعد.
+          </p>
+        </>
+      ) : (
+        <>
+          <h2>اختبار داخلي دون إرسال للعملاء</h2>
+          <p>
+            يستخدم المعرفة المعتمدة والموديل المحدد. لا ينشئ محادثة حقيقية أو
+            مهمة إرسال. قد يستهلك رصيد المساعد المختار.
+          </p>
+        </>
+      )}
       {engine === "central_live" && (
         <p>هذه معاينة دون إرسال، بنفس موديل وحدود مهمة «الرد الآلي المركزي».</p>
       )}
@@ -2992,18 +3836,22 @@ function InternalTest({
         {scope !== "whatsapp" && !requestId && (
           <ChannelTabs pageOnly value={channel} onChange={setChannel} />
         )}
-        <Field label="رسالة العميل للاختبار">
+        <Field label={compact ? "سؤال العميل" : "رسالة العميل للاختبار"}>
           <Textarea
             required
             value={text}
             disabled={Boolean(requestId)}
             maxLength={3000}
-            rows={4}
+            rows={compact ? 3 : 4}
             onChange={(e) => setText(e.target.value)}
           />
         </Field>
         <Button disabled={test.isPending || !text.trim()}>
-          {test.isPending ? "جارٍ تحضير المقترح…" : "عرض الرد المقترح"}
+          {test.isPending
+            ? "جارٍ تحضير الرد…"
+            : compact
+              ? "جرّب"
+              : "عرض الرد المقترح"}
         </Button>
       </form>
       {test.error?.message === "AI_TASK_PENDING" ? (
@@ -3061,12 +3909,30 @@ function InternalTest({
             {test.data.handoff ? "يُحوّل لموظف ويوقف البوت" : "يمكن الرد آليًا"}{" "}
             · السبب: <bdi>{test.data.reason ?? "معلومة معتمدة"}</bdi>
           </p>
+          <h4>اعتمد على إيه؟</h4>
+          {test.data.sources.length ? (
+            <>
+              <ul className="ar-sources">
+                {test.data.sources.map((source) => (
+                  <li key={source.id} dir="auto">
+                    {source.title}
+                  </li>
+                ))}
+              </ul>
+              <p className="ar-muted">
+                الموديل هو اللي بيحدد المعلومات دي، والسيرفر بيتأكد إنها من
+                المعلومات اللي اتبعتت له. مش بيثبت إن كل جملة جت منها.
+              </p>
+            </>
+          ) : (
+            <p>
+              {test.data.reason
+                ? "ولا معلومة: ده رد ثابت من قواعد البوت."
+                : "ولا معلومة محددة: الرد تواصل عام زي التحية أو الشكر."}
+            </p>
+          )}
           <p>
-            مصادر الرد:{" "}
-            {test.data.sourceIds
-              .map((id) => (id < 0 ? `تعليمة ${-id}` : `معلومة ${id}`))
-              .join("، ") || "تواصل عام دون معلومة محددة"}{" "}
-            · الموديل:{" "}
+            الموديل:{" "}
             <bdi>{test.data.model ?? "رد سياسة ثابت دون Gemini"}</bdi>
           </p>
           <p>

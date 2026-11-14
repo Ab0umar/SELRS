@@ -20,7 +20,7 @@ import {
   requireCancellationOrigin,
   onboardingSession,
 } from "../services/auto-reply/coexistence";
-import { and, desc, eq, sql, inArray } from "drizzle-orm";
+import { and, desc, eq, sql, inArray, notInArray } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import {
   adminProcedure,
@@ -63,10 +63,19 @@ import {
   facebookPages,
   connectionTargets,
 } from "../services/auto-reply/providers";
-import { inWorkingHours } from "../services/auto-reply/policy";
+import {
+  describeReplySources,
+  inWorkingHours,
+} from "../services/auto-reply/policy";
 import { whatsappContactAudience } from "../services/auto-reply/recipients";
 import { clearLifecycleRecheck } from "../services/auto-reply/coexistence-sync";
 import { autoReplyMetrics } from "../services/auto-reply/metrics";
+import {
+  knowledgeImportLimits,
+  planKnowledgeImport,
+  readKnowledgeFile,
+  withImportedRules,
+} from "../services/auto-reply/knowledgeImport";
 import {
   logAuditEvent,
   getDbConnection,
@@ -147,6 +156,113 @@ export const autoReplyRouter = router({
       .orderBy(desc(knowledge.updatedAt))
       .limit(200),
   ),
+  // Approved rows of older kinds are listed so the screen can say they are not sent in teach_ai mode.
+  legacyKnowledge: autoReplyAdminProcedure.query(async () => {
+    const config = await readSettings();
+    const rows = await (await getAutoReplyDb())
+      .select({
+        id: knowledge.id,
+        kind: knowledge.kind,
+        title: knowledge.title,
+        content: knowledge.content,
+        targetPage: knowledge.targetPage,
+        approved: knowledge.approved,
+        updatedAt: knowledge.updatedAt,
+      })
+      .from(knowledge)
+      .where(
+        and(
+          notInArray(knowledge.kind, ["teach_ai", "website"]),
+          currentKnowledgeSourceCondition(),
+        ),
+      )
+      .orderBy(desc(knowledge.updatedAt))
+      .limit(500);
+    return { mode: config.knowledgeMode, rows };
+  }),
+  importKnowledge: autoReplyAdminProcedure
+    .input(
+      z.object({
+        fileName: z
+          .string()
+          .max(255)
+          .regex(/\.(csv|xlsx)$/i, "الملف لازم يكون CSV أو xlsx"),
+        data: z
+          .string()
+          .max(Math.ceil((knowledgeImportLimits.bytes * 4) / 3) + 8)
+          .regex(/^[A-Za-z0-9+/=]*$/),
+        confirm: z.boolean().default(false),
+      }),
+    )
+    .mutation(async ({ input, ctx }) => {
+      let file: ReturnType<typeof readKnowledgeFile>;
+      try {
+        file = readKnowledgeFile(input.fileName, input.data);
+      } catch {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "تعذر قراءة الملف. احفظه CSV بترميز UTF-8 أو xlsx.",
+        });
+      }
+      if ("error" in file)
+        throw new TRPCError({ code: "BAD_REQUEST", message: file.error });
+      const db = await getAutoReplyDb();
+      const config = await readSettings();
+      const existing = await db
+        .select({ title: knowledge.title, content: knowledge.content })
+        .from(knowledge)
+        .where(currentKnowledgeSourceCondition());
+      const plan = planKnowledgeImport(
+        file.rows,
+        { knowledge: existing, instructions: config.instructions },
+        facebookPages(),
+      );
+      if ("error" in plan)
+        throw new TRPCError({ code: "BAD_REQUEST", message: plan.error });
+      const summary = {
+        knowledge: plan.knowledge.length,
+        instructions: plan.instructions.length,
+        rejected: plan.rejected,
+        skipped: plan.skipped,
+        saved: false,
+      };
+      if (!input.confirm || (!plan.knowledge.length && !plan.instructions.length))
+        return summary;
+      await withKnowledgeUpdate(async (tx) => {
+        if (plan.knowledge.length)
+          await tx.insert(knowledge).values(
+            plan.knowledge.map((row) => ({
+              title: row.title,
+              content: row.content,
+              targetPage: row.targetPage,
+              approved: row.enabled,
+              sourceUrl: null,
+              kind: "teach_ai",
+              source: "teach_ai",
+              keywords: "",
+              updatedBy: ctx.user.id,
+            })),
+          );
+        if (plan.instructions.length) {
+          const [current] = await tx
+            .select({ config: settingsTable.config })
+            .from(settingsTable)
+            .where(eq(settingsTable.id, 1));
+          await tx
+            .update(settingsTable)
+            .set({
+              config: withImportedRules(current?.config, plan.instructions),
+              updatedBy: ctx.user.id,
+            })
+            .where(eq(settingsTable.id, 1));
+        }
+      });
+      await logAuditEvent(ctx.user.id, "AUTO_REPLY_TEACH_AI", "auto_reply", 0, {
+        imported: plan.knowledge.length,
+        importedRules: plan.instructions.length,
+      });
+      return { ...summary, saved: true };
+    }),
   previewWebsite: autoReplyAdminProcedure
     .input(z.object({ url: z.string().max(2048) }))
     .mutation(({ input }) => previewWebsite(input.url)),
@@ -759,6 +875,11 @@ export const autoReplyRouter = router({
         return {
           ...proposal,
           testOnly: true as const,
+          sources: describeReplySources(
+            proposal.sourceIds,
+            approved,
+            config.instructions,
+          ),
           engine: input.engine,
           requestId: input.engine !== "current" ? input.requestId : undefined,
           inWorkingHours: inWorkingHours(

@@ -218,3 +218,28 @@ export function selectKnowledgeContext(
   }
   return selected;
 }
+// Names the entries a reply cited. The ids come from the model and proposeReply
+// already rejects any id that was not among the entries sent to it.
+export function describeReplySources(
+  sourceIds: number[],
+  knowledge: Pick<KnowledgeItem, "id" | "title">[],
+  instructions: { text: string }[],
+) {
+  return [...new Set(sourceIds)].map((id) => {
+    if (id === -1000)
+      return { id, kind: "booking" as const, title: "رابط الحجز الإلكتروني" };
+    if (id < 0) {
+      const text = instructions[-id - 1]?.text.trim() ?? "";
+      return {
+        id,
+        kind: "instruction" as const,
+        title: `تعليمة ${-id}${text ? `: ${text.length > 60 ? `${text.slice(0, 60)}…` : text}` : ""}`,
+      };
+    }
+    return {
+      id,
+      kind: "knowledge" as const,
+      title: knowledge.find((entry) => entry.id === id)?.title ?? `معلومة رقم ${id}`,
+    };
+  });
+}
