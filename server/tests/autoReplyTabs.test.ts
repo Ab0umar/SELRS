@@ -9,6 +9,13 @@ import {
   staffReplyPausePresets,
 } from "../../shared/auto-reply";
 import { describeReplySources } from "../services/auto-reply/policy";
+import {
+  importTarget,
+  planKnowledgeImport,
+  readKnowledgeFile,
+} from "../services/auto-reply/knowledgeImport";
+import { knowledgeImportHeaders } from "../../shared/auto-reply";
+
 
 describe("auto-reply setting presets", () => {
   const shape = autoReplySettingsSchema.shape;
@@ -89,5 +96,99 @@ describe("describeReplySources", () => {
       { id: 7, kind: "knowledge", title: "أسعار الكشف" },
       { id: 40, kind: "knowledge", title: "معلومة رقم 40" },
     ]);
+  });
+});
+
+
+describe("knowledge import", () => {
+  const pages = [{ accountId: "111" }, { accountId: "222" }];
+  const header = [...knowledgeImportHeaders];
+  const empty = { knowledge: [], instructions: [] };
+
+  it("reads UTF-8 CSV with and without a BOM", () => {
+    const csv = `${header.join(",")}\nمواعيد,"من 9, لـ 5",,,\n`;
+    for (const text of [csv, `\uFEFF${csv}`]) {
+      const file = readKnowledgeFile(
+        "a.csv",
+        Buffer.from(text, "utf8").toString("base64"),
+      );
+      expect(file).toEqual({
+        rows: [header, ["مواعيد", "من 9, لـ 5", "", "", ""]],
+      });
+    }
+  });
+
+  it.each([
+    ["", "all"],
+    ["الكل", "all"],
+    ["واتساب", "whatsapp"],
+    ["صفحة المركز", "111"],
+    ["واتساب + صفحة العيادة", "whatsapp,222"],
+    ["صفحة المركز + صفحة العيادة", "facebook"],
+    ["واتساب + صفحة المركز + صفحة العيادة", "all"],
+  ])("maps the channel %s to %s", (value, target) => {
+    expect(importTarget(value, pages)).toEqual({ target });
+  });
+
+  it("rejects an unknown channel and a page missing on the server", () => {
+    expect(importTarget("تليجرام", pages).error).toContain("مش معروفة");
+    expect(importTarget("صفحة العيادة", [{ accountId: "111" }]).error).toContain(
+      "مش متعرّفة",
+    );
+  });
+
+  it("requires the header row in order", () => {
+    expect(
+      planKnowledgeImport([["النص", "العنوان"]], empty, pages),
+    ).toHaveProperty("error");
+  });
+
+  it("splits rules from information, applies defaults and reports bad rows", () => {
+    const plan = planKnowledgeImport(
+      [
+        header,
+        ["الأسعار", "الكشف 300", "", "", ""],
+        ["الأسلوب", "رد باختصار", "نعم", "واتساب", "لا"],
+        ["", "بدون عنوان", "", "", ""],
+        ["طويل", "x".repeat(1000), "نعم", "", ""],
+        ["قيمة", "نص", "ممكن", "", ""],
+      ],
+      empty,
+      pages,
+    );
+    expect(plan).toMatchObject({
+      knowledge: [
+        { title: "الأسعار", content: "الكشف 300", targetPage: "all", enabled: true },
+      ],
+      instructions: [
+        { text: "الأسلوب\nرد باختصار", targetPage: "whatsapp", enabled: false },
+      ],
+      rejected: [
+        { row: 4, reason: "العنوان فاضي" },
+        { row: 5, reason: expect.stringContaining("1000") },
+        { row: 6, reason: expect.stringContaining("نعم أو لا") },
+      ],
+    });
+  });
+
+  it("skips rows that match an existing entry and never touches it", () => {
+    const plan = planKnowledgeImport(
+      [header, ["الأسعار", "الكشف 300", "", "", ""], ["قاعدة", "اختصر", "نعم", "", ""]],
+      {
+        knowledge: [{ title: "الأسعار", content: "الكشف 300" }],
+        instructions: [{ text: "قاعدة\nاختصر" }],
+      },
+      pages,
+    );
+    expect(plan).toMatchObject({
+      knowledge: [],
+      instructions: [],
+      skipped: [{ row: 2 }, { row: 3 }],
+    });
+  });
+
+  it("caps the row count", () => {
+    const rows = [header, ...Array.from({ length: 501 }, (_, i) => [`t${i}`, "x"])];
+    expect(planKnowledgeImport(rows, empty, pages)).toHaveProperty("error");
   });
 });

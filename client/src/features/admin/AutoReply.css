@@ -1195,3 +1195,9 @@
     width: 100%;
   }
 }
+.ar-blocked {
+  color: var(--destructive);
+}
+.ar-entry[data-reaches="false"] {
+  border-style: dashed;
+}

@@ -28,6 +28,7 @@ import {
   replyLengthPresets,
   staffReplyPausePresets,
   type SettingPreset,
+  knowledgeImportHeaders,
   type AutoReplyChannel,
   type AutoReplySettings,
 } from "../../../../shared/auto-reply";
@@ -567,6 +568,7 @@ export default function AutoReply() {
                       data={data}
                       scope={view.scope}
                       onDirtyChange={setSettingsDirty}
+                      onOpenKnowledge={() => go({ ...view, tab: "knowledge" })}
                     />
                   </div>
                 )}
@@ -581,6 +583,7 @@ export default function AutoReply() {
                 {view.tab === "knowledge" && (
                   <Knowledge
                     key={view.scope}
+                    data={data}
                     pages={data.pages}
                     scope={view.scope}
                     aside={
@@ -599,7 +602,7 @@ export default function AutoReply() {
               </>
             )}
             {view.kind === "shared" && view.part === "knowledge" && (
-              <Knowledge pages={data.pages} scope="all" />
+              <Knowledge data={data} pages={data.pages} scope="all" />
             )}
             {view.kind === "shared" && view.part === "settings" && (
               <>
@@ -1618,18 +1621,71 @@ function Switch({
     />
   );
 }
+type KnowledgeItem =
+  | { key: string; store: "style"; title: string; text: string }
+  | {
+      key: string;
+      store: "rule";
+      index: number;
+      title: string;
+      text: string;
+      enabled: boolean;
+      targetPage: string;
+    }
+  | { key: string; store: "info"; row: KnowledgeRow }
+  | {
+      key: string;
+      store: "legacy";
+      row: AutoReplyOutputs["legacyKnowledge"]["rows"][number];
+    };
+// Instructions have no title field, so a rule's first line is its title.
+const splitRule = (text: string) => {
+  const [first, ...rest] = text.split("\n");
+  return { title: first.trim(), text: rest.join("\n").trim() };
+};
+const joinRule = (title: string, text: string) =>
+  text.trim() ? `${title.trim()}\n${text.trim()}` : title.trim();
+const scopedStyle = (config: AutoReplySettings, scope: string) =>
+  scope === "all"
+    ? config.style
+    : settingsForTarget(
+        config,
+        scope === "whatsapp" ? "whatsapp" : "messenger",
+        scope,
+      ).style;
+const withStyle = (
+  config: AutoReplySettings,
+  scope: string,
+  style: string,
+): AutoReplySettings =>
+  scope === "all"
+    ? { ...config, style }
+    : {
+        ...config,
+        targets: {
+          ...config.targets,
+          [scope]: { ...config.targets[scope], style },
+        },
+      };
+const ruleTooLong =
+  "النص أطول من 1000 حرف، فما ينفعش يتطبق في كل رد. اقفل «يتطبق في كل رد» أو قصّره.";
 function Knowledge({
+  data,
   pages,
   scope,
   aside,
 }: {
+  data: SettingsData;
   pages: FacebookPages;
   scope: string;
   aside?: ReactNode;
 }) {
   const target = scope;
+  const config = parsedConfig(data);
   const query = trpc.autoReply.teaching.useQuery();
-  const [editing, setEditing] = useState<KnowledgeRow | "new" | null>(null);
+  const legacy = trpc.autoReply.legacyKnowledge.useQuery();
+  const [editing, setEditing] = useState<KnowledgeItem | "new" | null>(null);
+  const [importing, setImporting] = useState(false);
   const [search, setSearch] = useState("");
   const [contentStatus, setContentStatus] = useState("all");
   const utils = trpc.useUtils();
@@ -1651,33 +1707,136 @@ function Knowledge({
     },
     onError: (e) => toast.error(`ما اتغيرتش حالة المعلومة: ${e.message}`),
   });
-  const inScope = query.data?.filter((k) => belongsToTarget(k.targetPage, target));
-  const rows = inScope?.filter(
-    (k) =>
-      `${k.title} ${k.content}`.includes(search) &&
+  const saveSettings = trpc.autoReply.saveSettings.useMutation();
+  const [ruleBusy, setRuleBusy] = useState(false);
+  const toggleRule = async (index: number, enabled: boolean) => {
+    setRuleBusy(true);
+    try {
+      const fresh = parsedConfig(await utils.autoReply.settings.fetch());
+      await saveSettings.mutateAsync({
+        ...fresh,
+        instructions: fresh.instructions.map((item, i) =>
+          i === index ? { ...item, enabled } : item,
+        ),
+      });
+      await utils.autoReply.invalidate();
+    } catch (error) {
+      toast.error(`ما اتغيرتش حالة القاعدة: ${(error as Error).message}`);
+    } finally {
+      setRuleBusy(false);
+    }
+  };
+  const mode = legacy.data?.mode ?? config.knowledgeMode;
+  const items: KnowledgeItem[] = [
+    {
+      key: "style",
+      store: "style",
+      title: "أسلوب الرد",
+      text: scopedStyle(config, scope),
+    },
+    ...config.instructions.flatMap((instruction, index) =>
+      belongsToTarget(instruction.targetPage, target)
+        ? [
+            {
+              key: `rule:${index}`,
+              store: "rule" as const,
+              index,
+              ...splitRule(instruction.text),
+              enabled: instruction.enabled,
+              targetPage: instruction.targetPage ?? "all",
+            },
+          ]
+        : [],
+    ),
+    ...(query.data ?? [])
+      .filter((row) => belongsToTarget(row.targetPage, target))
+      .map((row) => ({ key: `info:${row.id}`, store: "info" as const, row })),
+    ...(legacy.data?.rows ?? [])
+      .filter((row) => belongsToTarget(row.targetPage, target))
+      .map((row) => ({
+        key: `legacy:${row.id}`,
+        store: "legacy" as const,
+        row,
+      })),
+  ];
+  const view = (item: KnowledgeItem) => {
+    if (item.store === "style")
+      return {
+        title: item.title,
+        text: item.text,
+        every: true,
+        enabled: !!item.text.trim(),
+        reach: item.text.trim()
+          ? "بيتبعت مع كل رد"
+          : "فاضي، مفيش أسلوب بيتبعت",
+        reaches: !!item.text.trim(),
+        target: scope,
+      };
+    if (item.store === "rule")
+      return {
+        title: item.title,
+        text: item.text,
+        every: true,
+        enabled: item.enabled,
+        reach: item.enabled ? "بيتبعت مع كل رد" : "متوقفة، مش بتوصل للبوت",
+        reaches: item.enabled,
+        target: item.targetPage,
+      };
+    const row = item.row;
+    const oldKind = item.store === "legacy" && mode === "teach_ai";
+    return {
+      title: row.title,
+      text: row.content,
+      every: false,
+      enabled: row.approved,
+      reach: oldKind
+        ? `مش بتوصل للبوت: نوع قديم («${row.kind}») والمركز شغّال على وضع Teach AI، فالنوع ده مش بيتبعت. تغيير الوضع محتاج المبرمج.`
+        : !row.approved
+          ? "متوقفة، مش بتوصل للبوت"
+          : "بتوصل للبوت لما السؤال يخصها",
+      reaches: !oldKind && row.approved,
+      target: row.targetPage ?? "all",
+    };
+  };
+  const rows = items.filter((item) => {
+    const v = view(item);
+    return (
+      `${v.title} ${v.text}`.includes(search) &&
       (contentStatus === "all" ||
-        (contentStatus === "active" ? k.approved : !k.approved)),
-  );
+        (contentStatus === "active"
+          ? v.enabled
+          : contentStatus === "paused"
+            ? !v.enabled
+            : !v.reaches))
+    );
+  });
+  const blocked = items.filter((item) => !view(item).reaches).length;
   return (
     <div className={aside ? "ar-know" : undefined}>
-      <section className="ar-panel ar-teaching" aria-label="المعلومات">
+      <section className="ar-panel ar-teaching" aria-labelledby="ar-know-title">
+        <h2 id="ar-know-title">اللي البوت يعرفه</h2>
+        <p className="ar-muted">
+          لو لازم يتطبق في كل رد فهو قاعدة؛ لو حاجة العملاء بيسألوا عنها فهو
+          معلومة.
+        </p>
         <div className="ar-know-bar">
           <Input
             type="search"
-            aria-label="دوّر في المعلومات"
-            placeholder="دوّر في المعلومات"
+            aria-label="دوّر في اللي البوت يعرفه"
+            placeholder="دوّر"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
           <select
             className="ar-select"
-            aria-label="حالة المعلومات"
+            aria-label="الحالة"
             value={contentStatus}
             onChange={(event) => setContentStatus(event.target.value)}
           >
-            <option value="all">الكل ({count(inScope?.length ?? 0)})</option>
+            <option value="all">الكل ({count(items.length)})</option>
             <option value="active">المفعّلة</option>
             <option value="paused">المتوقفة</option>
+            <option value="blocked">مش بتوصل للبوت ({count(blocked)})</option>
           </select>
           <Button
             onClick={() => {
@@ -1685,14 +1844,12 @@ function Knowledge({
               setEditing("new");
             }}
           >
-            إضافة معلومة
+            إضافة
+          </Button>
+          <Button variant="outline" onClick={() => setImporting(true)}>
+            استيراد من ملف
           </Button>
         </div>
-        <p className="ar-muted">
-          {scope === "all"
-            ? "المعلومات المشتركة بتتستخدم في الجهات المحددة لها. تقدر تختار أكتر من جهة لكل معلومة."
-            : "المعلومات الخاصة بالجهة دي. البوت بيستخدمها مع المعلومات المشتركة المفعّلة لها."}
-        </p>
         {editing !== null && (
           <Dialog
             open
@@ -1706,83 +1863,107 @@ function Knowledge({
               onInteractOutside={(event) => event.preventDefault()}
             >
               <DialogHeader>
-                <DialogTitle>
-                  {editing === "new" ? "إضافة معلومة" : "تعديل معلومة"}
-                </DialogTitle>
+                <DialogTitle>{editing === "new" ? "إضافة" : "تعديل"}</DialogTitle>
                 <DialogDescription>
-                  اكتب النص كما تريد أن يفهمه المساعد، ثم حدد أين يُستخدم.
+                  القاعدة بتتبعت مع كل رد، لحد 1000 حرف. المعلومة بتتبعت لما
+                  السؤال يخصها، لحد 30000 حرف.
                 </DialogDescription>
               </DialogHeader>
               <KnowledgeEditor
-                key={editing === "new" ? "new" : editing.id}
-                row={editing === "new" ? undefined : editing}
+                key={editing === "new" ? "new" : editing.key}
+                item={editing === "new" ? undefined : editing}
                 pages={pages}
+                scope={scope}
                 websiteDraft={websiteDraft}
-                target={target}
                 close={() => setEditing(null)}
               />
             </DialogContent>
           </Dialog>
         )}
-        {query.isLoading && <p role="status">جارٍ تحميل المعلومات…</p>}
+        {importing && (
+          <ImportDialog pages={pages} close={() => setImporting(false)} />
+        )}
+        {(query.isLoading || legacy.isLoading) && (
+          <p role="status">جارٍ تحميل المعلومات…</p>
+        )}
         {query.error && (
           <ErrorState
             message={`تعذر تحميل المعلومات: ${query.error.message}`}
             retry={() => void query.refetch()}
           />
         )}
-        {inScope?.length === 0 && (
-          <p className="ar-notice">
-            مفيش معلومات للجهة دي لسه. اضغط «إضافة معلومة» واكتب اللي عايز
-            البوت يرد منه.
-          </p>
+        {legacy.error && (
+          <ErrorState
+            message={`تعذر تحميل المعلومات القديمة: ${legacy.error.message}`}
+            retry={() => void legacy.refetch()}
+          />
         )}
         <ul className="ar-entries">
-          {rows?.map((k) => (
-            <li key={k.id} className="ar-entry">
-              <div>
-                <h3>{k.title}</h3>
-                <p className="ar-muted ar-entry-line" dir="auto">
-                  {k.content.split("\n").find((line) => line.trim()) ?? ""}
-                </p>
-                <p className="ar-entry-meta">
-                  {k.kind === "website" ? "من موقع" : "نص مكتوب"} ·{" "}
-                  {k.approved ? "مفعّلة" : "متوقفة"} · بتتستخدم في:{" "}
-                  {knowledgeTargets(k.targetPage, pages)} · آخر تعديل:{" "}
-                  {time(k.updatedAt)}
-                </p>
-              </div>
-              <Switch
-                checked={k.approved}
-                label={`استخدام «${k.title}» في الردود`}
-                disabled={toggle.isPending && toggle.variables?.id === k.id}
-                onChange={(enabled) =>
-                  toggle.mutate({
-                    id: k.id,
-                    title: k.title,
-                    content: k.content,
-                    targetPage: k.targetPage ?? "all",
-                    sourceUrl: k.sourceUrl ?? undefined,
-                    enabled,
-                  })
-                }
-              />
-              <Button
-                variant="outline"
-                aria-label={`تعديل «${k.title}»`}
-                onClick={() => {
-                  setWebsiteDraft(null);
-                  setEditing(k);
-                }}
-              >
-                تعديل
-              </Button>
-            </li>
-          ))}
+          {rows.map((item) => {
+            const v = view(item);
+            return (
+              <li key={item.key} className="ar-entry" data-reaches={v.reaches}>
+                <div>
+                  <h3>{v.title || "من غير عنوان"}</h3>
+                  <p className="ar-muted ar-entry-line" dir="auto">
+                    {v.text.split("\n").find((line) => line.trim()) ??
+                      (item.store === "style" ? "فاضي" : "")}
+                  </p>
+                  <p className="ar-entry-meta">
+                    {v.every ? "يتطبق في كل رد" : "معلومة"} · بتتستخدم في:{" "}
+                    {knowledgeTargets(v.target, pages)}
+                  </p>
+                  <p
+                    className={
+                      v.reaches ? "ar-entry-meta" : "ar-entry-meta ar-blocked"
+                    }
+                  >
+                    {v.reach}
+                  </p>
+                </div>
+                {(item.store === "rule" || item.store === "info") && (
+                  <Switch
+                    checked={v.enabled}
+                    label={`تفعيل «${v.title}»`}
+                    disabled={
+                      item.store === "rule"
+                        ? ruleBusy
+                        : toggle.isPending &&
+                          toggle.variables?.id === item.row.id
+                    }
+                    onChange={(enabled) =>
+                      item.store === "rule"
+                        ? void toggleRule(item.index, enabled)
+                        : toggle.mutate({
+                            id: item.row.id,
+                            title: item.row.title,
+                            content: item.row.content,
+                            targetPage: item.row.targetPage ?? "all",
+                            sourceUrl: item.row.sourceUrl ?? undefined,
+                            enabled,
+                          })
+                    }
+                  />
+                )}
+                {item.store !== "legacy" && (
+                  <Button
+                    variant="outline"
+                    aria-label={`تعديل «${v.title}»`}
+                    onClick={() => {
+                      setWebsiteDraft(null);
+                      setEditing(item);
+                    }}
+                  >
+                    تعديل
+                  </Button>
+                )}
+              </li>
+            );
+          })}
         </ul>
-        {!!inScope?.length && rows?.length === 0 && (
+        {items.length > 1 && rows.length === 0 && (
           <p role="status" className="ar-notice">
-            مفيش معلومات مطابقة. غيّر البحث أو الحالة.
+            مفيش حاجة مطابقة. غيّر البحث أو الحالة.
           </p>
         )}
         <details className="ar-disclosure">
@@ -1822,116 +2003,330 @@ function Knowledge({
   );
 }
 function KnowledgeEditor({
-  row,
+  item,
   close,
   pages,
+  scope,
   websiteDraft,
-  target,
 }: {
-  row?: KnowledgeRow;
+  item?: KnowledgeItem;
   close: () => void;
   pages: FacebookPages;
+  scope: string;
   websiteDraft: AutoReplyOutputs["previewWebsite"] | null;
-  target: string;
 }) {
-  const [targetPage, setTargetPage] = useState(row?.targetPage ?? target);
-  const [title, setTitle] = useState(row?.title ?? websiteDraft?.title ?? "");
-  const [content, setContent] = useState(
-    row?.content ?? websiteDraft?.content ?? "",
+  const row = item?.store === "info" ? item.row : undefined;
+  const isStyle = item?.store === "style";
+  const [targetPage, setTargetPage] = useState(
+    item?.store === "rule" ? item.targetPage : (row?.targetPage ?? scope),
   );
-  const [approved, setApproved] = useState(row?.approved ?? !websiteDraft);
+  const [title, setTitle] = useState(
+    item?.store === "rule"
+      ? item.title
+      : (row?.title ?? websiteDraft?.title ?? ""),
+  );
+  const [content, setContent] = useState(
+    item?.store === "rule" || item?.store === "style"
+      ? item.text
+      : (row?.content ?? websiteDraft?.content ?? ""),
+  );
+  const [every, setEvery] = useState(
+    item?.store === "rule" || isStyle,
+  );
+  const [approved, setApproved] = useState(
+    item?.store === "rule"
+      ? item.enabled
+      : (row?.approved ?? !websiteDraft),
+  );
+  const [busy, setBusy] = useState(false);
   const utils = trpc.useUtils();
-  const save = trpc.autoReply.saveTeaching.useMutation({
-    onSuccess: async () => {
-      await utils.autoReply.teaching.invalidate();
-      await utils.autoReply.settings.invalidate();
-      close();
-      toast.success("حُفظت المعلومة");
-    },
-    onError: (e) => toast.error(e.message),
-  });
-  const remove = trpc.autoReply.deleteTeaching.useMutation({
-    onSuccess: async () => {
-      await utils.autoReply.teaching.invalidate();
-      close();
-    },
-    onError: (e) => toast.error(e.message),
-  });
-  return (
-    <form
-      className="ar-editor"
-      onSubmit={(e) => {
-        e.preventDefault();
-        save.mutate({
+  const saveTeaching = trpc.autoReply.saveTeaching.useMutation();
+  const deleteTeaching = trpc.autoReply.deleteTeaching.useMutation();
+  const saveSettings = trpc.autoReply.saveSettings.useMutation();
+  const composed = joinRule(title || content.split("\n")[0] || "", title ? content : content.split("\n").slice(1).join("\n"));
+  const limit = isStyle ? 3000 : every ? 1000 : 30000;
+  const length = isStyle ? content.length : every ? composed.length : content.length;
+  const tooLong = length > limit;
+  const editConfig = async (
+    change: (config: AutoReplySettings) => AutoReplySettings,
+  ) => {
+    const fresh = parsedConfig(await utils.autoReply.settings.fetch());
+    const next = autoReplySettingsSchema.safeParse(change(fresh));
+    if (!next.success) throw new Error(next.error.issues[0].message);
+    await saveSettings.mutateAsync(next.data);
+  };
+  const submit = async () => {
+    if (tooLong) {
+      toast.error(isStyle ? "أسلوب الرد لحد 3000 حرف." : every ? ruleTooLong : "النص لحد 30000 حرف.");
+      return;
+    }
+    setBusy(true);
+    try {
+      if (isStyle) {
+        await editConfig((c) => withStyle(c, scope, content.trim()));
+      } else if (every) {
+        const rule = { text: composed, enabled: approved, targetPage };
+        await editConfig((c) => ({
+          ...c,
+          instructions:
+            item?.store === "rule"
+              ? c.instructions.map((r, i) => (i === item.index ? rule : r))
+              : [...c.instructions, rule],
+        }));
+        // Moved from information: the new rule is saved before the entry is removed.
+        if (row) await deleteTeaching.mutateAsync(row.id);
+      } else {
+        await saveTeaching.mutateAsync({
           id: row?.id,
-          title: title.trim() || content.trim().split("\n")[0].slice(0, 100),
+          title: (title.trim() || content.trim().split("\n")[0]).slice(0, 255),
           content,
           enabled: approved,
           sourceUrl: row?.sourceUrl ?? websiteDraft?.url,
           targetPage,
         });
+        if (item?.store === "rule")
+          await editConfig((c) => ({
+            ...c,
+            instructions: c.instructions.filter((_, i) => i !== item.index),
+          }));
+      }
+      await utils.autoReply.invalidate();
+      toast.success("اتحفظ");
+      close();
+    } catch (error) {
+      toast.error((error as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  };
+  const remove = async () => {
+    if (!item || isStyle) return;
+    if (!window.confirm(`حذف «${title || "من غير عنوان"}» نهائيًا؟`)) return;
+    setBusy(true);
+    try {
+      if (item.store === "rule")
+        await editConfig((c) => ({
+          ...c,
+          instructions: c.instructions.filter((_, i) => i !== item.index),
+        }));
+      else if (row) await deleteTeaching.mutateAsync(row.id);
+      await utils.autoReply.invalidate();
+      close();
+    } catch (error) {
+      toast.error((error as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <form
+      className="ar-editor"
+      onSubmit={(e) => {
+        e.preventDefault();
+        void submit();
       }}
     >
-      <ReplyTargetSelect
-        value={targetPage}
-        onChange={setTargetPage}
-        pages={pages}
-        disabled={save.isPending}
-      />
-      <Field label="اسم المعلومة (اختياري)">
-        <Input
-          value={title}
-          maxLength={255}
-          onChange={(e) => setTitle(e.target.value)}
-        />
-      </Field>
-      <Field label="النص الذي يتعلم منه المساعد">
+      {!isStyle && (
+        <>
+          <Check
+            label="يتطبق في كل رد"
+            checked={every}
+            disabled={busy}
+            onChange={setEvery}
+          />
+          <ReplyTargetSelect
+            value={targetPage}
+            onChange={setTargetPage}
+            pages={pages}
+            disabled={busy}
+          />
+          <Field label="العنوان">
+            <Input
+              value={title}
+              maxLength={255}
+              onChange={(e) => setTitle(e.target.value)}
+            />
+          </Field>
+        </>
+      )}
+      <Field label={isStyle ? "أسلوب الرد" : "النص"}>
         <Textarea
-          aria-label="النص الذي يتعلم منه المساعد"
+          aria-label={isStyle ? "أسلوب الرد" : "النص"}
           value={content}
-          maxLength={30000}
-          required
-          rows={12}
+          maxLength={isStyle ? 3000 : 30000}
+          required={!isStyle}
+          rows={isStyle ? 6 : 12}
           onChange={(e) => setContent(e.target.value)}
         />
       </Field>
-      <p>
-        {content.length.toLocaleString("ar-EG")} / ٣٠٬٠٠٠ حرف. اكتب الخدمات
-        والأسعار والمواعيد وأمثلة لطريقة الرد في نفس النص.
+      <p role={tooLong ? "alert" : undefined} className={tooLong ? "ar-blocked" : undefined}>
+        {length.toLocaleString("ar-EG")} / {limit.toLocaleString("ar-EG")} حرف
+        {every && !isStyle && " (مع العنوان)"}.{" "}
+        {tooLong && !isStyle && every && ruleTooLong}
       </p>
+      {every && !isStyle && row?.sourceUrl && (
+        <p className="ar-muted">رابط الموقع مش بيتحفظ مع القواعد.</p>
+      )}
       {websiteDraft?.truncated && (
         <p role="status">
           النص المستخرج طويل؛ تعرض المعاينة أول ٣٠٬٠٠٠ حرف. راجعه قبل التفعيل.
         </p>
       )}
-      <Check
-        label="استخدام هذه المعلومة في الردود"
-        checked={approved}
-        onChange={setApproved}
-      />
+      {!isStyle && (
+        <Check label="مفعّل" checked={approved} disabled={busy} onChange={setApproved} />
+      )}
       <div className="ar-toolbar">
-        <Button disabled={save.isPending || !content.trim() || !targetPage}>
-          حفظ المعلومة
+        <Button disabled={busy || tooLong || (!isStyle && !content.trim()) || !targetPage}>
+          {busy ? "جارٍ الحفظ…" : "حفظ"}
         </Button>
         <Button type="button" variant="outline" onClick={close}>
           إلغاء
         </Button>
-        {row && (
+        {item && !isStyle && (
           <Button
             type="button"
             variant="outline"
             className="ar-danger"
-            disabled={remove.isPending}
-            onClick={() => {
-              if (window.confirm(`حذف «${row.title}» نهائيًا؟`))
-                remove.mutate(row.id);
-            }}
+            disabled={busy}
+            onClick={() => void remove()}
           >
-            حذف المعلومة
+            حذف
           </Button>
         )}
       </div>
     </form>
+  );
+}
+function ImportDialog({
+  close,
+}: {
+  pages: FacebookPages;
+  close: () => void;
+}) {
+  const [file, setFile] = useState<{ fileName: string; data: string } | null>(
+    null,
+  );
+  const [readError, setReadError] = useState("");
+  const utils = trpc.useUtils();
+  const preview = trpc.autoReply.importKnowledge.useMutation();
+  const commit = trpc.autoReply.importKnowledge.useMutation({
+    onSuccess: async (result) => {
+      await utils.autoReply.invalidate();
+      toast.success(
+        `اتضاف ${count(result.knowledge)} معلومة و${count(result.instructions)} قاعدة`,
+      );
+      close();
+    },
+    onError: (e) => toast.error(e.message),
+  });
+  const template = () => {
+    const blob = new Blob([`﻿${knowledgeImportHeaders.join(",")}\n`], {
+      type: "text/csv;charset=utf-8",
+    });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "bot-knowledge-template.csv";
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+  const result = preview.data;
+  const adds = result ? result.knowledge + result.instructions : 0;
+  return (
+    <Dialog open onOpenChange={(open) => !open && close()}>
+      <DialogContent dir="rtl" className="auto-reply ar-teach-dialog">
+        <DialogHeader>
+          <DialogTitle>استيراد من ملف</DialogTitle>
+          <DialogDescription>
+            CSV بترميز UTF-8 أو xlsx، لحد 2 ميجا و500 صف. الاستيراد بيضيف بس:
+            مش بيمسح ولا بيغيّر حاجة موجودة.
+          </DialogDescription>
+        </DialogHeader>
+        <p>
+          الأعمدة بالترتيب، وأول صف هو العناوين:{" "}
+          {knowledgeImportHeaders.join("، ")}. «يتطبق في كل رد» و«مفعّل»: نعم أو
+          لا. القناة: الكل أو واتساب أو صفحة المركز أو صفحة العيادة، وتقدر تجمع
+          بـ « + » زي «واتساب + صفحة المركز».
+        </p>
+        <Button type="button" variant="outline" onClick={template}>
+          تنزيل ملف فاضي بالعناوين
+        </Button>
+        <Field label="الملف">
+          <Input
+            type="file"
+            accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            onChange={(event) => {
+              const picked = event.target.files?.[0];
+              preview.reset();
+              setFile(null);
+              setReadError("");
+              if (!picked) return;
+              if (picked.size > 2_000_000) {
+                setReadError("الملف أكبر من 2 ميجا.");
+                return;
+              }
+              const reader = new FileReader();
+              reader.onload = () => {
+                const data = String(reader.result).split(",")[1] ?? "";
+                const next = { fileName: picked.name, data };
+                setFile(next);
+                preview.mutate({ ...next, confirm: false });
+              };
+              reader.onerror = () => setReadError("تعذر قراءة الملف من الجهاز.");
+              reader.readAsDataURL(picked);
+            }}
+          />
+        </Field>
+        {readError && <p role="alert">{readError}</p>}
+        {preview.isPending && <p role="status">جارٍ مراجعة الملف…</p>}
+        {preview.error && (
+          <ErrorState message={`الملف ما اتقبلش: ${preview.error.message}`} />
+        )}
+        {result && (
+          <div role="status">
+            <p>
+              هيتضاف {count(result.knowledge)} معلومة و
+              {count(result.instructions)} قاعدة في كل رد.
+            </p>
+            {result.skipped.length > 0 && (
+              <>
+                <h3>صفوف متسابة لأنها موجودة ({count(result.skipped.length)})</h3>
+                <ul className="ar-sources">
+                  {result.skipped.map((r) => (
+                    <li key={r.row}>
+                      صف {count(r.row)}: {r.reason}
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )}
+            {result.rejected.length > 0 && (
+              <>
+                <h3>صفوف مرفوضة ({count(result.rejected.length)})</h3>
+                <ul className="ar-sources">
+                  {result.rejected.map((r) => (
+                    <li key={r.row}>
+                      صف {count(r.row)}: {r.reason}
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )}
+          </div>
+        )}
+        <div className="ar-toolbar">
+          <Button
+            disabled={!file || !result || adds === 0 || commit.isPending}
+            onClick={() => file && commit.mutate({ ...file, confirm: true })}
+          >
+            {commit.isPending ? "جارٍ الحفظ…" : `أكّد وأضف ${count(adds)}`}
+          </Button>
+          <Button type="button" variant="outline" onClick={close}>
+            إلغاء
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 function unsavedText(changes: number) {
@@ -2082,10 +2477,12 @@ function Settings({
   data,
   scope,
   onDirtyChange,
+  onOpenKnowledge,
 }: {
   data: AutoReplyOutputs["settings"];
   scope: string;
   onDirtyChange: (dirty: boolean) => void;
+  onOpenKnowledge?: () => void;
 }) {
   const target = scope;
   const saved = autoReplySettingsSchema.parse(data.config);
@@ -2113,7 +2510,6 @@ function Settings({
       if (!next.delete(id)) next.add(id);
       return next;
     });
-  const [showInstructions, setShowInstructions] = useState(false);
   const config =
     scope === "all"
       ? storedConfig
@@ -2267,7 +2663,7 @@ function Settings({
     ],
     how: [
       config.style.trim() ? "أسلوب مكتوب" : "من غير أسلوب محدد",
-      `${count(scopedInstructions)} تعليمات إضافية مفعّلة`,
+      `${count(scopedInstructions)} قاعدة في كل رد`,
       `الرد ${presetLabel(replyLengthPresets, config.maxReplyChars, presetCustomLabels.replyLength)}`,
       config.bookingUrl && "فيه رابط حجز",
       (scope === "all" || scope === "whatsapp") &&
@@ -2633,126 +3029,15 @@ function Settings({
           onToggle={() => toggleOpen("how")}
         >
           <Row
-            stack
-            title={scope === "all" ? "أسلوب الرد الافتراضي" : "أسلوب الرد"}
+            title="الأسلوب والقواعد"
+            help={`اتنقلوا لـ «معلومات المركز ← اللي البوت يعرفه». ${count(scopedInstructions)} قاعدة مفعّلة هنا.`}
           >
-            <Textarea
-              aria-label="أسلوب الرد"
-              rows={4}
-              maxLength={3000}
-              value={config.style}
-              onChange={(e) => update("style", e.target.value)}
-            />
-          </Row>
-          <Row
-            title="تعليمات إضافية"
-            help={`قواعد قصيرة، كل واحدة لوحدها. ${count(scopedInstructions)} مفعّلة هنا.`}
-          >
-            <Button
-              type="button"
-              variant="outline"
-              aria-expanded={showInstructions}
-              onClick={() => setShowInstructions((v) => !v)}
-            >
-              {showInstructions ? "قفل التعليمات" : "إدارة التعليمات"}
-            </Button>
-          </Row>
-          {showInstructions && (
-            <div className="ar-instructions">
-              <p className="ar-muted">
-                التعليمات المفعّلة بتتطبق مع بعض، ومش بتتخطى قواعد الخصوصية أو
-                التحويل لموظف أو منع التشخيص والعلاج. لحد 30 تعليمة، و1000 حرف
-                للواحدة و12000 حرف إجمالًا.
-              </p>
-              <div className="ar-instruction-grid">
-                {config.instructions.map((instruction, index) => (
-                  <fieldset
-                    className="ar-editor"
-                    key={index}
-                    hidden={!belongsToTarget(instruction.targetPage, target)}
-                  >
-                    <legend>تعليمة {index + 1}</legend>
-                    <ReplyTargetSelect
-                      label={`تطبيق التعليمة ${index + 1} على`}
-                      value={instruction.targetPage ?? "all"}
-                      pages={data.pages}
-                      disabled={save.isPending}
-                      onChange={(targetPage) =>
-                        update(
-                          "instructions",
-                          config.instructions.map((item, i) =>
-                            i === index ? { ...item, targetPage } : item,
-                          ),
-                        )
-                      }
-                    />
-                    <Field label={`نص التعليمة ${index + 1}`}>
-                      <Textarea
-                        aria-label={`نص التعليمة ${index + 1}`}
-                        rows={3}
-                        maxLength={1000}
-                        required
-                        value={instruction.text}
-                        disabled={save.isPending}
-                        onChange={(e) =>
-                          update(
-                            "instructions",
-                            config.instructions.map((item, i) =>
-                              i === index
-                                ? { ...item, text: e.target.value }
-                                : item,
-                            ),
-                          )
-                        }
-                      />
-                    </Field>
-                    <div className="ar-toolbar">
-                      <Check
-                        label={`تفعيل التعليمة ${index + 1}`}
-                        checked={instruction.enabled}
-                        disabled={save.isPending}
-                        onChange={(enabled) =>
-                          update(
-                            "instructions",
-                            config.instructions.map((item, i) =>
-                              i === index ? { ...item, enabled } : item,
-                            ),
-                          )
-                        }
-                      />
-                      <Button
-                        type="button"
-                        variant="outline"
-                        disabled={save.isPending}
-                        aria-label={`حذف التعليمة ${index + 1}`}
-                        onClick={() =>
-                          update(
-                            "instructions",
-                            config.instructions.filter((_, i) => i !== index),
-                          )
-                        }
-                      >
-                        حذف التعليمة
-                      </Button>
-                    </div>
-                  </fieldset>
-                ))}
-              </div>
-              <Button
-                type="button"
-                variant="outline"
-                disabled={save.isPending || config.instructions.length >= 30}
-                onClick={() =>
-                  update("instructions", [
-                    ...config.instructions,
-                    { text: "", enabled: true, targetPage: target },
-                  ])
-                }
-              >
-                إضافة تعليمة
+            {onOpenKnowledge && (
+              <Button type="button" variant="outline" onClick={onOpenKnowledge}>
+                افتح اللي البوت يعرفه
               </Button>
-            </div>
-          )}
+            )}
+          </Row>
           <Row
             title="طول الرد"
             help={`أقصى عدد حروف: ${count(config.maxReplyChars)}. الرد الأطول من كده بيتحوّل لموظف.`}

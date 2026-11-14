@@ -308,3 +308,10 @@ export function presetLabel(
 ) {
   return presets.find(([value]) => value === stored)?.[1] ?? customLabel(stored);
 }
+export const knowledgeImportHeaders = [
+  "العنوان",
+  "النص",
+  "يتطبق في كل رد",
+  "القناة",
+  "مفعّل",
+] as const;
