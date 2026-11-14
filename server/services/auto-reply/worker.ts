@@ -25,7 +25,10 @@ import {
   claimHandoffNotifications,
 } from "./store";
 import { pushAppNotification } from "../../_core/appNotifications";
-import { channelLabels } from "../../../shared/auto-reply";
+import {
+  channelLabels,
+  handoffReasonLabel,
+} from "../../../shared/auto-reply";
 import { ROUTES } from "../../../shared/routes";
 import { isRecipientAllowed } from "./recipients";
 import {
@@ -726,25 +729,13 @@ export async function runAutoReplyTick() {
     });
   }
 }
-const handoffReasonLabels: Record<string, string> = {
-  human_requested: "العميل طلب موظف",
-  clinical: "سؤال طبي",
-  untrusted_instruction: "محاولة تغيير تعليمات البوت",
-  unsupported_message: "رسالة غير نصية",
-  missing_information: "المعلومة غير متاحة",
-  needs_review: "الرد يحتاج مراجعة",
-  output_guard: "الرد يحتاج مراجعة",
-  personal_information: "بيانات شخصية في تعليق",
-  rate_limited: "تجاوز حد الردود الآلية",
-  outside_hours: "خارج مواعيد العمل",
-};
 // Channel, reason and a link only: customer text never goes into a push payload.
 export async function notifyHandoffs() {
   for (const row of await claimHandoffNotifications()) {
     const reason = row.humanReason ?? "needs_review";
     await pushAppNotification({
       title: "محادثة تحتاج موظف",
-      message: `${channelLabels[row.channel] ?? row.channel} · ${handoffReasonLabels[reason] ?? reason}`,
+      message: `${channelLabels[row.channel] ?? row.channel} · ${handoffReasonLabel(reason)}`,
       kind: "warning",
       targetRoles: ["admin", "reception"],
       source: "auto_reply",

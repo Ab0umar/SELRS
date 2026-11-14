@@ -1560,6 +1560,37 @@ describe.skipIf(!testUrl)(
         (await db.select().from(jobs).where(eq(jobs.id, latest.id)))[0].state,
       ).toBe("discarded");
     });
+    it("reports sent replies, handoffs, reply time and tokens for one scope", async () => {
+      await enable();
+      await ingestEvents([event("q1")]);
+      mockNetwork();
+      await runAutoReplyTick();
+      await ingestEvents([event("q2", "عايز موظف")]);
+      await db.update(connections).set({ lastSentAt: null });
+      await runAutoReplyTick();
+      const caller = autoReplyRouter.createCaller(makeCallerAs("admin"));
+      const metrics = await caller.metrics({ scope: "whatsapp", days: 7 });
+      expect(metrics).toMatchObject({
+        sentAuto: 2,
+        sentStaff: 0,
+        autoJobs: 2,
+        handoffs: 1,
+        handoffReasons: [{ reason: "human_requested", count: 1 }],
+        retentionDays: 30,
+      });
+      expect(metrics.medianReplySeconds).not.toBeNull();
+      expect(metrics.tokensByDay).toEqual([
+        expect.objectContaining({ channel: "whatsapp", tokens: 15 }),
+      ]);
+      expect(
+        (await caller.metrics({ scope: "456", days: 7 })).sentAuto,
+      ).toBe(0);
+      await expect(
+        autoReplyRouter
+          .createCaller(makeCallerAs("reception"))
+          .metrics({ scope: "whatsapp", days: 7 }),
+      ).rejects.toMatchObject({ code: "FORBIDDEN" });
+    });
     it("treats a staff-started conversation as having a closed reply window", async () => {
       await enable();
       await ingestEvents([{ ...event("staff-first", "أهلا"), humanEcho: true }]);

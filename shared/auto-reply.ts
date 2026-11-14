@@ -7,6 +7,23 @@ export function autoReplyErrorLabel(code: string): string {
   return code;
 }
 
+const handoffReasonLabels: Record<string, string> = {
+  human_requested: "العميل طلب موظف",
+  clinical: "سؤال طبي",
+  untrusted_instruction: "محاولة تغيير تعليمات البوت",
+  unsupported_message: "رسالة غير نصية",
+  missing_information: "المعلومة غير متاحة",
+  needs_review: "الرد يحتاج مراجعة",
+  output_guard: "الرد يحتاج مراجعة",
+  personal_information: "بيانات شخصية في تعليق",
+  rate_limited: "تجاوز حد الردود الآلية",
+  outside_hours: "خارج مواعيد العمل",
+  comment_deleted: "تعليق محذوف",
+};
+export function handoffReasonLabel(code: string) {
+  return handoffReasonLabels[code] ?? autoReplyErrorLabel(code);
+}
+
 export const autoReplyChannels = [
   "whatsapp",
   "messenger",
