@@ -41,6 +41,7 @@ import {
 } from "./manusGeneration.service";
 import { finishScheduledDraft, notifyMarketingAdmins } from "./marketingReview";
 import { initScheduledPostWorker } from "./contentCalendar";
+import { initMarketingPostStatsWorker } from "./postInsights";
 import {
   clearMarketingStartFailures,
   marketingStartAllowed,
@@ -458,6 +459,7 @@ export function initMarketingScheduler(): void {
   });
   void checkDueMarketingPosts();
   initScheduledPostWorker();
+  initMarketingPostStatsWorker();
 
   console.log(
     "[marketing-scheduler] Initialized — startup and five-minute same-day catch-up",

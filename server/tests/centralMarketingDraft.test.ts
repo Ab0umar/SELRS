@@ -1,6 +1,11 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 vi.mock("../services/marketing/equipmentAssets",async original=>({...await original<typeof import("../services/marketing/equipmentAssets")>(),readEquipmentPhoto:vi.fn().mockResolvedValue(null)}));
 vi.mock("../services/marketing/pageBranding",()=>({readMarketingPageBranding:vi.fn().mockResolvedValue({pageRole:"center",pageId:"1",name:"Fixture",address:"Fixture address",phone:"000",logo:Buffer.alloc(0)}),brandMarketingImageUrl:vi.fn(async(url:string)=>url),prepareMarketingPublication:vi.fn(async(message:string,imageUrl:string|null)=>({message,imageUrl}))}));
+// Non-admins need a marketing page permission (plan PR 7); the doctor below has none.
+vi.mock("../db", async (original) => ({
+  ...(await original<typeof import("../db")>()),
+  getEffectiveUserPermissions: async () => [],
+}));
 import {
   centralMarketingInput,
   generateCentralMarketingDraft,

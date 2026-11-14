@@ -18,6 +18,8 @@ vi.mock("../db", async (original) => ({
   ...(await original<typeof import("../db")>()),
   getDb: calls.db,
   getDbConnection: calls.connect,
+  // Non-admins need a marketing page permission (plan PR 7); this doctor has none.
+  getEffectiveUserPermissions: async () => [],
 }));
 vi.mock("../services/marketing/manusGeneration.service", async (original) => ({
   ...(await original<

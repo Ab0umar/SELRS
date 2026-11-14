@@ -1,5 +1,6 @@
 import { ReactNode } from "react";
 import { Link, useLocation } from "wouter";
+import { useAuth } from "@/hooks/useAuth";
 import {
   BookImage,
   ChevronRight,
@@ -65,8 +66,17 @@ function isActive(pathname: string, href: string, exact: boolean) {
     : pathname === href || pathname.startsWith(`${href}/`);
 }
 
+// Staff with a marketing content permission see only the content screens.
+const STAFF_PATHS = new Set([
+  "/marketing",
+  "/marketing/drafts",
+  "/marketing/history",
+]);
+
 export default function MarketingLayout({ children }: MarketingLayoutProps) {
   const [location] = useLocation();
+  const { user } = useAuth();
+  const isAdmin = user?.role === "admin";
 
   return (
     <div
@@ -75,7 +85,10 @@ export default function MarketingLayout({ children }: MarketingLayoutProps) {
     >
       {/* Header */}
       <div className="records-page-header border-b border-primary/15 bg-gradient-to-b from-primary/5 to-transparent">
-        <div data-module-content-start className="mx-auto w-full px-3 py-4 sm:px-4 lg:px-5">
+        <div
+          data-module-content-start
+          className="mx-auto w-full px-3 py-4 sm:px-4 lg:px-5"
+        >
           <div className="flex items-center gap-2 mb-1">
             <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
               <span className="h-2 w-2 rounded-full bg-primary" />
@@ -94,26 +107,31 @@ export default function MarketingLayout({ children }: MarketingLayoutProps) {
       {/* Body */}
       <div className="flex flex-col">
         {/* Horizontal Top Navigation Bar (all breakpoints) */}
-        <nav aria-label="أقسام الوحدة" className="flex items-center gap-2 overflow-x-auto whitespace-nowrap border-b border-border bg-card/50 px-3 py-2 scrollbar-none sm:px-4 lg:px-5 print:hidden">
-          {navItems.map((item) => {
-            const active = isActive(location, item.href, item.exact);
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                title={item.label}
-                aria-current={active ? "page" : undefined}
-                className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-4 py-2 text-xs font-bold transition-all ${
-                  active
-                    ? "bg-primary text-primary-foreground shadow-sm"
-                    : "border border-border/60 text-muted-foreground hover:bg-muted/50 hover:text-foreground"
-                }`}
-              >
-                <item.icon className="h-3.5 w-3.5" />
-                <span>{item.label}</span>
-              </Link>
-            );
-          })}
+        <nav
+          aria-label="أقسام الوحدة"
+          className="flex items-center gap-2 overflow-x-auto whitespace-nowrap border-b border-border bg-card/50 px-3 py-2 scrollbar-none sm:px-4 lg:px-5 print:hidden"
+        >
+          {navItems
+            .filter((item) => isAdmin || STAFF_PATHS.has(item.href))
+            .map((item) => {
+              const active = isActive(location, item.href, item.exact);
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  title={item.label}
+                  aria-current={active ? "page" : undefined}
+                  className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-4 py-2 text-xs font-bold transition-all ${
+                    active
+                      ? "bg-primary text-primary-foreground shadow-sm"
+                      : "border border-border/60 text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                  }`}
+                >
+                  <item.icon className="h-3.5 w-3.5" />
+                  <span>{item.label}</span>
+                </Link>
+              );
+            })}
         </nav>
 
         {/* Content */}

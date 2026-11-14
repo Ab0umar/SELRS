@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { trpc } from "@/lib/trpc";
+import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
@@ -29,6 +30,8 @@ import { marketingSlotLabel } from "@shared/marketingSchedule";
 type PageRole = "center" | "doctor";
 
 export default function DraftPosts() {
+  const { user } = useAuth();
+  const isAdmin = user?.role === "admin";
   const [editing, setEditing] = useState<{
     id: number;
     title: string;
@@ -122,7 +125,7 @@ export default function DraftPosts() {
     )?.find((post) => post.id === pickerPostId)?.pageRole ?? "center";
   const designsQuery = trpc.marketing.listReferenceDesigns.useQuery(
     { pageRole: pickerPageRole },
-    { enabled: pickerPostId !== null },
+    { enabled: pickerPostId !== null && isAdmin },
   );
 
   const posts = listQuery.data ?? [];
@@ -138,7 +141,7 @@ export default function DraftPosts() {
   const jobsQuery = trpc.marketing.generationJobs.useQuery(undefined, {
     refetchInterval: 5000,
   });
-  const capability = trpc.aiManagement.status.useQuery(undefined, {
+  const capability = trpc.marketing.assistantStatus.useQuery(undefined, {
     retry: false,
   });
   const centralJobs = trpc.marketing.centralGenerationJobs.useQuery(undefined, {
@@ -333,16 +336,18 @@ export default function DraftPosts() {
                     >
                       مراجعة وتعديل النص
                     </Button>
-                    {/* Pick from brand library — always visible */}
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="gap-1.5 text-xs border-primary/30 text-primary hover:bg-primary/5"
-                      onClick={() => setPickerPostId(post.id)}
-                    >
-                      <BookImage className="h-3 w-3" />
-                      اختر من المكتبة
-                    </Button>
+                    {/* The brand library is admin-only */}
+                    {isAdmin && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="gap-1.5 text-xs border-primary/30 text-primary hover:bg-primary/5"
+                        onClick={() => setPickerPostId(post.id)}
+                      >
+                        <BookImage className="h-3 w-3" />
+                        اختر من المكتبة
+                      </Button>
+                    )}
 
                     <CentralDraftImage postId={post.id} />
                     {post.imagePrompt && (
