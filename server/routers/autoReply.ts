@@ -63,7 +63,10 @@ import {
   facebookPages,
   connectionTargets,
 } from "../services/auto-reply/providers";
-import { inWorkingHours } from "../services/auto-reply/policy";
+import {
+  describeReplySources,
+  inWorkingHours,
+} from "../services/auto-reply/policy";
 import { whatsappContactAudience } from "../services/auto-reply/recipients";
 import { clearLifecycleRecheck } from "../services/auto-reply/coexistence-sync";
 import { autoReplyMetrics } from "../services/auto-reply/metrics";
@@ -759,6 +762,11 @@ export const autoReplyRouter = router({
         return {
           ...proposal,
           testOnly: true as const,
+          sources: describeReplySources(
+            proposal.sourceIds,
+            approved,
+            config.instructions,
+          ),
           engine: input.engine,
           requestId: input.engine !== "current" ? input.requestId : undefined,
           inWorkingHours: inWorkingHours(

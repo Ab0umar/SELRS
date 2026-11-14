@@ -261,3 +261,50 @@ export const teachingSchema = z.object({
   enabled: z.boolean().default(true),
   sourceUrl: z.string().url().max(2048).optional(),
 });
+// Preset choices for numeric settings. A stored value outside the presets is
+// offered as its own choice so opening the screen never rewrites it.
+export type SettingPreset = readonly [value: number, label: string];
+export const replyLengthPresets: readonly SettingPreset[] = [
+  [300, "قصير"],
+  [600, "متوسط"],
+  [1200, "طويل"],
+];
+export const handoffReopenPresets: readonly SettingPreset[] = [
+  [0, "ما ترجعش للبوت"],
+  [12, "بعد 12 ساعة"],
+  [24, "بعد 24 ساعة"],
+  [48, "بعد 48 ساعة"],
+  [168, "بعد أسبوع"],
+];
+export const staffReplyPausePresets: readonly SettingPreset[] = [
+  [0, "يرجع مع أول رسالة من العميل"],
+  [30, "يستنى 30 دقيقة"],
+  [120, "يستنى ساعتين"],
+  [1440, "يستنى يوم"],
+];
+export const presetCustomLabels = {
+  replyLength: (value: number) => `${value} حرف (قيمة محفوظة)`,
+  handoffReopen: (value: number) => `بعد ${value} ساعة (قيمة محفوظة)`,
+  staffReplyPause: (value: number) => `يستنى ${value} دقيقة (قيمة محفوظة)`,
+};
+export function presetChoices(
+  presets: readonly SettingPreset[],
+  stored: number,
+  customLabel: (value: number) => string,
+): { value: number; label: string; custom: boolean }[] {
+  const choices = presets.map(([value, label]) => ({
+    value,
+    label,
+    custom: false,
+  }));
+  if (presets.some(([value]) => value === stored)) return choices;
+  return [...choices, { value: stored, label: customLabel(stored), custom: true }]
+    .sort((a, b) => a.value - b.value);
+}
+export function presetLabel(
+  presets: readonly SettingPreset[],
+  stored: number,
+  customLabel: (value: number) => string,
+) {
+  return presets.find(([value]) => value === stored)?.[1] ?? customLabel(stored);
+}
