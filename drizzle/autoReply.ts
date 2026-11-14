@@ -168,6 +168,8 @@ export const autoReplyJobs = mysqlTable(
     revision: int("revision").notNull(),
     providerId: varchar("provider_id", { length: 255 }),
     errorCode: varchar("error_code", { length: 64 }),
+    // Staff user who approved a suggested reply.
+    approvedBy: int("approved_by"),
     model: varchar("model", { length: 100 }),
     inputTokens: int("input_tokens").default(0).notNull(),
     outputTokens: int("output_tokens").default(0).notNull(),

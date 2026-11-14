@@ -451,6 +451,44 @@ export async function runAutoReplyTick() {
       }
     }
     if (!body) throw new ProviderError("EMPTY_REPLY");
+    // Suggest mode: keep the draft for staff approval and send nothing.
+    if (job.kind === "auto" && config.replyMode === "suggest") {
+      await db.transaction(async (tx) => {
+        await tx
+          .select()
+          .from(settingsTable)
+          .where(eq(settingsTable.id, 1))
+          .for("update");
+        const [updated] = await tx
+          .update(jobs)
+          .set({
+            state: "suggested",
+            body,
+            handoff,
+            ...usage,
+            errorCode: null,
+            leaseUntil: null,
+          })
+          .where(
+            and(
+              eq(jobs.id, job.id),
+              eq(jobs.claim, job.claim),
+              eq(jobs.state, "generating"),
+            ),
+          );
+        if (handoff && updated.affectedRows)
+          await tx
+            .update(conversations)
+            .set({ status: "human", humanReason: reason ?? "needs_review" })
+            .where(
+              and(
+                eq(conversations.id, c.id),
+                eq(conversations.revision, job.revision),
+              ),
+            );
+      });
+      return;
+    }
     // Step 1: one short locked transaction re-validates and marks the job sending.
     const prepared = await db.transaction(async (tx) => {
       const [s] = await tx

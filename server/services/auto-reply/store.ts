@@ -280,7 +280,7 @@ export async function ingestEvents(batch: InboundEvent[]) {
           and(
             eq(jobs.conversationId, conversationId),
             eq(jobs.kind, "auto"),
-            inArray(jobs.state, ["pending", "retry", "generating"]),
+            inArray(jobs.state, ["pending", "retry", "generating", "suggested"]),
           ),
         );
       if (
@@ -542,7 +542,77 @@ export async function queueManualReply(
 ) {
   await ensureSettings();
   const db = await getAutoReplyDb();
+  return db.transaction((tx) =>
+    queueManualInTransaction(tx, conversationId, body, requestId),
+  );
+}
+// Approving sends through the staff-reply path once; a repeated request id returns the same job.
+export async function approveSuggestion(
+  jobId: number,
+  body: string,
+  requestId: string,
+  userId: number,
+) {
+  await ensureSettings();
+  const db = await getAutoReplyDb();
   return db.transaction(async (tx) => {
+    await tx
+      .select()
+      .from(settingsTable)
+      .where(eq(settingsTable.id, 1))
+      .for("update");
+    const [suggestion] = await tx
+      .select()
+      .from(jobs)
+      .where(eq(jobs.id, jobId))
+      .for("update");
+    if (!suggestion)
+      throw new TRPCError({ code: "NOT_FOUND", message: "الاقتراح غير موجود" });
+    const key = hash(`manual:${suggestion.conversationId}:${requestId}`);
+    const [previous] = await tx
+      .select({ id: jobs.id })
+      .from(jobs)
+      .where(eq(jobs.requestKey, key));
+    if (previous) return { id: previous.id };
+    if (suggestion.state !== "suggested")
+      throw new TRPCError({
+        code: "PRECONDITION_FAILED",
+        message: "الاقتراح لم يعد متاحًا؛ وصلت رسالة أحدث أو تمت مراجعته",
+      });
+    await tx
+      .update(jobs)
+      .set({ state: "approved", approvedBy: userId })
+      .where(eq(jobs.id, jobId));
+    return queueManualInTransaction(
+      tx,
+      suggestion.conversationId,
+      body,
+      requestId,
+    );
+  });
+}
+export async function discardSuggestion(jobId: number, userId: number) {
+  await ensureSettings();
+  const db = await getAutoReplyDb();
+  await db.transaction(async (tx) => {
+    await tx
+      .select()
+      .from(settingsTable)
+      .where(eq(settingsTable.id, 1))
+      .for("update");
+    await tx
+      .update(jobs)
+      .set({ state: "discarded", approvedBy: userId })
+      .where(and(eq(jobs.id, jobId), eq(jobs.state, "suggested")));
+  });
+}
+async function queueManualInTransaction(
+  tx: AutoReplyTransaction,
+  conversationId: number,
+  body: string,
+  requestId: string,
+) {
+  {
     const [row] = await tx
       .select()
       .from(settingsTable)
@@ -611,7 +681,7 @@ export async function queueManualReply(
       revision: c.revision + 1,
     });
     return { id: insert.insertId };
-  });
+  }
 }
 export async function purgeExpiredConversations() {
   const config = await readSettings();
@@ -644,7 +714,15 @@ export async function purgeExpiredConversations() {
       .where(
         and(
           lt(jobs.createdAt, cutoff),
-          inArray(jobs.state, ["sent", "failed", "unknown", "cancelled"]),
+          inArray(jobs.state, [
+            "sent",
+            "failed",
+            "unknown",
+            "cancelled",
+            "approved",
+            "discarded",
+            "suggested",
+          ]),
         ),
       );
   });
