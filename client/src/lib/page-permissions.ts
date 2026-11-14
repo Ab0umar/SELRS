@@ -799,6 +799,7 @@ export const PAGE_PERMISSION_DEFINITIONS = [
   },
   { id: "/admin-hub/op-history", label: "سجل العمليات", group: "مركز الإدارة" },
   { id: "/admin-hub/auto-reply", label: "الرد الآلي والتدريب", group: "الذكاء الاصطناعي" },
+  { id: "/admin-hub/auto-reply-inbox", label: "محادثات الرد الآلي", group: "الذكاء الاصطناعي" },
   { id: "/admin-hub/ai", label: "إدارة الذكاء الاصطناعي", group: "الذكاء الاصطناعي" },
   { id: "/admin-hub/medical-assistant", label: "المساعد الطبي", group: "الذكاء الاصطناعي" },
   { id: "/admin-hub/whatsapp-confirmations", label: "سجل رسائل التأكيد", group: "مركز الإدارة" },

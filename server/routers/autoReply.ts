@@ -22,7 +22,11 @@ import {
 } from "../services/auto-reply/coexistence";
 import { and, desc, eq, sql, inArray } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
-import { adminProcedure, router } from "../_core/procedures";
+import {
+  adminProcedure,
+  protectedProcedure,
+  router,
+} from "../_core/procedures";
 import {
   autoReplyChannels,
   autoReplySettingsSchema,
@@ -59,7 +63,11 @@ import {
 } from "../services/auto-reply/providers";
 import { inWorkingHours } from "../services/auto-reply/policy";
 import { whatsappContactAudience } from "../services/auto-reply/recipients";
-import { logAuditEvent, getDbConnection } from "../db";
+import {
+  logAuditEvent,
+  getDbConnection,
+  getEffectiveUserPermissions,
+} from "../db";
 import {
   availableGeminiModels,
   previewWebsite,
@@ -80,7 +88,45 @@ const autoReplyAdminProcedure = adminProcedure.use(async ({ next }) => {
   }
   return result;
 });
+// Admins always; reception only with the inbox page permission. A read-only grant cannot reply.
+export const AUTO_REPLY_INBOX_PERMISSION = "/admin-hub/auto-reply-inbox";
+function autoReplyInboxProcedure(write: boolean) {
+  return protectedProcedure.use(async ({ ctx, next }) => {
+    if (ctx.user.role !== "admin") {
+      const grants =
+        ctx.user.role === "reception"
+          ? await getEffectiveUserPermissions(ctx.user.id, ctx.user.role)
+          : [];
+      const grant = grants.find(
+        (entry) => entry.replace(/:rw?$/, "") === AUTO_REPLY_INBOX_PERMISSION,
+      );
+      if (!grant || (write && grant.endsWith(":r")))
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "ليس لديك صلاحية لمحادثات الرد الآلي",
+        });
+    }
+    const result = await next();
+    if (!result.ok && result.error.code === "INTERNAL_SERVER_ERROR")
+      return {
+        ...result,
+        error: new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "AUTO_REPLY_STORAGE_ERROR",
+        }),
+      };
+    return result;
+  });
+}
+const autoReplyInboxRead = autoReplyInboxProcedure(false);
+const autoReplyInboxWrite = autoReplyInboxProcedure(true);
 export const autoReplyRouter = router({
+  inboxContext: autoReplyInboxRead.query(async () => ({
+    sendingEnabled: (await readSettings()).sendingEnabled,
+    pages: facebookPages()
+      .filter((page) => page.accountId)
+      .map(({ accountId, label }) => ({ accountId, label })),
+  })),
   models: autoReplyAdminProcedure.query(async () =>
     (await availableGeminiModels()).map((model) => ({
       id: model.name.replace(/^models\//, ""),
@@ -481,7 +527,7 @@ export const autoReplyRouter = router({
         .onDuplicateKeyUpdate({ set: values });
       return { ok, errorCode };
     }),
-  conversations: autoReplyAdminProcedure
+  conversations: autoReplyInboxRead
     .input(
       z.object({
         channel: z.enum(autoReplyChannels).optional(),
@@ -508,7 +554,7 @@ export const autoReplyRouter = router({
         .offset((input.page - 1) * 30);
       return { rows: rows.slice(0, 30), hasMore: rows.length > 30 };
     }),
-  conversation: autoReplyAdminProcedure
+  conversation: autoReplyInboxRead
     .input(recordId)
     .query(async ({ input }) => {
       const db = await getAutoReplyDb();
@@ -532,7 +578,7 @@ export const autoReplyRouter = router({
           .limit(30),
       };
     }),
-  setStatus: autoReplyAdminProcedure
+  setStatus: autoReplyInboxWrite
     .input(
       z.object({ id: recordId, status: z.enum(["open", "human", "closed"]) }),
     )
@@ -547,7 +593,7 @@ export const autoReplyRouter = router({
       );
       return { ok: true };
     }),
-  sendManual: autoReplyAdminProcedure
+  sendManual: autoReplyInboxWrite
     .input(
       z.object({
         id: recordId,

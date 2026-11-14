@@ -38,9 +38,14 @@ import {
 vi.mock("../db", () => ({
   getDb: vi.fn(),
   getDbConnection: vi.fn(),
+  getEffectiveUserPermissions: vi.fn().mockResolvedValue([]),
   logAuditEvent: vi.fn().mockResolvedValue(undefined),
 }));
-import { getDb, getDbConnection } from "../db";
+vi.mock("../_core/appNotifications", () => ({
+  pushAppNotification: vi.fn().mockResolvedValue({}),
+}));
+import { getDb, getDbConnection, getEffectiveUserPermissions } from "../db";
+import { pushAppNotification } from "../_core/appNotifications";
 import {
   autoReplyConversations as conversations,
   autoReplyJobs as jobs,
@@ -65,7 +70,10 @@ import {
 } from "../services/auto-reply/store";
 import { hash } from "../services/auto-reply/policy";
 import { connectionFingerprint } from "../services/auto-reply/providers";
-import { runAutoReplyTick } from "../services/auto-reply/worker";
+import {
+  notifyHandoffs,
+  runAutoReplyTick,
+} from "../services/auto-reply/worker";
 import { whatsappContactAudience } from "../services/auto-reply/recipients";
 import type { InboundEvent } from "../services/auto-reply/events";
 import { autoReplyRouter } from "../routers/autoReply";
@@ -135,6 +143,7 @@ describe.skipIf(!testUrl)(
         "0107_auto_reply_targets.sql",
         "0108_auto_reply_teaching.sql",
         "0113_auto_reply_provider_indexes.sql",
+        "0114_auto_reply_handoff_notified.sql",
       ]) {
         const migration = await readFile(
           new URL(`../../drizzle/${file}`, import.meta.url),
@@ -1416,6 +1425,73 @@ describe.skipIf(!testUrl)(
           .contents[0].parts[0].text,
       );
       expect(input).toEqual({ history: [], message: "عنوان الفرع" });
+    });
+    it("gives reception the inbox only with its page permission, and nothing else", async () => {
+      await enable();
+      await ingestEvents([event()]);
+      const [c] = await db.select().from(conversations);
+      const as = (role: string) =>
+        autoReplyRouter.createCaller(makeCallerAs(role));
+      const grant = vi.mocked(getEffectiveUserPermissions);
+      await expect(as("reception").conversations({})).rejects.toMatchObject({
+        code: "FORBIDDEN",
+      });
+      grant.mockResolvedValue(["/admin-hub/auto-reply-inbox"]);
+      await expect(as("manager").conversations({})).rejects.toMatchObject({
+        code: "FORBIDDEN",
+      });
+      const reception = as("reception");
+      expect((await reception.conversations({})).rows).toHaveLength(1);
+      expect((await reception.conversation(c.id)).conversation.id).toBe(c.id);
+      await expect(reception.inboxContext()).resolves.toMatchObject({
+        sendingEnabled: true,
+      });
+      await reception.setStatus({ id: c.id, status: "human" });
+      await reception.sendManual({
+        id: c.id,
+        text: "رد الاستقبال",
+        requestId: randomUUID(),
+      });
+      for (const call of [
+        () => reception.settings(),
+        () => reception.teaching(),
+        () => reception.activity({}),
+        () => reception.onboardingStatus(),
+        () => reception.clearAIHistory({}),
+      ])
+        await expect(call()).rejects.toMatchObject({ code: "FORBIDDEN" });
+      grant.mockResolvedValue(["/admin-hub/auto-reply-inbox:r"]);
+      await expect(
+        reception.setStatus({ id: c.id, status: "open" }),
+      ).rejects.toMatchObject({ code: "FORBIDDEN" });
+      expect((await reception.conversations({})).rows).toHaveLength(1);
+      grant.mockResolvedValue([]);
+      expect((await as("admin").conversations({})).rows).toHaveLength(1);
+    });
+    it("notifies staff once per handoff, without message text, and not for a takeover", async () => {
+      const notify = vi.mocked(pushAppNotification);
+      notify.mockClear();
+      await enable();
+      await ingestEvents([event("ask", "عايز موظف لو سمحت")]);
+      const [c] = await db.select().from(conversations);
+      await notifyHandoffs();
+      await notifyHandoffs();
+      expect(notify).toHaveBeenCalledTimes(1);
+      const [payload] = notify.mock.calls[0];
+      expect(payload).toMatchObject({
+        targetRoles: ["admin", "reception"],
+        entityId: c.id,
+        meta: { path: `/ai/inbox?conversation=${c.id}` },
+      });
+      expect(JSON.stringify(payload)).not.toContain("لو سمحت");
+      await setConversationStatus(c.id, "open");
+      await setConversationStatus(c.id, "human");
+      await notifyHandoffs();
+      expect(notify).toHaveBeenCalledTimes(1);
+      await setConversationStatus(c.id, "open");
+      await ingestEvents([event("ask-again", "عايز موظف")]);
+      await notifyHandoffs();
+      expect(notify).toHaveBeenCalledTimes(2);
     });
     it("treats a staff-started conversation as having a closed reply window", async () => {
       await enable();
