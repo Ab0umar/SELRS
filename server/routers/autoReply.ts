@@ -46,6 +46,8 @@ import {
   conversationContext,
   getAutoReplyDb,
   queueManualReply,
+  approveSuggestion,
+  discardSuggestion,
   readSettings,
   saveSettings,
   setConversationStatus,
@@ -577,6 +579,42 @@ export const autoReplyRouter = router({
           .orderBy(desc(jobs.id))
           .limit(30),
       };
+    }),
+  approveSuggestion: autoReplyInboxWrite
+    .input(
+      z.object({
+        jobId: recordId,
+        text: z.string().trim().min(1).max(2000),
+        requestId: z.uuid(),
+      }),
+    )
+    .mutation(async ({ input, ctx }) => {
+      const result = await approveSuggestion(
+        input.jobId,
+        input.text,
+        input.requestId,
+        ctx.user.id,
+      );
+      await logAuditEvent(
+        ctx.user.id,
+        "AUTO_REPLY_SUGGESTION_APPROVED",
+        "auto_reply",
+        input.jobId,
+        { jobId: result.id },
+      );
+      return result;
+    }),
+  discardSuggestion: autoReplyInboxWrite
+    .input(z.object({ jobId: recordId }))
+    .mutation(async ({ input, ctx }) => {
+      await discardSuggestion(input.jobId, ctx.user.id);
+      await logAuditEvent(
+        ctx.user.id,
+        "AUTO_REPLY_SUGGESTION_DISCARDED",
+        "auto_reply",
+        input.jobId,
+      );
+      return { ok: true };
     }),
   setStatus: autoReplyInboxWrite
     .input(

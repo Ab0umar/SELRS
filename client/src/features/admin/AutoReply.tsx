@@ -223,6 +223,9 @@ const statusLabels: Record<string, string> = {
   failed: "فشل",
   unknown: "إرسال غير محسوم",
   cancelled: "ملغاة",
+  suggested: "اقتراح ينتظر المراجعة",
+  approved: "اقتراح معتمد",
+  discarded: "اقتراح مرفوض",
 };
 const time = (date: Date | string | null | undefined) =>
   date
@@ -494,6 +497,70 @@ export default function AutoReply() {
         )
       )}
     </main>
+  );
+}
+
+function SuggestedReply({
+  jobId,
+  draft,
+  handoff,
+  disabled,
+  onDone,
+}: {
+  jobId: number;
+  draft: string;
+  handoff: boolean;
+  disabled: boolean;
+  onDone: () => Promise<unknown>;
+}) {
+  const [text, setText] = useState(draft);
+  const [requestId] = useState(() => crypto.randomUUID());
+  const approve = trpc.autoReply.approveSuggestion.useMutation({
+    onSuccess: async () => {
+      await onDone();
+      toast.success("اعتُمد الرد وأُضيف للطابور");
+    },
+    onError: (e) => toast.error(e.message),
+  });
+  const discard = trpc.autoReply.discardSuggestion.useMutation({
+    onSuccess: onDone,
+    onError: (e) => toast.error(e.message),
+  });
+  const busy = approve.isPending || discard.isPending;
+  return (
+    <section className="ar-notice" aria-label="رد مقترح">
+      <strong>
+        رد مقترح لم يُرسل{handoff ? " · المقترح تحويل لموظف" : ""}
+      </strong>
+      <Field label="نص الرد">
+        <Textarea
+          dir="auto"
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+        />
+      </Field>
+      <div className="ar-toolbar">
+        <Button
+          type="button"
+          disabled={disabled || busy || !text.trim()}
+          onClick={() => approve.mutate({ jobId, text, requestId })}
+        >
+          {approve.isPending
+            ? "جارٍ الاعتماد…"
+            : text.trim() === draft.trim()
+              ? "اعتماد وإرسال"
+              : "إرسال بعد التعديل"}
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          disabled={busy}
+          onClick={() => discard.mutate({ jobId })}
+        >
+          تجاهل الاقتراح
+        </Button>
+      </div>
+    </section>
   );
 }
 
@@ -1033,6 +1100,18 @@ function Conversation({
         </div>
         {!sendingEnabled && <p role="status">الإرسال متوقف بالمفتاح العام.</p>}
       </form>
+      {jobs
+        .filter((j) => j.state === "suggested" && j.body)
+        .map((j) => (
+          <SuggestedReply
+            key={j.id}
+            jobId={j.id}
+            draft={j.body!}
+            handoff={j.handoff}
+            disabled={!sendingEnabled || c.status === "closed"}
+            onDone={refresh}
+          />
+        ))}
       {proposal && (
         <div className="ar-notice" role="status">
           <strong>اختبار فقط، لم يُرسل</strong>
@@ -1440,6 +1519,7 @@ function Settings({
         hours,
         outsideMessage,
         outsideMessageEn,
+        replyMode,
       } = next;
       return {
         ...base,
@@ -1462,6 +1542,7 @@ function Settings({
             hours,
             outsideMessage,
             outsideMessageEn,
+            replyMode,
           },
         },
       };
@@ -1654,6 +1735,19 @@ function Settings({
               المفتاح العام يُضبط من «المشترك». الاختيارات التالية تخص هذه الجهة
               فقط.
             </p>
+          )}
+          {scope !== "all" && (
+            <Field label="طريقة الرد على هذه الجهة">
+              <select
+                value={config.replyMode}
+                onChange={(e) =>
+                  update("replyMode", e.target.value as "auto" | "suggest")
+                }
+              >
+                <option value="auto">يرسل الرد تلقائيًا</option>
+                <option value="suggest">يقترح الرد وموظف يعتمده</option>
+              </select>
+            </Field>
           )}
           {autoReplyChannels
             .filter((c) =>

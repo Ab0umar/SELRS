@@ -144,6 +144,7 @@ describe.skipIf(!testUrl)(
         "0108_auto_reply_teaching.sql",
         "0113_auto_reply_provider_indexes.sql",
         "0114_auto_reply_handoff_notified.sql",
+        "0115_auto_reply_suggestions.sql",
       ]) {
         const migration = await readFile(
           new URL(`../../drizzle/${file}`, import.meta.url),
@@ -1492,6 +1493,72 @@ describe.skipIf(!testUrl)(
       await ingestEvents([event("ask-again", "عايز موظف")]);
       await notifyHandoffs();
       expect(notify).toHaveBeenCalledTimes(2);
+    });
+    it("keeps suggested replies as drafts until staff approve them once", async () => {
+      const config = await enable();
+      await saveSettings(
+        { ...config, targets: { whatsapp: { replyMode: "suggest" } } },
+        1,
+      );
+      await ingestEvents([event()]);
+      const network = mockNetwork();
+      await runAutoReplyTick();
+      await runAutoReplyTick();
+      const [draft] = await db.select().from(jobs);
+      expect(draft).toMatchObject({
+        state: "suggested",
+        body: "العنوان المعتمد للاختبار",
+      });
+      expect(
+        network.mock.calls.filter(([url]) => String(url).includes("/messages")),
+      ).toHaveLength(0);
+      const caller = autoReplyRouter.createCaller(makeCallerAs("admin"));
+      const requestId = randomUUID();
+      const approval = {
+        jobId: draft.id,
+        text: "العنوان المعتمد للاختبار.",
+        requestId,
+      };
+      const first = await caller.approveSuggestion(approval);
+      expect(await caller.approveSuggestion(approval)).toEqual(first);
+      await expect(
+        caller.approveSuggestion({ ...approval, requestId: randomUUID() }),
+      ).rejects.toMatchObject({ code: "PRECONDITION_FAILED" });
+      await db.update(connections).set({ lastSentAt: null });
+      await runAutoReplyTick();
+      const rows = await db.select().from(jobs).orderBy(jobs.id);
+      expect(rows.map((row) => [row.kind, row.state])).toEqual([
+        ["auto", "approved"],
+        ["manual", "sent"],
+      ]);
+      expect(rows[0].approvedBy).toBe(123);
+      expect(
+        (await db.select().from(messages))
+          .filter((m) => m.direction === "staff")
+          .map((m) => m.body),
+      ).toEqual(["العنوان المعتمد للاختبار."]);
+    });
+    it("supersedes a pending suggestion on a new customer message, and can discard one", async () => {
+      const config = await enable();
+      await saveSettings(
+        { ...config, targets: { whatsapp: { replyMode: "suggest" } } },
+        1,
+      );
+      await ingestEvents([event("q1")]);
+      mockNetwork();
+      await runAutoReplyTick();
+      await ingestEvents([event("q2")]);
+      const [old] = await db.select().from(jobs).orderBy(jobs.id);
+      expect(old).toMatchObject({ state: "cancelled", errorCode: "SUPERSEDED" });
+      await runAutoReplyTick();
+      const latest = (await db.select().from(jobs).orderBy(jobs.id))[1];
+      expect(latest.state).toBe("suggested");
+      await autoReplyRouter
+        .createCaller(makeCallerAs("admin"))
+        .discardSuggestion({ jobId: latest.id });
+      expect(
+        (await db.select().from(jobs).where(eq(jobs.id, latest.id)))[0].state,
+      ).toBe("discarded");
     });
     it("treats a staff-started conversation as having a closed reply window", async () => {
       await enable();

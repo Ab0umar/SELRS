@@ -90,6 +90,7 @@ export const autoReplySettingsSchema = z.object({
             .optional(),
           outsideMessage: z.string().trim().min(1).max(1000).optional(),
           outsideMessageEn: z.string().trim().min(1).max(1000).optional(),
+          replyMode: z.enum(["auto", "suggest"]).optional(),
         })
         .refine(
           (value) => !value.hoursEnabled || !!value.hours?.length,
@@ -98,6 +99,8 @@ export const autoReplySettingsSchema = z.object({
     )
     .default({}),
   engine: z.enum(["current", "central"]).default("current"),
+  // "suggest" stores the generated reply as a draft for staff approval.
+  replyMode: z.enum(["auto", "suggest"]).default("auto"),
   knowledgeMode: z.enum(["legacy", "teach_ai"]).default("legacy"),
   historyMessageLimit: z.number().int().min(0).max(50).default(12),
   temperature: z.number().min(0).max(2).default(0.2),
