@@ -1,20 +1,57 @@
 # Independent AI workspace
 
-The AI module opens at `/ai` from the home page, top navigation, sidebar and admin command search. It uses its own layout rather than the administration hub. Existing providers and server operations are reused.
+The AI module opens at `/ai` and uses `AiLayout` (`client/src/features/ai/AiLayout.tsx`) rather than the administration hub. The header title comes from `aiSubmoduleFor(location)` in `client/src/features/ai/navigation.ts`. Five workspaces share that layout:
 
-| Page | Purpose |
+| Workspace | Home | What it contains |
+| --- | --- | --- |
+| AI | `/ai` | Overview, `/ai/settings`, `/ai/experiments`, `/ai/usage` |
+| المساعد الطبي | `/ai/medical` | Dictation and clinician proposal review |
+| الرد الآلي والتدريب | `/ai/replies` | Conversations, Teach AI, channel settings, reply tests, delivery activity |
+| محتوى التسويق | `/ai/marketing` | Generation, `/ai/marketing/drafts`, `history`, `brand`, `settings` |
+| حملات واتساب | `/ai/marketing/whatsapp` | Campaign batches, WhatsApp copy (`WhatsAppCopy`), delivery results |
+
+`aiSubmoduleFor` keeps the longest matching home. `/ai/marketing/whatsapp` stays on حملات واتساب. `/ai/marketing/drafts` stays on محتوى التسويق. Any other `/ai` path falls through to the AI workspace.
+
+The sidebar lists those five groups separately (`adminNavGroups` in `client/src/components/layout/AppNav.tsx`). The top-nav **AI** menu lists the four AI pages, then a separator, then المساعد الطبي, الرد الآلي والتدريب, محتوى التسويق, and حملات واتساب. The mobile **المزيد** drawer folds the same pages into one **AI** group. The primary bottom bar has an **AI** tab (`/ai`) and a **محتوى التسويق** tab (`/ai/marketing`); `activeTabKey` lights the longer match, so `/ai/marketing` and `/ai/marketing/whatsapp` light محتوى التسويق. The home card and the command palette entry are both labeled **AI** and open `/ai`. The home التسويق card still links to `/marketing`, which redirects.
+
+`legacyAiRoutes` redirects the old URLs and keeps `search` and `hash`:
+
+| Old path | Destination |
 | --- | --- |
-| `/ai` | Provider configuration status and tool directory |
-| `/ai/replies` | Conversations, Teach AI, channel settings, reply tests and delivery activity |
-| `/ai/medical` | Dictation and clinician proposal review |
-| `/ai/marketing` | Text/image generation and generation jobs |
-| `/ai/marketing/{drafts,history,brand,settings,whatsapp}` | Drafts, published history, visual references, schedules and campaigns |
-| `/ai/whatsapp` | Copy drafting |
-| `/ai/settings` | Provider/model selection and workload limits |
-| `/ai/experiments` | Explicitly confirmed synthetic connection requests |
-| `/ai/usage` | Request outcomes, Gemini tokens and Manus credits |
+| `/admin-hub/ai`, `/admin/ai`, `/booking-triage/ai` | `/ai` |
+| `/admin-hub/auto-reply`, `/admin/auto-reply`, `/booking-triage/auto-reply` | `/ai/replies` |
+| `/admin-hub/medical-assistant`, `/admin/medical-assistant`, `/booking-triage/medical-assistant` | `/ai/medical` |
+| `/marketing` and its `drafts`, `history`, `brand`, `settings`, `whatsapp` children | the matching `/ai/marketing/...` page |
+| `/ai/whatsapp` (`ROUTES.aiWhatsApp`) | `/ai/marketing/whatsapp` |
 
-Old administration and marketing links redirect into these pages, preserving query parameters and fragments. Existing permission IDs are retained and normalized by both the route guard and navigation filtering. Management permission alone does not grant access to clinical, reply or marketing pages. The permission editor groups the existing AI IDs under the AI section. No permission migration is required.
+`aiPermissionPath` is unchanged. `/ai/replies` still checks `/admin-hub/auto-reply`. `/ai/medical` checks `/admin-hub/medical-assistant`. `/ai/marketing` checks `/marketing`. A path under `/ai/marketing/` drops the `/ai` prefix (`/ai/marketing/whatsapp` checks `/marketing/whatsapp`). The AI settings pages check `/admin-hub/ai`. The permission editor still groups those IDs under الذكاء الاصطناعي. No permission migration is required. A management permission on its own does not open the clinical, reply, or marketing pages.
+
+## Content generation and the proxy timeout
+
+`marketing.generatePost` and `marketing.generateCentralPost` are `adminProcedure`s in `server/routers/marketing.ts`. Gemini and Grok drafting goes through `generateCentralMarketingDraft` in `server/services/ai/marketingDraft.ts` with `{ detach: true }`.
+
+The detached call inserts `aiMarketingJobs` (and `aiMarketingJobContext`) and returns `{ jobId, topic, state: "running", postId: null }` before `finishCentralMarketingDraft` writes the text and image. The client already polls the job. A failure after that insert is logged as `[marketing] central draft failed` plus the request id. Validation that runs before the insert still fails the mutation: central management disabled, a missing or disabled `marketing.text` / `marketing.image` profile, a Manus profile for a workload whose model was not selected, a missing `GEMINI_API_KEY` or `XAI_API_KEY` for the chosen provider, a repeated request id whose topic, page, or day differs, or a topic that was already published (`PublishedMarketingTopicError` becomes `PRECONDITION_FAILED` on `generateCentralPost`).
+
+`generatePost` adds topic planning:
+
+- A request that already has `topic` awaits the tracked operation. Gemini/Grok then detach as above. Manus still runs `startManusGeneration`, which waits for `createManusTask` before the mutation returns.
+- A request with an empty `topic` returns `{ jobId: input.requestId, topic: "" }` immediately. `planMarketingTopic` and the provider start continue in the background. The comment in the router calls out Grok topic planning as the call that can outlast the proxy timeout.
+
+The dashboard polls `marketing.generationRequest` every 4 seconds (`MarketingDashboard.tsx`). A tracked operation whose state is `rejected` clears the pending request and shows «لم يبدأ التوليد. راجع الإعدادات ثم ابدأ طلبًا جديدًا.» On the empty-topic path that error is only in the server log, as `[marketing] generatePost failed` plus the request id. There is no automated test for that empty-topic failure path. When the mutation itself returns a topic, the toast names it; an empty topic uses «بدأ اختيار الموضوع وتجهيز النص والصورة». A request that already includes a topic still returns provider errors from the mutation, and the dashboard shows `err.message`.
+
+`AI_CORE_MANAGEMENT_ENABLED=true` with no request `assistant` resolves the configured marketing assistant. If none is configured, the operation throws `AiManagementError("unavailable")`. On the empty-topic path that rejection is the generic toast above.
+
+## WhatsApp campaign deliveries
+
+`WhatsAppCampaigns.tsx` polls `marketing.whatsappSummary` every 15 seconds. The query's `deliveries` array comes from `marketingDeliveryResults()` in `server/services/whatsappMarketing.service.ts`.
+
+The query reads the latest 25 `whatsapp_marketing_deliveries` rows, joined to the campaign name. It attaches one `whatsapp_confirmation_receipts` row with the same `provider_message_id` and `sender_phone_id = ENV.whatsappPhoneNumberId`. `FIELD(state, 'sent', 'failed', 'delivered', 'read') DESC` prefers `read`, then `delivered`, then `failed`, then `sent`. Ties use the later `event_ms`, then the higher receipt id. The shown state is the receipt state when one exists, otherwise the delivery status. Error text is the receipt's `error_details`, otherwise the delivery's `error_message`. Meta error `131049` is replaced with «ميتا منعت تسليم الرسالة للحفاظ على جودة التفاعل. لا تكرر الإرسال فورًا لنفس العميل.»
+
+The panel labels are: `accepted` قبلتها ميتا، بانتظار نتيجة التسليم; `sent` تم الإرسال، لم يتأكد التسليم بعد; `delivered` تم التسليم; `read` تمت القراءة; `failed` فشل الإرسال. An empty list says «لا توجد رسائل حملات مسجلة.»
+
+## Marketing Facebook app credentials
+
+`FB_USE_AUTO_REPLY_APP` defaults to `false` in `.env.example`. `server/_core/env.ts` sets `ENV.fbAppId` and `ENV.fbAppSecret` from `FB_APP_ID` and `FB_APP_SECRET`. When the flag is `true`, those two fields are read from `AUTO_REPLY_META_APP_ID` and `AUTO_REPLY_META_APP_SECRET` instead. `server/services/marketing/facebookOAuth.service.ts` is the caller. The auto-reply webhook keeps reading `AUTO_REPLY_META_APP_SECRET` directly. See `docs/auto-reply-setup.md` for the reply go-live checks.
 
 ## Design read and verification
 
@@ -27,6 +64,8 @@ The local checks cover all primary navigation links, marketing subnavigation, le
 Shared foreground/background, primary/background and selected-navigation pairs are checked against the WCAG contrast formula. The core and UI antislop gates apply to the new workspace; existing operational screens are reused rather than redesigned. Local verification is separate from deployment.
 
 ### Observed local results, 2026-10-26
+
+These notes are from the workspace check on 2026-10-26, before the five-workspace split above. They do not re-check the current sidebar, top-nav menu, or bottom nav.
 
 - `pnpm check`: passed.
 - `pnpm test`: 92 files, 649 tests passed, including independent AI permission and redirect regressions.
