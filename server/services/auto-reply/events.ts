@@ -23,6 +23,12 @@ const message = z.object({
   is_echo: z.boolean().optional(),
   app_id: z.union([z.string(), z.number()]).optional(),
 });
+const messagingItem = z.object({
+  sender: z.object({ id }),
+  recipient: z.object({ id }),
+  timestamp: z.number(),
+  message: message.optional(),
+});
 const envelope = z.object({
   object: z.string().optional(),
   entry: z
@@ -30,17 +36,8 @@ const envelope = z.object({
       z.object({
         id: z.string().max(128),
         time: z.number().optional(),
-        messaging: z
-          .array(
-            z.object({
-              sender: z.object({ id }),
-              recipient: z.object({ id }),
-              timestamp: z.number(),
-              message: message.optional(),
-            }),
-          )
-          .max(1000)
-          .optional(),
+        // Items are validated one by one so a single odd event cannot drop the batch.
+        messaging: z.array(z.unknown()).max(1000).optional(),
         changes: z
           .array(z.object({ field: z.string(), value: z.unknown() }))
           .max(1000)
@@ -113,7 +110,10 @@ export function parseMetaEvents(
       parsed.object === "page" &&
       facebookPages().some((p) => p.accountId && p.accountId === entry.id)
     ) {
-      for (const e of entry.messaging ?? []) {
+      for (const item of entry.messaging ?? []) {
+        const parsedItem = messagingItem.safeParse(item);
+        if (!parsedItem.success) continue;
+        const e = parsedItem.data;
         if (!e.message?.mid) continue;
         const echo = Boolean(e.message.is_echo);
         if (

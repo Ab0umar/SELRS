@@ -177,7 +177,8 @@ export async function ingestEvents(batch: InboundEvent[]) {
           accountId: event.accountId,
           participantId: event.participantId,
           threadId: event.threadId,
-          lastInboundAt: event.at,
+          // A conversation started by staff has no customer message, so no reply window.
+          lastInboundAt: event.humanEcho ? new Date(0) : event.at,
           lastActivityAt: new Date(),
         });
         conversationId = insert.insertId;
@@ -383,6 +384,17 @@ export async function withKnowledgeUpdate<T>(
       .where(eq(settingsTable.id, 1));
     await requeueQueuedJobs(tx);
     return result;
+  });
+}
+export async function recordSentMessage(row: typeof messages.$inferInsert) {
+  const db = await getAutoReplyDb();
+  await db.transaction(async (tx) => {
+    await tx
+      .select()
+      .from(settingsTable)
+      .where(eq(settingsTable.id, 1))
+      .for("update");
+    await tx.insert(messages).values(row);
   });
 }
 export async function setConversationStatus(
